@@ -70,7 +70,7 @@ func init() {
 
 func realmsListF(command *cobra.Command, args []string) error {
 	fmt.Println("List realms called")
-	fmt.Printf("Going to call %s with a JWT signed with %s\n", housekeepingUrl, housekeepingKey)
+	fmt.Printf("Going to call %s with this JWT %s\n", housekeepingUrl, housekeepingJwt)
 
 	return nil
 }
@@ -79,7 +79,7 @@ func realmsShowF(command *cobra.Command, args []string) error {
 	realm := args[0]
 
 	fmt.Printf("Show realm called\nrealm: %s\n", realm)
-	fmt.Printf("Going to call %s with a JWT signed with %s\n", housekeepingUrl, housekeepingKey)
+	fmt.Printf("Going to call %s with this JWT %s\n", housekeepingUrl, housekeepingJwt)
 
 	return nil
 }
@@ -97,7 +97,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Create realms called\nrealm: %s, public_key: %s, replication factor: %d\n", realm, publicKey, replicationFactor)
-	fmt.Printf("Going to call %s with a JWT signed with %s\n", housekeepingUrl, housekeepingKey)
+	fmt.Printf("Going to call %s with this JWT %s\n", housekeepingUrl, housekeepingJwt)
 
 	return nil
 }
