@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/astarte-platform/astartectl/cmd/housekeeping"
 
@@ -56,6 +57,7 @@ func init() {
 	// will be global for your application.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.astartectl.yaml)")
 	rootCmd.PersistentFlags().StringP("astarte-url", "u", "", "Base url for your Astarte deployment (e.g. https://api.astarte.example.com)")
+	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("astarte-url"))
 
 	rootCmd.AddCommand(housekeeping.HousekeepingCmd)
 }
@@ -78,6 +80,9 @@ func initConfig() {
 		viper.SetConfigName(".astartectl")
 	}
 
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.SetEnvPrefix("astartectl")
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.

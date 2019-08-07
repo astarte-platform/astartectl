@@ -17,6 +17,8 @@ package housekeeping
 import (
 	"errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"net/url"
 	"path"
 )
 
@@ -36,23 +38,25 @@ func init() {
 		&housekeepingKey, "housekeeping-key", "k", "",
 		"Path to housekeeping private key to generate JWT for authentication")
 	HousekeepingCmd.MarkPersistentFlagFilename("housekeeping-key")
+	viper.BindPFlag("housekeeping.key", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-key"))
 	HousekeepingCmd.PersistentFlags().String("housekeeping-url", "",
 		"Housekeeping API base URL. Defaults to <astarte-url>/housekeeping.")
+	viper.BindPFlag("housekeeping.url", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-url"))
 }
 
 func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	housekeepingUrlFlag, errHousekeeping := cmd.Flags().GetString("housekeeping-url")
-	astarteUrlFlag, errAstarte := cmd.Flags().GetString("astarte-url")
-
-	if errHousekeeping == nil && housekeepingUrlFlag != "" {
+	housekeepingUrlOverride := viper.GetString("housekeeping.url")
+	astarteUrl := viper.GetString("url")
+	if housekeepingUrlOverride != "" {
 		// Use explicit housekeeping-url
-		housekeepingUrl = housekeepingUrlFlag
-	} else if errAstarte == nil && astarteUrlFlag != "" {
-		housekeepingUrl = path.Join(astarteUrlFlag, "housekeeping")
+		housekeepingUrl = housekeepingUrlOverride
+	} else if astarteUrl != "" {
+		housekeepingUrl = path.Join(astarteUrl, "housekeeping")
 	} else {
 		return errors.New("Either astarte-url or housekeeping-url have to be specified")
 	}
 
+	housekeepingKey = viper.GetString("housekeeping.key")
 	if housekeepingKey == "" {
 		return errors.New("housekeeping-key is required")
 	}
