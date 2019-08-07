@@ -16,10 +16,13 @@ package housekeeping
 
 import (
 	"errors"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"net/url"
 	"path"
+	"time"
 )
 
 // housekeepingCmd represents the housekeeping command
@@ -30,12 +33,11 @@ var HousekeepingCmd = &cobra.Command{
 	PersistentPreRunE: housekeepingPersistentPreRunE,
 }
 
-var housekeepingKey string
+var housekeepingJwt string
 var housekeepingUrl string
 
 func init() {
-	HousekeepingCmd.PersistentFlags().StringVarP(
-		&housekeepingKey, "housekeeping-key", "k", "",
+	HousekeepingCmd.PersistentFlags().StringP("housekeeping-key", "k", "",
 		"Path to housekeeping private key to generate JWT for authentication")
 	HousekeepingCmd.MarkPersistentFlagFilename("housekeeping-key")
 	viper.BindPFlag("housekeeping.key", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-key"))
@@ -58,10 +60,44 @@ func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("Either astarte-url or housekeeping-url have to be specified")
 	}
 
-	housekeepingKey = viper.GetString("housekeeping.key")
+	housekeepingKey := viper.GetString("housekeeping.key")
 	if housekeepingKey == "" {
 		return errors.New("housekeeping-key is required")
 	}
 
+	var err error
+	housekeepingJwt, err = generateHousekeepingJWT(housekeepingKey)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func generateHousekeepingJWT(privateKey string) (jwtString string, err error) {
+	keyPEM, err := ioutil.ReadFile(privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	key, err := jwt.ParseRSAPrivateKeyFromPEM(keyPEM)
+	if err != nil {
+		return "", err
+	}
+
+	now := time.Now().UTC().Unix()
+	// 5 minutes expiry
+	expiry := now + 300
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		"a_ha": []string{"^.*$::^.*$"},
+		"iat":  now,
+		"exp":  expiry,
+	})
+
+	tokenString, err := token.SignedString(key)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }
