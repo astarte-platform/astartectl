@@ -51,7 +51,9 @@ func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		// Use explicit housekeeping-url
 		housekeepingUrl = housekeepingUrlOverride
 	} else if astarteUrl != "" {
-		housekeepingUrl = path.Join(astarteUrl, "housekeeping")
+		url, _ := url.Parse(astarteUrl)
+		url.Path = path.Join(url.Path, "housekeeping")
+		housekeepingUrl = url.String()
 	} else {
 		return errors.New("Either astarte-url or housekeeping-url have to be specified")
 	}
