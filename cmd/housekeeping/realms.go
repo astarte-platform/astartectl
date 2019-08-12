@@ -117,8 +117,41 @@ func realmsListF(command *cobra.Command, args []string) error {
 func realmsShowF(command *cobra.Command, args []string) error {
 	realm := args[0]
 
-	fmt.Printf("Show realm called\nrealm: %s\n", realm)
-	fmt.Printf("Going to call %s with this JWT %s\n", housekeepingUrl, housekeepingJwt)
+	req, err := http.NewRequest("GET", housekeepingUrl+"/v1/realms/"+realm, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", "Bearer "+housekeepingJwt)
+
+	resp, err := netClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == 200 {
+		var responseBody struct {
+			Data map[string]interface{} `json:"data"`
+		}
+		err = json.NewDecoder(resp.Body).Decode(&responseBody)
+		if err != nil {
+			return err
+		}
+
+		respJson, _ := json.MarshalIndent(responseBody, "", "  ")
+		fmt.Println(string(respJson))
+	} else {
+		var errorBody struct {
+			Errors map[string]interface{} `json:"errors"`
+		}
+		err = json.NewDecoder(resp.Body).Decode(&errorBody)
+		if err != nil {
+			return err
+		}
+
+		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
+		fmt.Println(string(errJson))
+		return nil
+	}
 
 	return nil
 }
