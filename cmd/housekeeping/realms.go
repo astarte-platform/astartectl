@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -110,7 +111,7 @@ func realmsListF(command *cobra.Command, args []string) error {
 
 		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
 		fmt.Println(string(errJson))
-		return nil
+		os.Exit(1)
 	}
 
 	return nil
@@ -152,7 +153,7 @@ func realmsShowF(command *cobra.Command, args []string) error {
 
 		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
 		fmt.Println(string(errJson))
-		return nil
+		os.Exit(1)
 	}
 
 	return nil
@@ -220,7 +221,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 
 		errJson, _ := json.MarshalIndent(&responseBody, "", "  ")
 		fmt.Println(string(errJson))
-		return nil
+		os.Exit(1)
 	}
 
 	return nil
