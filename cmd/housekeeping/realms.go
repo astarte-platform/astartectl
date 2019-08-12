@@ -15,9 +15,11 @@
 package housekeeping
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"net/http"
 	"time"
 )
@@ -65,7 +67,7 @@ func init() {
 	realmsCreateCmd.Flags().StringP("public-key", "p", "", "Path to PEM encoded public key used as realm key")
 	realmsCreateCmd.MarkFlagRequired("public-key")
 	realmsCreateCmd.MarkFlagFilename("public-key")
-	realmsCreateCmd.Flags().IntP("replication-factor", "r", 1, "Replication factor for the realm, used with SimpleStrategy replication")
+	realmsCreateCmd.Flags().IntP("replication-factor", "r", 0, "Replication factor for the realm, used with SimpleStrategy replication")
 
 	realmsCmd.AddCommand(
 		realmsListCmd,
@@ -163,13 +165,63 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
+	publicKeyContent, err := ioutil.ReadFile(publicKey)
+	if err != nil {
+		return err
+	}
+
+	var requestBody struct {
+		Data map[string]interface{} `json:"data"`
+	}
+
+	requestBody.Data = map[string]interface{}{
+		"realm_name":         realm,
+		"jwt_public_key_pem": string(publicKeyContent),
+	}
+
 	replicationFactor, err := command.Flags().GetInt("replication-factor")
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Create realms called\nrealm: %s, public_key: %s, replication factor: %d\n", realm, publicKey, replicationFactor)
-	fmt.Printf("Going to call %s with this JWT %s\n", housekeepingUrl, housekeepingJwt)
+	if replicationFactor > 0 {
+		requestBody.Data["replication_factor"] = replicationFactor
+	}
+
+	b := new(bytes.Buffer)
+	err = json.NewEncoder(b).Encode(requestBody)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", housekeepingUrl+"/v1/realms", b)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", "Bearer "+housekeepingJwt)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := netClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	var responseBody struct {
+		Errors map[string]interface{} `json:"errors"`
+	}
+
+	if resp.StatusCode == 201 {
+		fmt.Println("ok")
+	} else {
+		err = json.NewDecoder(resp.Body).Decode(&responseBody)
+		if err != nil {
+			return err
+		}
+
+		errJson, _ := json.MarshalIndent(&responseBody, "", "  ")
+		fmt.Println(string(errJson))
+		return nil
+	}
 
 	return nil
 }
