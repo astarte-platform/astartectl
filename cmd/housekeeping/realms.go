@@ -15,9 +15,11 @@
 package housekeeping
 
 import (
+	"encoding/json"
 	"fmt"
-
 	"github.com/spf13/cobra"
+	"net/http"
+	"time"
 )
 
 // realmsCmd represents the realms command
@@ -53,6 +55,10 @@ var realmsCreateCmd = &cobra.Command{
 	RunE:    realmsCreateF,
 }
 
+var netClient = &http.Client{
+	Timeout: time.Second * 30,
+}
+
 func init() {
 	HousekeepingCmd.AddCommand(realmsCmd)
 
@@ -69,8 +75,41 @@ func init() {
 }
 
 func realmsListF(command *cobra.Command, args []string) error {
-	fmt.Println("List realms called")
-	fmt.Printf("Going to call %s with this JWT %s\n", housekeepingUrl, housekeepingJwt)
+	req, err := http.NewRequest("GET", housekeepingUrl+"/v1/realms", nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", "Bearer "+housekeepingJwt)
+
+	resp, err := netClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == 200 {
+		var responseBody struct {
+			Data []string `json:"data"`
+		}
+		err = json.NewDecoder(resp.Body).Decode(&responseBody)
+		if err != nil {
+			return err
+		}
+
+		respJson, _ := json.MarshalIndent(responseBody, "", "  ")
+		fmt.Println(string(respJson))
+	} else {
+		var errorBody struct {
+			Errors map[string]interface{} `json:"errors"`
+		}
+		err = json.NewDecoder(resp.Body).Decode(&errorBody)
+		if err != nil {
+			return err
+		}
+
+		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
+		fmt.Println(string(errJson))
+		return nil
+	}
 
 	return nil
 }
