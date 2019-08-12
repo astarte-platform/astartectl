@@ -64,9 +64,13 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	envCfgFile := os.Getenv("ASTARTECTL_CONFIG")
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
+	} else if envCfgFile != "" {
+		viper.SetConfigFile(envCfgFile)
 	} else {
 		// Find home directory.
 		home, err := homedir.Dir()
@@ -86,7 +90,11 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
+	err := viper.ReadInConfig()
+	if err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	} else if envCfgFile != "" {
+		// If we explicitly provided a config, print a failure message
+		fmt.Printf("Cannot use %s for configuration: %s\n", viper.ConfigFileUsed(), err.Error())
 	}
 }
