@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/astarte-platform/astartectl/cmd/housekeeping"
+	"github.com/astarte-platform/astartectl/cmd/realm"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -60,6 +61,7 @@ func init() {
 	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("astarte-url"))
 
 	rootCmd.AddCommand(housekeeping.HousekeepingCmd)
+	rootCmd.AddCommand(realm.RealmManagementCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
