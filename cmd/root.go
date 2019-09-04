@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/astarte-platform/astartectl/cmd/housekeeping"
+	"github.com/astarte-platform/astartectl/cmd/pairing"
 	"github.com/astarte-platform/astartectl/cmd/realm"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -61,6 +62,7 @@ func init() {
 	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("astarte-url"))
 
 	rootCmd.AddCommand(housekeeping.HousekeepingCmd)
+	rootCmd.AddCommand(pairing.PairingCmd)
 	rootCmd.AddCommand(realm.RealmManagementCmd)
 }
 
