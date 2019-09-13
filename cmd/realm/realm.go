@@ -38,16 +38,16 @@ var realmManagementJwt string
 var realmManagementUrl string
 
 func init() {
-	RealmManagementCmd.PersistentFlags().StringP("realm-management-key", "k", "",
-		"Path to realm private key to generate JWT for authentication")
-	RealmManagementCmd.MarkPersistentFlagFilename("realm-management-key")
-	viper.BindPFlag("realm-management.key", RealmManagementCmd.PersistentFlags().Lookup("realm-management-key"))
+	RealmManagementCmd.PersistentFlags().StringP("realm-key", "k", "",
+		"Path to realm private key used to generate JWT for authentication")
+	RealmManagementCmd.MarkPersistentFlagFilename("realm-key")
+	viper.BindPFlag("realm.key", RealmManagementCmd.PersistentFlags().Lookup("realm-key"))
 	RealmManagementCmd.PersistentFlags().String("realm-management-url", "",
 		"Realm Management API base URL. Defaults to <astarte-url>/realmmanagement.")
 	viper.BindPFlag("realm-management.url", RealmManagementCmd.PersistentFlags().Lookup("realm-management-url"))
-	RealmManagementCmd.PersistentFlags().StringP("realm", "r", "",
-		"The realm that will be queried")
-	viper.BindPFlag("realm-management.realm", RealmManagementCmd.PersistentFlags().Lookup("realm"))
+	RealmManagementCmd.PersistentFlags().StringP("realm-name", "r", "",
+		"The name of the realm that will be queried")
+	viper.BindPFlag("realm.name", RealmManagementCmd.PersistentFlags().Lookup("realm-name"))
 }
 
 func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
@@ -64,12 +64,12 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("Either astarte-url or realm-management-url have to be specified")
 	}
 
-	realmManagementKey := viper.GetString("realm-management.key")
+	realmManagementKey := viper.GetString("realm.key")
 	if realmManagementKey == "" {
-		return errors.New("realm-management-key is required")
+		return errors.New("realm-key is required")
 	}
 
-	realm = viper.GetString("realm-management.realm")
+	realm = viper.GetString("realm.name")
 	if realm == "" {
 		return errors.New("realm is required")
 	}

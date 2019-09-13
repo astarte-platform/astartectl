@@ -38,16 +38,16 @@ var pairingJwt string
 var pairingUrl string
 
 func init() {
-	PairingCmd.PersistentFlags().StringP("pairing-key", "k", "",
-		"Path to realm private key to generate JWT for authentication")
-	PairingCmd.MarkPersistentFlagFilename("pairing-key")
-	viper.BindPFlag("pairing.key", PairingCmd.PersistentFlags().Lookup("pairing-key"))
+	PairingCmd.PersistentFlags().StringP("realm-key", "k", "",
+		"Path to realm private key used to generate JWT for authentication")
+	PairingCmd.MarkPersistentFlagFilename("realm-key")
+	viper.BindPFlag("realm.key", PairingCmd.PersistentFlags().Lookup("realm-key"))
 	PairingCmd.PersistentFlags().String("pairing-url", "",
 		"Pairing API base URL. Defaults to <astarte-url>/pairing.")
 	viper.BindPFlag("pairing.url", PairingCmd.PersistentFlags().Lookup("pairing-url"))
-	PairingCmd.PersistentFlags().StringP("realm", "r", "",
-		"The realm that will be queried")
-	viper.BindPFlag("pairing.realm", PairingCmd.PersistentFlags().Lookup("realm"))
+	PairingCmd.PersistentFlags().StringP("realm-name", "r", "",
+		"The name of the realm that will be queried")
+	viper.BindPFlag("realm.name", PairingCmd.PersistentFlags().Lookup("realm-name"))
 }
 
 func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
@@ -64,12 +64,12 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("Either astarte-url or pairing-url have to be specified")
 	}
 
-	pairingKey := viper.GetString("pairing.key")
+	pairingKey := viper.GetString("realm.key")
 	if pairingKey == "" {
-		return errors.New("pairing-key is required")
+		return errors.New("realm-key is required")
 	}
 
-	realm = viper.GetString("pairing.realm")
+	realm = viper.GetString("realm.name")
 	if realm == "" {
 		return errors.New("realm is required")
 	}
