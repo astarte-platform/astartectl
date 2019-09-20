@@ -17,11 +17,14 @@ package housekeeping
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -68,7 +71,12 @@ func init() {
 	realmsCreateCmd.Flags().StringP("public-key", "p", "", "Path to PEM encoded public key used as realm key")
 	realmsCreateCmd.MarkFlagRequired("public-key")
 	realmsCreateCmd.MarkFlagFilename("public-key")
-	realmsCreateCmd.Flags().IntP("replication-factor", "r", 0, "Replication factor for the realm, used with SimpleStrategy replication")
+	realmsCreateCmd.Flags().IntP("replication-factor", "r", 0, `Replication factor for the realm, used with SimpleStrategy replication.`)
+	realmsCreateCmd.Flags().StringSliceP("datacenter-replication", "d", nil,
+		`Replication factor for a datacenter, used with NetworkTopologyStrategy replication.
+
+The format is <datacenter-name>:<replication-factor>,<other-datacenter-name>:<other-replication-factor>.
+You can also specify the flag multiple times instead of separating it with a comma.`)
 
 	realmsCmd.AddCommand(
 		realmsListCmd,
@@ -185,8 +193,35 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
+	datacenterReplications, err := command.Flags().GetStringSlice("datacenter-replication")
+	if err != nil {
+		return err
+	}
+
+	if replicationFactor > 0 && datacenterReplications != nil {
+		return errors.New("replication-factor and datacenter-replication are mutually exclusive, you only have to specify one")
+	}
+
 	if replicationFactor > 0 {
 		requestBody.Data["replication_factor"] = replicationFactor
+	} else {
+		requestBody.Data["replication_class"] = "NetworkTopologyStrategy"
+		datacenterReplicationFactors := make(map[string]int)
+		for _, datacenterString := range datacenterReplications {
+			tokens := strings.Split(datacenterString, ":")
+			if len(tokens) != 2 {
+				errString := "Invalid datacenter replication: " + datacenterString + "."
+				errString += "\nFormat must be <datacenter-name>:<replication-factor>"
+				return errors.New(errString)
+			}
+			datacenter := tokens[0]
+			datacenterReplicationFactor, err := strconv.Atoi(tokens[1])
+			if err != nil {
+				return errors.New("Invalid replication factor " + tokens[1])
+			}
+			datacenterReplicationFactors[datacenter] = datacenterReplicationFactor
+		}
+		requestBody.Data["datacenter_replication_factors"] = datacenterReplicationFactors
 	}
 
 	b := new(bytes.Buffer)
