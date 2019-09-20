@@ -22,6 +22,7 @@ import (
 	"github.com/astarte-platform/astartectl/cmd/housekeeping"
 	"github.com/astarte-platform/astartectl/cmd/pairing"
 	"github.com/astarte-platform/astartectl/cmd/realm"
+	"github.com/astarte-platform/astartectl/cmd/utils"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -64,6 +65,7 @@ func init() {
 	rootCmd.AddCommand(housekeeping.HousekeepingCmd)
 	rootCmd.AddCommand(pairing.PairingCmd)
 	rootCmd.AddCommand(realm.RealmManagementCmd)
+	rootCmd.AddCommand(utils.UtilsCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
