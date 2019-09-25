@@ -77,7 +77,7 @@ func savePEMKey(fileName string, key *rsa.PrivateKey) {
 	defer outFile.Close()
 
 	var privateKey = &pem.Block{
-		Type:  "PRIVATE KEY",
+		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
 
