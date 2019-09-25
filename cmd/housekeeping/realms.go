@@ -198,13 +198,13 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	if replicationFactor > 0 && datacenterReplications != nil {
+	if replicationFactor > 0 && len(datacenterReplications) > 0 {
 		return errors.New("replication-factor and datacenter-replication are mutually exclusive, you only have to specify one")
 	}
 
 	if replicationFactor > 0 {
 		requestBody.Data["replication_factor"] = replicationFactor
-	} else {
+	} else if len(datacenterReplications) > 0 {
 		requestBody.Data["replication_class"] = "NetworkTopologyStrategy"
 		datacenterReplicationFactors := make(map[string]int)
 		for _, datacenterString := range datacenterReplications {
