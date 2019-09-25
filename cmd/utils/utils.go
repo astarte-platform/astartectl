@@ -15,11 +15,13 @@
 package utils
 
 import (
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -43,8 +45,17 @@ The keypair will be saved in the current directory with names <realm_name>_priva
 	RunE:    genKeypairF,
 }
 
+var genDeviceIdCmd = &cobra.Command{
+	Use:     "gen-device-id",
+	Short:   "Generate an Astarte device id",
+	Long:    `Generate an Astarte device id, which is a Base64 url encoded UUID v4.`,
+	Example: `  astartectl utils gen-device-id`,
+	RunE:    genDeviceIdF,
+}
+
 func init() {
 	UtilsCmd.AddCommand(genKeypairCmd)
+	UtilsCmd.AddCommand(genDeviceIdCmd)
 }
 
 func genKeypairF(command *cobra.Command, args []string) error {
@@ -69,6 +80,17 @@ func genKeypairF(command *cobra.Command, args []string) error {
 	return nil
 }
 
+func genDeviceIdF(command *cobra.Command, args []string) error {
+	deviceUuid, err := uuid.NewRandom()
+	checkError(err)
+
+	uuidBytes, err := deviceUuid.MarshalBinary()
+	checkError(err)
+
+	fmt.Println(base64.RawURLEncoding.EncodeToString(uuidBytes))
+
+	return nil
+}
 
 func savePEMKey(fileName string, key *rsa.PrivateKey) {
 	outFile, err := os.Create(fileName)
