@@ -20,7 +20,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -77,7 +76,7 @@ func savePEMKey(fileName string, key *rsa.PrivateKey) {
 	defer outFile.Close()
 
 	var privateKey = &pem.Block{
-		Type:  "PRIVATE KEY",
+		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
 
@@ -88,12 +87,11 @@ func savePEMKey(fileName string, key *rsa.PrivateKey) {
 }
 
 func savePublicPEMKey(fileName string, pubkey rsa.PublicKey) {
-	asn1Bytes, err := asn1.Marshal(pubkey)
+	pkixBytes, err := x509.MarshalPKIXPublicKey(&pubkey)
 	checkError(err)
-
 	var pemkey = &pem.Block{
 		Type:  "PUBLIC KEY",
-		Bytes: asn1Bytes,
+		Bytes: pkixBytes,
 	}
 
 	pemfile, err := os.Create(fileName)
