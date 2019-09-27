@@ -46,14 +46,6 @@ The keypair will be saved in the current directory with names <realm_name>_priva
 	RunE:    genKeypairF,
 }
 
-var genDeviceIDCmd = &cobra.Command{
-	Use:     "gen-device-id",
-	Short:   "Generate an Astarte device id",
-	Long:    `Generate an Astarte device id, which is a Base64 url encoded UUID v4.`,
-	Example: `  astartectl utils gen-device-id`,
-	RunE:    genDeviceIDF,
-}
-
 var jwtTypesToClaim = map[string]string{
 	"housekeeping":     "a_ha",
 	"realm-management": "a_rma",
@@ -86,7 +78,6 @@ You can specify the flag multiple times or separate the claims with a comma.`)
 	genJwtCmd.Flags().Int64P("expiry", "e", 300, "Expiration time of the token in seconds. 0 means the token will never expire.")
 
 	UtilsCmd.AddCommand(genKeypairCmd)
-	UtilsCmd.AddCommand(genDeviceIDCmd)
 	UtilsCmd.AddCommand(genJwtCmd)
 }
 
@@ -109,14 +100,6 @@ func genKeypairF(command *cobra.Command, args []string) error {
 	savePEMKey(realm+"_private.pem", key)
 	savePublicPEMKey(realm+"_public.pem", publicKey)
 
-	return nil
-}
-
-func genDeviceIDF(command *cobra.Command, args []string) error {
-	deviceID, err := utils.GenerateRandomAstarteDeviceID()
-	checkError(err)
-
-	fmt.Println(deviceID)
 	return nil
 }
 
