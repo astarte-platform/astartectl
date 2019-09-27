@@ -16,13 +16,14 @@ package pairing
 
 import (
 	"errors"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/url"
 	"path"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // pairingCmd represents the pairing command
@@ -38,16 +39,9 @@ var pairingJwt string
 var pairingUrl string
 
 func init() {
-	PairingCmd.PersistentFlags().StringP("realm-key", "k", "",
-		"Path to realm private key used to generate JWT for authentication")
-	PairingCmd.MarkPersistentFlagFilename("realm-key")
-	viper.BindPFlag("realm.key", PairingCmd.PersistentFlags().Lookup("realm-key"))
 	PairingCmd.PersistentFlags().String("pairing-url", "",
 		"Pairing API base URL. Defaults to <astarte-url>/pairing.")
 	viper.BindPFlag("pairing.url", PairingCmd.PersistentFlags().Lookup("pairing-url"))
-	PairingCmd.PersistentFlags().StringP("realm-name", "r", "",
-		"The name of the realm that will be queried")
-	viper.BindPFlag("realm.name", PairingCmd.PersistentFlags().Lookup("realm-name"))
 }
 
 func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {

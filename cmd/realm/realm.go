@@ -16,13 +16,14 @@ package realm
 
 import (
 	"errors"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"net/url"
 	"path"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // realmManagementCmd represents the realmManagement command
@@ -38,16 +39,9 @@ var realmManagementJwt string
 var realmManagementUrl string
 
 func init() {
-	RealmManagementCmd.PersistentFlags().StringP("realm-key", "k", "",
-		"Path to realm private key used to generate JWT for authentication")
-	RealmManagementCmd.MarkPersistentFlagFilename("realm-key")
-	viper.BindPFlag("realm.key", RealmManagementCmd.PersistentFlags().Lookup("realm-key"))
 	RealmManagementCmd.PersistentFlags().String("realm-management-url", "",
 		"Realm Management API base URL. Defaults to <astarte-url>/realmmanagement.")
 	viper.BindPFlag("realm-management.url", RealmManagementCmd.PersistentFlags().Lookup("realm-management-url"))
-	RealmManagementCmd.PersistentFlags().StringP("realm-name", "r", "",
-		"The name of the realm that will be queried")
-	viper.BindPFlag("realm.name", RealmManagementCmd.PersistentFlags().Lookup("realm-name"))
 }
 
 func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {

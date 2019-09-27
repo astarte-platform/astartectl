@@ -60,6 +60,11 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.astartectl.yaml)")
 	rootCmd.PersistentFlags().StringP("astarte-url", "u", "", "Base url for your Astarte deployment (e.g. https://api.astarte.example.com)")
 	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("astarte-url"))
+	rootCmd.PersistentFlags().StringP("realm-key", "k", "", "Path to realm private key used to generate JWT for authentication")
+	rootCmd.MarkPersistentFlagFilename("realm-key")
+	viper.BindPFlag("realm.key", rootCmd.PersistentFlags().Lookup("realm-key"))
+	rootCmd.PersistentFlags().StringP("realm-name", "r", "", "The name of the realm that will be queried")
+	viper.BindPFlag("realm.name", rootCmd.PersistentFlags().Lookup("realm-name"))
 
 	rootCmd.AddCommand(housekeeping.HousekeepingCmd)
 	rootCmd.AddCommand(pairing.PairingCmd)
