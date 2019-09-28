@@ -16,14 +16,15 @@ package pairing
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/astarte-platform/astartectl/utils"
+	"github.com/spf13/cobra"
 )
 
 var agentCmd = &cobra.Command{
@@ -55,23 +56,9 @@ func init() {
 	)
 }
 
-func isValidDeviceId(deviceId string) bool {
-	decoded, err := base64.RawURLEncoding.DecodeString(deviceId)
-	if err != nil {
-		return false
-	}
-
-	// 16 bytes == 128 bit
-	if len(decoded) != 16 {
-		return false
-	}
-
-	return true
-}
-
 func agentRegisterF(command *cobra.Command, args []string) error {
 	deviceId := args[0]
-	if !isValidDeviceId(deviceId) {
+	if !utils.IsValidAstarteDeviceID(deviceId) {
 		return errors.New("Invalid device id")
 	}
 
