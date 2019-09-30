@@ -40,13 +40,11 @@ func init() {
 	RealmManagementCmd.PersistentFlags().StringP("realm-key", "k", "",
 		"Path to realm private key used to generate JWT for authentication")
 	RealmManagementCmd.MarkPersistentFlagFilename("realm-key")
-	viper.BindPFlag("realm.key", RealmManagementCmd.PersistentFlags().Lookup("realm-key"))
 	RealmManagementCmd.PersistentFlags().String("realm-management-url", "",
 		"Realm Management API base URL. Defaults to <astarte-url>/realmmanagement.")
 	viper.BindPFlag("realm-management.url", RealmManagementCmd.PersistentFlags().Lookup("realm-management-url"))
 	RealmManagementCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
-	viper.BindPFlag("realm.name", RealmManagementCmd.PersistentFlags().Lookup("realm-name"))
 }
 
 func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
@@ -63,11 +61,13 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("Either astarte-url or realm-management-url have to be specified")
 	}
 
+	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
 	realmManagementKey := viper.GetString("realm.key")
 	if realmManagementKey == "" {
 		return errors.New("realm-key is required")
 	}
 
+	viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
 	realm = viper.GetString("realm.name")
 	if realm == "" {
 		return errors.New("realm is required")
