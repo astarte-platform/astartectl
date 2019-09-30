@@ -16,13 +16,12 @@ package housekeeping
 
 import (
 	"errors"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"io/ioutil"
 	"net/url"
 	"path"
-	"time"
+
+	"github.com/astarte-platform/astartectl/utils"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // housekeepingCmd represents the housekeeping command
@@ -75,29 +74,5 @@ func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 }
 
 func generateHousekeepingJWT(privateKey string) (jwtString string, err error) {
-	keyPEM, err := ioutil.ReadFile(privateKey)
-	if err != nil {
-		return "", err
-	}
-
-	key, err := jwt.ParseRSAPrivateKeyFromPEM(keyPEM)
-	if err != nil {
-		return "", err
-	}
-
-	now := time.Now().UTC().Unix()
-	// 5 minutes expiry
-	expiry := now + 300
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-		"a_ha": []string{"^.*$::^.*$"},
-		"iat":  now,
-		"exp":  expiry,
-	})
-
-	tokenString, err := token.SignedString(key)
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
+	return utils.GenerateAstarteJWTFromKeyFile(privateKey, utils.Housekeeping, nil, 300)
 }

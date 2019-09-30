@@ -15,24 +15,20 @@
 package utils
 
 import (
-	"github.com/dgrijalva/jwt-go"
-	"github.com/google/uuid"
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
-	"time"
 )
 
-// utilsCmd represents the utils command
+// UtilsCmd represents the utils command
 var UtilsCmd = &cobra.Command{
 	Use:   "utils",
 	Short: "Various utilities to interact with Astarte",
@@ -48,14 +44,6 @@ The keypair will be saved in the current directory with names <realm_name>_priva
 	Example: `  astartectl utils gen-keypair myrealm`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    genKeypairF,
-}
-
-var genDeviceIdCmd = &cobra.Command{
-	Use:     "gen-device-id",
-	Short:   "Generate an Astarte device id",
-	Long:    `Generate an Astarte device id, which is a Base64 url encoded UUID v4.`,
-	Example: `  astartectl utils gen-device-id`,
-	RunE:    genDeviceIdF,
 }
 
 var jwtTypesToClaim = map[string]string{
@@ -90,7 +78,6 @@ You can specify the flag multiple times or separate the claims with a comma.`)
 	genJwtCmd.Flags().Int64P("expiry", "e", 300, "Expiration time of the token in seconds. 0 means the token will never expire.")
 
 	UtilsCmd.AddCommand(genKeypairCmd)
-	UtilsCmd.AddCommand(genDeviceIdCmd)
 	UtilsCmd.AddCommand(genJwtCmd)
 }
 
@@ -116,18 +103,6 @@ func genKeypairF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func genDeviceIdF(command *cobra.Command, args []string) error {
-	deviceUuid, err := uuid.NewRandom()
-	checkError(err)
-
-	uuidBytes, err := deviceUuid.MarshalBinary()
-	checkError(err)
-
-	fmt.Println(base64.RawURLEncoding.EncodeToString(uuidBytes))
-
-	return nil
-}
-
 func validJwtType(t string) bool {
 	for _, validType := range jwtTypes {
 		if t == validType {
@@ -139,7 +114,8 @@ func validJwtType(t string) bool {
 
 func genJwtF(command *cobra.Command, args []string) error {
 	jwtType := args[0]
-	if !validJwtType(jwtType) {
+	astarteService, err := utils.AstarteServiceFromString(jwtType)
+	if err != nil {
 		errorString := fmt.Sprintf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
 
 		return errors.New(errorString)
@@ -150,12 +126,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	keyPEM, err := ioutil.ReadFile(privateKey)
-	if err != nil {
-		return err
-	}
-
-	key, err := jwt.ParseRSAPrivateKeyFromPEM(keyPEM)
+	expiryOffset, err := command.Flags().GetInt64("expiry")
 	if err != nil {
 		return err
 	}
@@ -165,28 +136,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	accessClaimKey := jwtTypesToClaim[jwtType]
-
-	now := time.Now().UTC().Unix()
-	claims := jwt.MapClaims{
-		"iat": now,
-	}
-
-	claims[accessClaimKey] = accessClaims
-
-	expiryOffset, err := command.Flags().GetInt64("expiry")
-	if err != nil {
-		return err
-	}
-
-	if expiryOffset != 0 {
-		expiry := now + expiryOffset
-		claims["expiry"] = expiry
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-
-	tokenString, err := token.SignedString(key)
+	tokenString, err := utils.GenerateAstarteJWTFromKeyFile(privateKey, astarteService, accessClaims, expiryOffset)
 	if err != nil {
 		return err
 	}
