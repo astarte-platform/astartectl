@@ -15,7 +15,6 @@
 package housekeeping
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -100,15 +99,14 @@ func realmsListF(command *cobra.Command, args []string) error {
 func realmsShowF(command *cobra.Command, args []string) error {
 	realm := args[0]
 
-	realmDefinition, err := astarteAPIClient.Housekeeping.GetRealm(realm, housekeepingJwt)
+	realmDetails, err := astarteAPIClient.Housekeeping.GetRealm(realm, housekeepingJwt)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 		return nil
 	}
 
-	respJSON, _ := json.MarshalIndent(realmDefinition, "", "  ")
-	fmt.Println(string(respJSON))
+	fmt.Printf("%+v\n", realmDetails)
 	return nil
 }
 

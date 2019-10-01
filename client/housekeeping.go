@@ -47,19 +47,19 @@ func (s *HousekeepingService) ListRealms(token string) ([]string, error) {
 }
 
 // GetRealm returns data about a single Realm.
-func (s *HousekeepingService) GetRealm(realm string, token string) (map[string]interface{}, error) {
+func (s *HousekeepingService) GetRealm(realm string, token string) (RealmDetails, error) {
 	callURL, _ := url.Parse(s.housekeepingURL.String())
 	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/realms/%s", realm))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
-		return nil, err
+		return RealmDetails{}, err
 	}
 	var responseBody struct {
-		Data map[string]interface{} `json:"data"`
+		Data RealmDetails `json:"data"`
 	}
 	err = decoder.Decode(&responseBody)
 	if err != nil {
-		return nil, err
+		return RealmDetails{}, err
 	}
 
 	return responseBody.Data, nil
@@ -98,9 +98,10 @@ func (s *HousekeepingService) createRealmInternal(realm string, publicKeyString 
 	}
 
 	if replicationFactor > 0 {
+		requestBody["replication_class"] = SimpleStrategy.String()
 		requestBody["replication_factor"] = replicationFactor
 	} else if datacenterReplicationFactors != nil {
-		requestBody["replication_class"] = "NetworkTopologyStrategy"
+		requestBody["replication_class"] = NetworkTopologyStrategy.String()
 		requestBody["datacenter_replication_factors"] = datacenterReplicationFactors
 	}
 
