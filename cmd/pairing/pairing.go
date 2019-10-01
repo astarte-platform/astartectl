@@ -16,15 +16,14 @@ package pairing
 
 import (
 	"errors"
-	"net/url"
-	"path"
 
+	"github.com/astarte-platform/astartectl/client"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// pairingCmd represents the pairing command
+// PairingCmd represents the pairing command
 var PairingCmd = &cobra.Command{
 	Use:               "pairing",
 	Short:             "Interact with Pairing API",
@@ -34,7 +33,7 @@ var PairingCmd = &cobra.Command{
 
 var realm string
 var pairingJwt string
-var pairingUrl string
+var astarteAPIClient *client.Client
 
 func init() {
 	PairingCmd.PersistentFlags().StringP("realm-key", "k", "",
@@ -48,15 +47,21 @@ func init() {
 }
 
 func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	pairingUrlOverride := viper.GetString("pairing.url")
-	astarteUrl := viper.GetString("url")
-	if pairingUrlOverride != "" {
+	pairingURLOverride := viper.GetString("pairing.url")
+	astarteURL := viper.GetString("url")
+	if pairingURLOverride != "" {
 		// Use explicit pairing-url
-		pairingUrl = pairingUrlOverride
-	} else if astarteUrl != "" {
-		url, _ := url.Parse(astarteUrl)
-		url.Path = path.Join(url.Path, "pairing")
-		pairingUrl = url.String()
+		var err error
+		astarteAPIClient, err = client.NewClientWithIndividualURLs("", "", pairingURLOverride, "", nil)
+		if err != nil {
+			return err
+		}
+	} else if astarteURL != "" {
+		var err error
+		astarteAPIClient, err = client.NewClient(astarteURL, nil)
+		if err != nil {
+			return err
+		}
 	} else {
 		return errors.New("Either astarte-url or pairing-url have to be specified")
 	}
