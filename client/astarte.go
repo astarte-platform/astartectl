@@ -161,7 +161,49 @@ func (c *Client) genericJSONDataAPIGET(urlString string, authorizationToken stri
 	return json.NewDecoder(resp.Body), nil
 }
 
-func (c *Client) genericJSONDataAPIPOST(pathURL string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) error {
+func (c *Client) genericJSONDataAPIPost(urlString string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) error {
+	return c.genericJSONDataAPIWriteNoResponse("POST", urlString, dataPayload, authorizationToken, expectedReturnCode)
+}
+
+func (c *Client) genericJSONDataAPIPut(urlString string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) error {
+	return c.genericJSONDataAPIWriteNoResponse("PUT", urlString, dataPayload, authorizationToken, expectedReturnCode)
+}
+
+func (c *Client) genericJSONDataAPIPostWithResponse(urlString string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
+	return c.genericJSONDataAPIWriteWithResponse("POST", urlString, dataPayload, authorizationToken, expectedReturnCode)
+}
+
+func (c *Client) genericJSONDataAPIPutWithResponse(urlString string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
+	return c.genericJSONDataAPIWriteWithResponse("PUT", urlString, dataPayload, authorizationToken, expectedReturnCode)
+}
+
+func (c *Client) genericJSONDataAPIWriteNoResponse(httpVerb string, urlString string, dataPayload interface{},
+	authorizationToken string, expectedReturnCode int) error {
+	decoder, err := c.genericJSONDataAPIWrite(httpVerb, urlString, dataPayload, authorizationToken, expectedReturnCode)
+	if err != nil {
+		return err
+	}
+
+	// When calling this function, we're discarding the response, but there might indeed have been
+	// something in the body. To avoid screwing up our client, we need ensure the response
+	// is drained and the body reader is closed.
+	io.Copy(ioutil.Discard, decoder.Buffered())
+
+	return nil
+}
+
+func (c *Client) genericJSONDataAPIWriteWithResponse(httpVerb string, urlString string, dataPayload interface{},
+	authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
+	decoder, err := c.genericJSONDataAPIWrite(httpVerb, urlString, dataPayload, authorizationToken, expectedReturnCode)
+	if err != nil {
+		return nil, err
+	}
+
+	return decoder, err
+}
+
+func (c *Client) genericJSONDataAPIWrite(httpVerb string, urlString string, dataPayload interface{},
+	authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
 	var requestBody struct {
 		Data interface{} `json:"data"`
 	}
@@ -170,15 +212,12 @@ func (c *Client) genericJSONDataAPIPOST(pathURL string, dataPayload interface{},
 	b := new(bytes.Buffer)
 	err := json.NewEncoder(b).Encode(requestBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	rel := &url.URL{Path: pathURL}
-	u := c.baseURL.ResolveReference(rel)
-
-	req, err := http.NewRequest("POST", u.String(), b)
+	req, err := http.NewRequest(httpVerb, urlString, b)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Add("Authorization", "Bearer "+authorizationToken)
 	req.Header.Add("Content-Type", "application/json")
@@ -187,9 +226,28 @@ func (c *Client) genericJSONDataAPIPOST(pathURL string, dataPayload interface{},
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != expectedReturnCode {
+		return nil, errorFromJSONErrors(resp.Body)
+	}
+
+	return json.NewDecoder(resp.Body), nil
+}
+
+func (c *Client) genericJSONDataAPIDelete(urlString string, authorizationToken string, expectedReturnCode int) error {
+	req, err := http.NewRequest("DELETE", urlString, nil)
+	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	req.Header.Add("Authorization", "Bearer "+authorizationToken)
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
 
 	if resp.StatusCode != expectedReturnCode {
 		return errorFromJSONErrors(resp.Body)
