@@ -15,6 +15,7 @@
 package client
 
 import (
+	"fmt"
 	"net/url"
 	"path"
 )
@@ -28,7 +29,7 @@ type RealmManagementService struct {
 // ListInterfaces returns all interfaces in a Realm.
 func (s *RealmManagementService) ListInterfaces(realm string, token string) ([]string, error) {
 	callURL, _ := url.Parse(s.realmManagementURL.String())
-	callURL.Path = path.Join(callURL.Path, "/v1/"+realm+"/interfaces")
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces", realm))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
 		return nil, err
@@ -42,4 +43,63 @@ func (s *RealmManagementService) ListInterfaces(realm string, token string) ([]s
 	}
 
 	return responseBody.Data, nil
+}
+
+// ListInterfaceMajorVersions returns all available major versions for a given Interface in a Realm.
+func (s *RealmManagementService) ListInterfaceMajorVersions(realm string, interfaceName string, token string) ([]int, error) {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces/%s", realm, interfaceName))
+	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
+	if err != nil {
+		return nil, err
+	}
+	var responseBody struct {
+		Data []int `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return responseBody.Data, nil
+}
+
+// GetInterface returns an interface, identified by a Major version, in a Realm
+func (s *RealmManagementService) GetInterface(realm string, interfaceName string, interfaceMajor int, token string) (map[string]interface{}, error) {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces/%s/%v", realm, interfaceName, interfaceMajor))
+	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
+	if err != nil {
+		return nil, err
+	}
+	var responseBody struct {
+		Data map[string]interface{} `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return responseBody.Data, nil
+}
+
+// InstallInterface installs a new major version of an Interface into the Realm
+func (s *RealmManagementService) InstallInterface(realm string, interfacePayload interface{}, token string) error {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces", realm))
+	return s.client.genericJSONDataAPIPost(callURL.String(), interfacePayload, token, 201)
+}
+
+// DeleteInterface deletes a draft Interface from the Realm
+func (s *RealmManagementService) DeleteInterface(realm string, interfaceName string, interfaceMajor int, token string) error {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces/%s/%v", realm, interfaceName, interfaceMajor))
+	return s.client.genericJSONDataAPIDelete(callURL.String(), token, 204)
+}
+
+// UpdateInterface updates an existing major version of an Interface to a new minor.
+func (s *RealmManagementService) UpdateInterface(realm string, interfaceName string, interfaceMajor int, interfacePayload interface{}, token string) error {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces/%s/%v", realm, interfaceName, interfaceMajor))
+	return s.client.genericJSONDataAPIPut(callURL.String(), interfacePayload, token, 201)
 }
