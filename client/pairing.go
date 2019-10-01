@@ -14,10 +14,43 @@
 
 package client
 
-import "net/url"
+import (
+	"fmt"
+	"net/url"
+	"path"
+)
 
 // PairingService is the API Client for Pairing API
 type PairingService struct {
 	client     *Client
 	pairingURL *url.URL
+}
+
+// RegisterDevice registers a new device into the Realm.
+// Returns the Credential Secret of the Device when successful.
+// TODO: add support for initial_introspection
+func (s *PairingService) RegisterDevice(realm string, deviceID string, token string) (string, error) {
+	callURL, _ := url.Parse(s.pairingURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/agent/devices", realm))
+
+	var requestBody struct {
+		HwID string `json:"hw_id"`
+	}
+	requestBody.HwID = deviceID
+
+	decoder, err := s.client.genericJSONDataAPIPostWithResponse(callURL.String(), requestBody, token, 201)
+	if err != nil {
+		return "", err
+	}
+
+	// Decode the reply
+	var responseBody struct {
+		Data deviceRegistrationResponse `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return "", err
+	}
+
+	return responseBody.Data.CredentialsSecret, nil
 }
