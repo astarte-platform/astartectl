@@ -18,11 +18,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 // interfacesCmd represents the interfaces command
@@ -97,42 +98,14 @@ func init() {
 }
 
 func interfacesListF(command *cobra.Command, args []string) error {
-	req, err := http.NewRequest("GET", realmManagementUrl+"/v1/"+realm+"/interfaces", nil)
+	realmInterfaces, err := astarteAPIClient.RealmManagement.ListInterfaces(realm, realmManagementJwt)
 	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+realmManagementJwt)
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == 200 {
-		var responseBody struct {
-			Data []string `json:"data"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&responseBody)
-		if err != nil {
-			return err
-		}
-
-		respJson, _ := json.MarshalIndent(&responseBody, "", "  ")
-		fmt.Println(string(respJson))
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+		fmt.Println(err)
 		os.Exit(1)
+		return nil
 	}
 
+	fmt.Println(realmInterfaces)
 	return nil
 }
 

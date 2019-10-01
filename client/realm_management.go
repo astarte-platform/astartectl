@@ -14,10 +14,32 @@
 
 package client
 
-import "net/url"
+import (
+	"net/url"
+	"path"
+)
 
 // RealmManagementService is the API Client for RealmManagement API
 type RealmManagementService struct {
 	client             *Client
 	realmManagementURL *url.URL
+}
+
+// ListInterfaces returns all interfaces in a Realm.
+func (s *RealmManagementService) ListInterfaces(realm string, token string) ([]string, error) {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, "/v1/"+realm+"/interfaces")
+	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
+	if err != nil {
+		return nil, err
+	}
+	var responseBody struct {
+		Data []string `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return responseBody.Data, nil
 }

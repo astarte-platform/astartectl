@@ -19,6 +19,8 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/astarte-platform/astartectl/client"
+
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,6 +37,7 @@ var RealmManagementCmd = &cobra.Command{
 var realm string
 var realmManagementJwt string
 var realmManagementUrl string
+var astarteAPIClient *client.Client
 
 func init() {
 	RealmManagementCmd.PersistentFlags().StringP("realm-key", "k", "",
@@ -52,8 +55,18 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	astarteUrl := viper.GetString("url")
 	if realmManagementUrlOverride != "" {
 		// Use explicit realm-management-url
+		var err error
+		astarteAPIClient, err = client.NewClientWithIndividualURLs("", "", "", realmManagementUrlOverride, nil)
+		if err != nil {
+			return err
+		}
 		realmManagementUrl = realmManagementUrlOverride
 	} else if astarteUrl != "" {
+		var err error
+		astarteAPIClient, err = client.NewClient(astarteUrl, nil)
+		if err != nil {
+			return err
+		}
 		url, _ := url.Parse(astarteUrl)
 		url.Path = path.Join(url.Path, "realmmanagement")
 		realmManagementUrl = url.String()
