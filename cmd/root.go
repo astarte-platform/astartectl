@@ -98,7 +98,7 @@ func initConfig() {
 	// If a config file is found, read it in.
 	err := viper.ReadInConfig()
 	if err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		fmt.Fprintf(os.Stderr, "Using config file: %s\n", viper.ConfigFileUsed())
 	} else if envCfgFile != "" {
 		// If we explicitly provided a config, print a failure message
 		fmt.Printf("Cannot use %s for configuration: %s\n", viper.ConfigFileUsed(), err.Error())
