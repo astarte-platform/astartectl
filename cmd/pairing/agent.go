@@ -65,7 +65,6 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	// Print the Credentials Secret

@@ -109,7 +109,6 @@ func interfacesListF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	fmt.Println(realmInterfaces)
@@ -122,7 +121,6 @@ func interfacesVersionsF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	fmt.Println(interfaceVersions)
@@ -141,7 +139,6 @@ func interfacesShowF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	respJSON, _ := json.MarshalIndent(interfaceDefinition, "", "  ")
@@ -165,7 +162,6 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	fmt.Println("ok")
@@ -180,7 +176,6 @@ func interfacesDeleteF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	fmt.Println("ok")
@@ -210,7 +205,6 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	fmt.Println("ok")

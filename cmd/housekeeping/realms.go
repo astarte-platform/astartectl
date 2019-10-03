@@ -89,7 +89,6 @@ func realmsListF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	fmt.Println(realms)
@@ -103,7 +102,6 @@ func realmsShowF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	fmt.Printf("%+v\n", realmDetails)
@@ -163,7 +161,6 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-		return nil
 	}
 
 	fmt.Println("ok")
