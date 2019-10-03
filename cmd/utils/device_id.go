@@ -98,6 +98,7 @@ func validateDeviceIDF(command *cobra.Command, args []string) error {
 
 	fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
 	os.Exit(1)
+	return nil
 }
 
 func generateRandomDeviceIDF(command *cobra.Command, args []string) error {
