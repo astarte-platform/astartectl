@@ -16,15 +16,15 @@ package housekeeping
 
 import (
 	"errors"
-	"net/url"
-	"path"
+
+	"github.com/astarte-platform/astartectl/client"
 
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// housekeepingCmd represents the housekeeping command
+// HousekeepingCmd represents the housekeeping command
 var HousekeepingCmd = &cobra.Command{
 	Use:               "housekeeping",
 	Short:             "Interact with Housekeeping API",
@@ -33,7 +33,7 @@ var HousekeepingCmd = &cobra.Command{
 }
 
 var housekeepingJwt string
-var housekeepingUrl string
+var astarteAPIClient *client.Client
 
 func init() {
 	HousekeepingCmd.PersistentFlags().StringP("housekeeping-key", "k", "",
@@ -46,15 +46,21 @@ func init() {
 }
 
 func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	housekeepingUrlOverride := viper.GetString("housekeeping.url")
-	astarteUrl := viper.GetString("url")
-	if housekeepingUrlOverride != "" {
+	housekeepingURLOverride := viper.GetString("housekeeping.url")
+	astarteURL := viper.GetString("url")
+	if housekeepingURLOverride != "" {
 		// Use explicit housekeeping-url
-		housekeepingUrl = housekeepingUrlOverride
-	} else if astarteUrl != "" {
-		url, _ := url.Parse(astarteUrl)
-		url.Path = path.Join(url.Path, "housekeeping")
-		housekeepingUrl = url.String()
+		var err error
+		astarteAPIClient, err = client.NewClientWithIndividualURLs("", housekeepingURLOverride, "", "", nil)
+		if err != nil {
+			return err
+		}
+	} else if astarteURL != "" {
+		var err error
+		astarteAPIClient, err = client.NewClient(astarteURL, nil)
+		if err != nil {
+			return err
+		}
 	} else {
 		return errors.New("Either astarte-url or housekeeping-url have to be specified")
 	}

@@ -16,15 +16,15 @@ package realm
 
 import (
 	"errors"
-	"net/url"
-	"path"
+
+	"github.com/astarte-platform/astartectl/client"
 
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// realmManagementCmd represents the realmManagement command
+// RealmManagementCmd represents the realmManagement command
 var RealmManagementCmd = &cobra.Command{
 	Use:               "realm-management",
 	Short:             "Interact with Realm Management API",
@@ -34,7 +34,7 @@ var RealmManagementCmd = &cobra.Command{
 
 var realm string
 var realmManagementJwt string
-var realmManagementUrl string
+var astarteAPIClient *client.Client
 
 func init() {
 	RealmManagementCmd.PersistentFlags().StringP("realm-key", "k", "",
@@ -48,15 +48,21 @@ func init() {
 }
 
 func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	realmManagementUrlOverride := viper.GetString("realm-management.url")
-	astarteUrl := viper.GetString("url")
-	if realmManagementUrlOverride != "" {
+	realmManagementURLOverride := viper.GetString("realm-management.url")
+	astarteURL := viper.GetString("url")
+	if realmManagementURLOverride != "" {
 		// Use explicit realm-management-url
-		realmManagementUrl = realmManagementUrlOverride
-	} else if astarteUrl != "" {
-		url, _ := url.Parse(astarteUrl)
-		url.Path = path.Join(url.Path, "realmmanagement")
-		realmManagementUrl = url.String()
+		var err error
+		astarteAPIClient, err = client.NewClientWithIndividualURLs("", "", "", realmManagementURLOverride, nil)
+		if err != nil {
+			return err
+		}
+	} else if astarteURL != "" {
+		var err error
+		astarteAPIClient, err = client.NewClient(astarteURL, nil)
+		if err != nil {
+			return err
+		}
 	} else {
 		return errors.New("Either astarte-url or realm-management-url have to be specified")
 	}

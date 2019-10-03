@@ -15,8 +15,6 @@
 package pairing
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -57,62 +55,24 @@ func init() {
 }
 
 func agentRegisterF(command *cobra.Command, args []string) error {
-	deviceId := args[0]
-	if !utils.IsValidAstarteDeviceID(deviceId) {
+	// TODO: add support for initial_introspection
+	deviceID := args[0]
+	if !utils.IsValidAstarteDeviceID(deviceID) {
 		return errors.New("Invalid device id")
 	}
 
-	// TODO: add support for initial_introspection
-	var requestBody struct {
-		Data struct {
-			HwId string `json:"hw_id"`
-		} `json:"data"`
-	}
-	requestBody.Data.HwId = deviceId
-
-	b := new(bytes.Buffer)
-	err := json.NewEncoder(b).Encode(requestBody)
+	credentialsSecret, err := astarteAPIClient.Pairing.RegisterDevice(realm, deviceID, pairingJwt)
 	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", pairingUrl+"/v1/"+realm+"/agent/devices", b)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+pairingJwt)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == 201 {
-		var responseBody struct {
-			Data map[string]interface{} `json:"data"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&responseBody)
-		if err != nil {
-			return err
-		}
-
-		respJson, _ := json.MarshalIndent(&responseBody, "", "  ")
-		fmt.Println(string(respJson))
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	// Print the Credentials Secret
+	fmt.Printf("Device %s successfully registered in Realm %s.\n", deviceID, realm)
+	fmt.Printf("The Device's Credentials Secret is \"%s\".\n", credentialsSecret)
+	fmt.Println()
+	fmt.Println("Please don't share the Credentials Secret, and ensure it is transferred securely to your Device.")
+	fmt.Printf("Once the Device pairs for the first time, the Credentials Secret ")
+	fmt.Printf("will be associated permanently to the Device and it won't be changeable anymore.\n")
 	return nil
 }
