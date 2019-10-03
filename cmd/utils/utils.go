@@ -66,14 +66,12 @@ var genJwtCmd = &cobra.Command{
 	RunE:      genJwtF,
 }
 
-var defaultClaims = []string{".*::.*"}
-
 func init() {
 	genJwtCmd.Flags().StringP("private-key", "p", "", `Path to PEM encoded private key.
 Should be Housekeeping key to generate an housekeeping token, Realm key for everything else.`)
 	genJwtCmd.MarkFlagRequired("private-key")
 	genJwtCmd.MarkFlagFilename("private-key")
-	genJwtCmd.Flags().StringSliceP("claims", "c", defaultClaims, `The list of claims to be added in the JWT. Defaults to .*::.* (i.e. all-access)
+	genJwtCmd.Flags().StringSliceP("claims", "c", nil, `The list of claims to be added in the JWT. Defaults to all-access claims.
 You can specify the flag multiple times or separate the claims with a comma.`)
 	genJwtCmd.Flags().Int64P("expiry", "e", 300, "Expiration time of the token in seconds. 0 means the token will never expire.")
 

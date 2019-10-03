@@ -28,8 +28,13 @@ func GenerateAstarteJWTFromPEMKey(privateKeyPEM []byte, astarteService AstarteSe
 
 	accessClaimKey := astarteService.JwtClaim()
 
-	if authorizationClaims == nil {
-		authorizationClaims = []string{"^.*$::^.*$"}
+	if len(authorizationClaims) == 0 {
+		switch astarteService {
+		case Channels:
+			authorizationClaims = []string{"JOIN::^.*$", "WATCH::^.*$"}
+		default:
+			authorizationClaims = []string{"^.*$::^.*$"}
+		}
 	}
 
 	now := time.Now().UTC().Unix()
