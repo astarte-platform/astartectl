@@ -4,11 +4,13 @@ matrix:
   include:
     # "1.x" always refers to the latest Go version, inc. the patch release.
     # e.g. "1.x" is 1.11 until 1.11.1 is available.
+    # This project is using Go Modules, hence we need to set GO111MODULE=on for go < 1.13
     - go: 1.x
       env: LATEST=true
-    - go: 1.10.x
     - go: 1.11.x
+      env: GO111MODULE=on
     - go: 1.12.x
+      env: GO111MODULE=on
     - go: tip
   allow_failures:
     - go: tip
@@ -16,14 +18,11 @@ matrix:
 before_install:
   # gox simplifies building for multiple architectures
   - go get github.com/mitchellh/gox
-  # When building releases with gox, mousetrap is needed for Windows, but it isn't downloaded with go get. Force it.
-  - if [ "${LATEST}" = "true" ]; then go get github.com/inconshreveable/mousetrap; fi
 
 install:
   - # skip
 
 script:
-  - go get -t -v ./...
   - diff -u <(echo -n) <(gofmt -d .)
   - go vet $(go list ./... | grep -v /vendor/)
   - go test -v -race ./...
