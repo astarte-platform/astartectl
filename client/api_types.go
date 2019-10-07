@@ -17,6 +17,7 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"time"
 )
 
 // ReplicationClass represents different Replication Strategies for a Realm.
@@ -75,4 +76,41 @@ type RealmDetails struct {
 	ReplicationClass             ReplicationClass `json:"replication_class,omitempty"`
 	ReplicationFactor            int              `json:"replication_factor,omitempty"`
 	DatacenterReplicationFactors map[string]int   `json:"datacenter_replication_factors,omitempty"`
+}
+
+// DeviceInterfaceIntrospection represents a single entry in a Device Introspection array retrieved
+// from DeviceDetails
+type DeviceInterfaceIntrospection struct {
+	Major int `json:"major"`
+	Minor int `json:"minor"`
+}
+
+// DeviceDetails maps to the JSON object returned by a Device Details call to AppEngine API
+type DeviceDetails struct {
+	TotalReceivedMessages    int                                     `json:"total_received_msgs"`
+	TotalReceivedBytes       int                                     `json:"total_received_bytes"`
+	LastSeenIP               string                                  `json:"last_seen_ip"`
+	LastDisconnection        time.Time                               `json:"last_disconnection"`
+	LastCredentialsRequestIP string                                  `json:"last_credentials_request_ip"`
+	LastConnection           time.Time                               `json:"last_connection"`
+	DeviceID                 string                                  `json:"id"`
+	FirstRegistration        time.Time                               `json:"first_registration"`
+	FirstCredentialsRequest  time.Time                               `json:"first_credentials_request"`
+	Connected                bool                                    `json:"connected"`
+	Introspection            map[string]DeviceInterfaceIntrospection `json:"introspection"`
+	Aliases                  map[string]string                       `json:"aliases"`
+}
+
+// DatastreamValue represent one single Datastream Value
+type DatastreamValue struct {
+	Value              interface{} `json:"value"`
+	Timestamp          time.Time   `json:"timestamp"`
+	ReceptionTimestamp time.Time   `json:"reception_timestamp"`
+}
+
+// DatastreamAggregateValue represent one single Datastream Value for an Aggregate
+type DatastreamAggregateValue struct {
+	Values             map[string]interface{} `json:"value"`
+	Timestamp          time.Time              `json:"timestamp"`
+	ReceptionTimestamp time.Time              `json:"reception_timestamp"`
 }

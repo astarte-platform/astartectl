@@ -3,6 +3,7 @@ module github.com/astarte-platform/astartectl
 go 1.13
 
 require (
+	github.com/araddon/dateparse v0.0.0-20190622164848-0fb0a474d195
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/mitchellh/go-homedir v1.1.0

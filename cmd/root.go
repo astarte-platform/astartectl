@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/astarte-platform/astartectl/cmd/appengine"
 	"github.com/astarte-platform/astartectl/cmd/housekeeping"
 	"github.com/astarte-platform/astartectl/cmd/pairing"
 	"github.com/astarte-platform/astartectl/cmd/realm"
@@ -66,6 +67,7 @@ func init() {
 	rootCmd.AddCommand(pairing.PairingCmd)
 	rootCmd.AddCommand(realm.RealmManagementCmd)
 	rootCmd.AddCommand(utils.UtilsCmd)
+	rootCmd.AddCommand(appengine.AppEngineCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
