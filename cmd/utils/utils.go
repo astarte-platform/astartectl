@@ -60,14 +60,14 @@ var genJwtCmd = &cobra.Command{
 	Use:       "gen-jwt <type>",
 	Short:     "Generate a JWT",
 	Long:      `Generate a JWT to access one of astarte APIs.`,
-	Example:   `  astartectl utils gen-jwt realm-management -p test-realm.key`,
+	Example:   `  astartectl utils gen-jwt realm-management -k test-realm.key`,
 	Args:      cobra.ExactArgs(1),
 	ValidArgs: jwtTypes,
 	RunE:      genJwtF,
 }
 
 func init() {
-	genJwtCmd.Flags().StringP("private-key", "p", "", `Path to PEM encoded private key.
+	genJwtCmd.Flags().StringP("private-key", "k", "", `Path to PEM encoded private key.
 Should be Housekeeping key to generate an housekeeping token, Realm key for everything else.`)
 	genJwtCmd.MarkFlagRequired("private-key")
 	genJwtCmd.MarkFlagFilename("private-key")
