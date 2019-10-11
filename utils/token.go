@@ -31,7 +31,7 @@ func GenerateAstarteJWTFromPEMKey(privateKeyPEM []byte, astarteService AstarteSe
 	if len(authorizationClaims) == 0 {
 		switch astarteService {
 		case Channels:
-			authorizationClaims = []string{"JOIN::^.*$", "WATCH::^.*$"}
+			authorizationClaims = []string{"JOIN::.*", "WATCH::.*"}
 		default:
 			authorizationClaims = []string{"^.*$::^.*$"}
 		}
