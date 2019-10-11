@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix Datacenter Replication checks in realm creation command
 - Fix a bug that prevented realm key to be set from the command line
 
+### Changed
+- utils gen-jwt accepts the private key through -k rather than through -p, just like all other commands
+
 ## [0.10.0] - 2019-09-20
 ### Added
 - Initial release
