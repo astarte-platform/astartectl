@@ -17,9 +17,7 @@ package pairing
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
@@ -40,10 +38,6 @@ This returns the credentials_secret that can be use to obtain device credentials
 	Example: `  astartectl pairing agent register 2TBn-jNESuuHamE2Zo1anA`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    agentRegisterF,
-}
-
-var netClient = &http.Client{
-	Timeout: time.Second * 30,
 }
 
 func init() {
