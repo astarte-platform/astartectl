@@ -169,12 +169,22 @@ func (c *Client) genericJSONDataAPIPut(urlString string, dataPayload interface{}
 	return c.genericJSONDataAPIWriteNoResponse("PUT", urlString, dataPayload, authorizationToken, expectedReturnCode)
 }
 
+func (c *Client) genericJSONDataAPIPatch(urlString string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) error {
+	return c.genericJSONDataAPIWriteNoResponseWithContentType("PATCH", urlString, dataPayload, "application/merge-patch+json",
+		authorizationToken, expectedReturnCode)
+}
+
 func (c *Client) genericJSONDataAPIPostWithResponse(urlString string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
 	return c.genericJSONDataAPIWriteWithResponse("POST", urlString, dataPayload, authorizationToken, expectedReturnCode)
 }
 
 func (c *Client) genericJSONDataAPIPutWithResponse(urlString string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
 	return c.genericJSONDataAPIWriteWithResponse("PUT", urlString, dataPayload, authorizationToken, expectedReturnCode)
+}
+
+func (c *Client) genericJSONDataAPIPatchWithResponse(urlString string, dataPayload interface{}, authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
+	return c.genericJSONDataAPIWriteWithResponseWithContentType("PATCH", urlString, dataPayload, "application/merge-patch+json",
+		authorizationToken, expectedReturnCode)
 }
 
 func (c *Client) genericJSONDataAPIWriteNoResponse(httpVerb string, urlString string, dataPayload interface{},
@@ -202,8 +212,38 @@ func (c *Client) genericJSONDataAPIWriteWithResponse(httpVerb string, urlString 
 	return decoder, err
 }
 
+func (c *Client) genericJSONDataAPIWriteNoResponseWithContentType(httpVerb string, urlString string, dataPayload interface{},
+	contentType string, authorizationToken string, expectedReturnCode int) error {
+	decoder, err := c.genericJSONDataAPIWriteWithContentType(httpVerb, urlString, dataPayload, contentType, authorizationToken, expectedReturnCode)
+	if err != nil {
+		return err
+	}
+
+	// When calling this function, we're discarding the response, but there might indeed have been
+	// something in the body. To avoid screwing up our client, we need ensure the response
+	// is drained and the body reader is closed.
+	io.Copy(ioutil.Discard, decoder.Buffered())
+
+	return nil
+}
+
+func (c *Client) genericJSONDataAPIWriteWithResponseWithContentType(httpVerb string, urlString string, dataPayload interface{},
+	contentType string, authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
+	decoder, err := c.genericJSONDataAPIWriteWithContentType(httpVerb, urlString, dataPayload, contentType, authorizationToken, expectedReturnCode)
+	if err != nil {
+		return nil, err
+	}
+
+	return decoder, err
+}
+
 func (c *Client) genericJSONDataAPIWrite(httpVerb string, urlString string, dataPayload interface{},
 	authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
+	return c.genericJSONDataAPIWriteWithContentType(httpVerb, urlString, dataPayload, "application/json", authorizationToken, expectedReturnCode)
+}
+
+func (c *Client) genericJSONDataAPIWriteWithContentType(httpVerb string, urlString string, dataPayload interface{},
+	contentType string, authorizationToken string, expectedReturnCode int) (*json.Decoder, error) {
 	var requestBody struct {
 		Data interface{} `json:"data"`
 	}
@@ -220,7 +260,7 @@ func (c *Client) genericJSONDataAPIWrite(httpVerb string, urlString string, data
 		return nil, err
 	}
 	req.Header.Add("Authorization", "Bearer "+authorizationToken)
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", contentType)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", c.UserAgent)
 
