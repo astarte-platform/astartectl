@@ -148,9 +148,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		}
 
 		fmt.Println(astarteInterface)
-		switch interfaceDescription["type"].(string) {
-		case "datastream":
-			if interfaceDescription["aggregation"] == "object" {
+		switch interfaceDescription.Type {
+		case client.DatastreamType:
+			if interfaceDescription.Aggregation == client.ObjectAggregation {
 				val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, astarteInterface, appEngineJwt)
 				if err != nil {
 					return err
@@ -171,7 +171,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				fmt.Println()
 				break
 			}
-		case "properties":
+		case client.PropertiesType:
 			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, astarteInterface, appEngineJwt)
 			if err != nil {
 				return err
@@ -248,7 +248,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 			return err
 		}
 
-		if interfaceDescription["type"] != "datastream" {
+		if interfaceDescription.Type != client.DatastreamType {
 			fmt.Printf("%s is not a Datastream interface. get-samples works only on Datastream interfaces\n", interfaceName)
 			os.Exit(1)
 		}

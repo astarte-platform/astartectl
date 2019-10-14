@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/astarte-platform/astartectl/client"
 	"github.com/spf13/cobra"
 )
 
@@ -152,7 +153,7 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var interfaceBody map[string]interface{}
+	var interfaceBody client.AstarteInterface
 	err = json.Unmarshal(interfaceFile, &interfaceBody)
 	if err != nil {
 		return err
@@ -188,20 +189,14 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var interfaceBody map[string]interface{}
-	err = json.Unmarshal(interfaceFile, &interfaceBody)
+	var astarteInterface client.AstarteInterface
+	err = json.Unmarshal(interfaceFile, &astarteInterface)
 	if err != nil {
 		return err
 	}
 
-	interfaceName := fmt.Sprintf("%v", interfaceBody["interface_name"])
-	interfaceMajorString := fmt.Sprintf("%v", interfaceBody["version_major"])
-	interfaceMajor, err := strconv.Atoi(interfaceMajorString)
-	if err != nil {
-		return err
-	}
-
-	err = astarteAPIClient.RealmManagement.UpdateInterface(realm, interfaceName, interfaceMajor, interfaceBody, realmManagementJwt)
+	err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
+		astarteInterface, realmManagementJwt)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
