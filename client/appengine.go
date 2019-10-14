@@ -89,6 +89,15 @@ func (s *AppEngineService) ListDeviceInterfaces(realm string, deviceID string, t
 	return responseBody.Data, nil
 }
 
+// ListDeviceAliases is an helper to list all aliases of a Device
+func (s *AppEngineService) ListDeviceAliases(realm string, deviceID string, token string) (map[string]string, error) {
+	deviceDetails, err := s.GetDevice(realm, deviceID, token)
+	if err != nil {
+		return nil, err
+	}
+	return deviceDetails.Aliases, nil
+}
+
 func parsePropertyInterface(interfaceMap map[string]interface{}) map[string]interface{} {
 	// Start recursion and return resulting map
 	return parsePropertiesMap(interfaceMap, "")
@@ -290,6 +299,34 @@ func (s *AppEngineService) GetAggregateDatastreamsTimeWindow(realm string, devic
 	}
 
 	return responseBody.Data, nil
+}
+
+// AddDeviceAlias adds an Alias to a Device
+func (s *AppEngineService) AddDeviceAlias(realm string, deviceID string, aliasTag string, deviceAlias string, token string) error {
+	callURL, _ := url.Parse(s.appEngineURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s", realm, deviceID))
+	payload := map[string]map[string]string{"aliases": {aliasTag: deviceAlias}}
+	err := s.client.genericJSONDataAPIPatch(callURL.String(), payload, token, 200)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteDeviceAlias deletes an Alias from a Device based on the Alias' tag
+func (s *AppEngineService) DeleteDeviceAlias(realm string, deviceID string, aliasTag string, token string) error {
+	callURL, _ := url.Parse(s.appEngineURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s", realm, deviceID))
+	// We're using map[string]interface{} rather than map[string]string since we want to have null
+	// rather than an empty string in the JSON payload, and this is the only way.
+	payload := map[string]map[string]interface{}{"aliases": {aliasTag: nil}}
+	err := s.client.genericJSONDataAPIPatch(callURL.String(), payload, token, 200)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *AppEngineService) getDatastreamInternal(realm string, deviceID string, interfaceName string, interfacePath string,
