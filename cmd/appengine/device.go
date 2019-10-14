@@ -18,8 +18,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"text/tabwriter"
 	"time"
 
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/astarte-platform/astartectl/client"
 	"github.com/astarte-platform/astartectl/utils"
 
@@ -105,6 +107,35 @@ func devicesListF(command *cobra.Command, args []string) error {
 	return nil
 }
 
+func prettyPrintDeviceDetails(deviceDetails client.DeviceDetails) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	fmt.Fprintf(w, "Device ID:\t%v\n", deviceDetails.DeviceID)
+	fmt.Fprintf(w, "Connected:\t%v\n", deviceDetails.Connected)
+	fmt.Fprintf(w, "Last Connection:\t%v\n", deviceDetails.LastConnection)
+	fmt.Fprintf(w, "Last Disconnection:\t%v\n", deviceDetails.LastDisconnection)
+	if len(deviceDetails.Introspection) > 0 {
+		fmt.Fprintf(w, "Introspection:")
+		// Iterate the introspection
+		for i, v := range deviceDetails.Introspection {
+			fmt.Fprintf(w, "\t%v v%v.%v\n", i, v.Major, v.Minor)
+		}
+	}
+	if len(deviceDetails.Aliases) > 0 {
+		fmt.Fprintf(w, "Aliases:")
+		// Iterate the aliases
+		for i, v := range deviceDetails.Aliases {
+			fmt.Fprintf(w, "\t%v: %v\n", i, v)
+		}
+	}
+	fmt.Fprintf(w, "Received Messages:\t%v\n", deviceDetails.TotalReceivedMessages)
+	fmt.Fprintf(w, "Data Received:\t%v\n", bytefmt.ByteSize(deviceDetails.TotalReceivedBytes))
+	fmt.Fprintf(w, "Last Seen IP:\t%v\n", deviceDetails.LastSeenIP)
+	fmt.Fprintf(w, "Last Credentials Request IP:\t%v\n", deviceDetails.LastCredentialsRequestIP)
+	fmt.Fprintf(w, "First Registration:\t%v\n", deviceDetails.FirstRegistration)
+	fmt.Fprintf(w, "First Credentials Request:\t%v\n", deviceDetails.FirstCredentialsRequest)
+	w.Flush()
+}
+
 func devicesDescribeF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	if !utils.IsValidAstarteDeviceID(deviceID) {
@@ -118,7 +149,7 @@ func devicesDescribeF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	fmt.Printf("%+v\n", deviceDetails)
+	prettyPrintDeviceDetails(deviceDetails)
 	return nil
 }
 
