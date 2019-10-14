@@ -103,3 +103,55 @@ func (s *RealmManagementService) UpdateInterface(realm string, interfaceName str
 	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces/%s/%v", realm, interfaceName, interfaceMajor))
 	return s.client.genericJSONDataAPIPut(callURL.String(), interfacePayload, token, 201)
 }
+
+// ListTriggers returns all triggers in a Realm.
+func (s *RealmManagementService) ListTriggers(realm string, token string) ([]string, error) {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/triggers", realm))
+	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
+	if err != nil {
+		return nil, err
+	}
+	var responseBody struct {
+		Data []string `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return responseBody.Data, nil
+}
+
+// GetTrigger returns a trigger installed in a Realm
+func (s *RealmManagementService) GetTrigger(realm string, triggerName string, token string) (map[string]interface{}, error) {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/triggers/%s", realm, triggerName))
+	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
+	if err != nil {
+		return nil, err
+	}
+	var responseBody struct {
+		Data map[string]interface{} `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return responseBody.Data, nil
+}
+
+// InstallTrigger installs a Trigger into the Realm
+func (s *RealmManagementService) InstallTrigger(realm string, triggerPayload interface{}, token string) error {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/triggers", realm))
+	return s.client.genericJSONDataAPIPost(callURL.String(), triggerPayload, token, 201)
+}
+
+// DeleteTrigger deletes a Trigger from the Realm
+func (s *RealmManagementService) DeleteTrigger(realm string, triggerName string, token string) error {
+	callURL, _ := url.Parse(s.realmManagementURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/triggers/%s", realm, triggerName))
+	return s.client.genericJSONDataAPIDelete(callURL.String(), token, 204)
+}
