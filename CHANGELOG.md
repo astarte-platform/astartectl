@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add gobuild.sh script
 - Add shell completion generator command
 - Add CI
+- Add appengine command and subcommands
 
 ### Fixed
 - Fix keypair generation
