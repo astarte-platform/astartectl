@@ -17,6 +17,7 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"net"
 	"time"
 )
 
@@ -87,11 +88,11 @@ type DeviceInterfaceIntrospection struct {
 
 // DeviceDetails maps to the JSON object returned by a Device Details call to AppEngine API
 type DeviceDetails struct {
-	TotalReceivedMessages    int                                     `json:"total_received_msgs"`
-	TotalReceivedBytes       int                                     `json:"total_received_bytes"`
-	LastSeenIP               string                                  `json:"last_seen_ip"`
+	TotalReceivedMessages    int64                                   `json:"total_received_msgs"`
+	TotalReceivedBytes       uint64                                  `json:"total_received_bytes"`
+	LastSeenIP               net.IP                                  `json:"last_seen_ip"`
 	LastDisconnection        time.Time                               `json:"last_disconnection"`
-	LastCredentialsRequestIP string                                  `json:"last_credentials_request_ip"`
+	LastCredentialsRequestIP net.IP                                  `json:"last_credentials_request_ip"`
 	LastConnection           time.Time                               `json:"last_connection"`
 	DeviceID                 string                                  `json:"id"`
 	FirstRegistration        time.Time                               `json:"first_registration"`
