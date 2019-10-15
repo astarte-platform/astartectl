@@ -101,7 +101,7 @@ func (s *RealmManagementService) DeleteInterface(realm string, interfaceName str
 func (s *RealmManagementService) UpdateInterface(realm string, interfaceName string, interfaceMajor int, interfacePayload AstarteInterface, token string) error {
 	callURL, _ := url.Parse(s.realmManagementURL.String())
 	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces/%s/%v", realm, interfaceName, interfaceMajor))
-	return s.client.genericJSONDataAPIPut(callURL.String(), interfacePayload, token, 201)
+	return s.client.genericJSONDataAPIPut(callURL.String(), interfacePayload, token, 204)
 }
 
 // ListTriggers returns all triggers in a Realm.
