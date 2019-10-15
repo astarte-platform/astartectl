@@ -16,7 +16,6 @@ package appengine
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"text/tabwriter"
 	"time"
@@ -74,10 +73,6 @@ change this behavior.`,
 	Example: `  astartectl appengine devices get-samples 2TBn-jNESuuHamE2Zo1anA com.my.interface /my/path`,
 	Args:    cobra.ExactArgs(3),
 	RunE:    devicesGetSamplesF,
-}
-
-var netClient = &http.Client{
-	Timeout: time.Second * 30,
 }
 
 func init() {

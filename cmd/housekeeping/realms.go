@@ -18,11 +18,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -58,10 +56,6 @@ var realmsCreateCmd = &cobra.Command{
 	Example: `  astartectl housekeeping realms create myrealm -p /path/to/public_key`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    realmsCreateF,
-}
-
-var netClient = &http.Client{
-	Timeout: time.Second * 30,
 }
 
 func init() {
