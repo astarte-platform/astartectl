@@ -47,31 +47,41 @@ var devicesListCmd = &cobra.Command{
 }
 
 var devicesDescribeCmd = &cobra.Command{
-	Use:     "describe <device_id>",
-	Short:   "Describes a Device",
-	Long:    `Describes a Device in the realm, printing all its known information.`,
+	Use:   "describe <device_id_or_alias>",
+	Short: "Describes a Device",
+	Long: `Describes a Device in the realm, printing all its known information.
+<device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
+this is automatically determined - however, you can tweak this behavior by using --force-device-id or
+--force-id-type={device-id,alias}.`,
 	Example: `  astartectl appengine devices describe 2TBn-jNESuuHamE2Zo1anA`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    devicesDescribeF,
 }
 
 var devicesDataSnapshotCmd = &cobra.Command{
-	Use:   "data-snapshot <device_id>",
+	Use:   "data-snapshot <device_id_or_alias>",
 	Short: "Outputs a Data Snapshot of a given Device",
 	Long: `For each Device Interface, data-snapshot retrieves the last received sample 
-	(if it is a Datastream), or the currently known value (if it is a property).`,
+(if it is a Datastream), or the currently known value (if it is a property).
+<device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
+this is automatically determined - however, you can tweak this behavior by using --force-device-id or
+--force-id-type={device-id,alias}.`,
 	Example: `  astartectl appengine devices data-snapshot 2TBn-jNESuuHamE2Zo1anA`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    devicesDataSnapshotF,
 }
 
 var devicesGetSamplesCmd = &cobra.Command{
-	Use:   "get-samples <device_id> <interface_name> <path>",
+	Use:   "get-samples <device_id_or_alias> <interface_name> <path>",
 	Short: "Retrieves samples for a given Datastream path",
 	Long: `Retrieves and prints samples for a given device. By default, the first 10000 samples
 are returned. You can tweak this behavior by using --count.
 By default, samples are returned in descending order (starting from most recent). You can use --ascending to
-change this behavior.`,
+change this behavior.
+
+<device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
+this is automatically determined - however, you can tweak this behavior by using --force-device-id or
+--force-id-type={device-id,alias}.`,
 	Example: `  astartectl appengine devices get-samples 2TBn-jNESuuHamE2Zo1anA com.my.interface /my/path`,
 	Args:    cobra.ExactArgs(3),
 	RunE:    devicesGetSamplesF,
@@ -88,6 +98,22 @@ func isASupportedOutputType(outputType string) bool {
 	return false
 }
 
+func deviceIdentifierTypeFromFlags(deviceIdentifier string, forceDeviceIdentifier string) (client.DeviceIdentifierType, error) {
+	switch forceDeviceIdentifier {
+	case "":
+		return client.AutodiscoverDeviceIdentifier, nil
+	case "device-id":
+		if !utils.IsValidAstarteDeviceID(deviceIdentifier) {
+			return 0, fmt.Errorf("Required to evaluate the Device Identifier as an Astarte Device ID, but %v isn't a valid one", deviceIdentifier)
+		}
+		return client.AstarteDeviceID, nil
+	case "alias":
+		return client.AstarteDeviceAlias, nil
+	}
+
+	return 0, fmt.Errorf("%v is not a valid Astarte Device Identifier type. Valid options are [device-id alias]", forceDeviceIdentifier)
+}
+
 func init() {
 	AppEngineCmd.AddCommand(devicesCmd)
 
@@ -96,8 +122,12 @@ func init() {
 	devicesGetSamplesCmd.Flags().String("since", "", "When set, returns only samples newer than the provided date.")
 	devicesGetSamplesCmd.Flags().String("to", "", "When set, returns only samples older than the provided date.")
 	devicesGetSamplesCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
+	devicesGetSamplesCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
 
 	devicesDataSnapshotCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
+	devicesDataSnapshotCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+
+	devicesDescribeCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
 
 	devicesCmd.AddCommand(
 		devicesListCmd,
@@ -149,12 +179,16 @@ func prettyPrintDeviceDetails(deviceDetails client.DeviceDetails) {
 
 func devicesDescribeF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !utils.IsValidAstarteDeviceID(deviceID) {
-		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
-		os.Exit(1)
+	forceIDType, err := command.Flags().GetString("force-id-type")
+	if err != nil {
+		return err
+	}
+	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceID, forceIDType)
+	if err != nil {
+		return err
 	}
 
-	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, appEngineJwt)
+	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -181,12 +215,16 @@ func tableWriterForOutputType(outputType string) table.Writer {
 
 func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !utils.IsValidAstarteDeviceID(deviceID) {
-		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
-		os.Exit(1)
+	forceIDType, err := command.Flags().GetString("force-id-type")
+	if err != nil {
+		return err
+	}
+	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceID, forceIDType)
+	if err != nil {
+		return err
 	}
 	// Get the device introspection
-	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, appEngineJwt)
+	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
 	if err != nil {
 		return err
 	}
@@ -214,7 +252,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		switch interfaceDescription.Type {
 		case client.DatastreamType:
 			if interfaceDescription.Aggregation == client.ObjectAggregation {
-				val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, astarteInterface, appEngineJwt)
+				val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
 				if err != nil {
 					return err
 				}
@@ -227,7 +265,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					}
 				}
 			} else {
-				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, astarteInterface, appEngineJwt)
+				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
 				if err != nil {
 					return err
 				}
@@ -240,7 +278,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				jsonOutput[astarteInterface] = jsonRepresentation
 			}
 		case client.PropertiesType:
-			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, astarteInterface, appEngineJwt)
+			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
 			if err != nil {
 				return err
 			}
@@ -261,12 +299,16 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 
 func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !utils.IsValidAstarteDeviceID(deviceID) {
-		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
-		os.Exit(1)
-	}
 	interfaceName := args[1]
 	interfacePath := args[2]
+	forceIDType, err := command.Flags().GetString("force-id-type")
+	if err != nil {
+		return err
+	}
+	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceID, forceIDType)
+	if err != nil {
+		return err
+	}
 	limit, err := command.Flags().GetInt("count")
 	if err != nil {
 		return err
@@ -311,7 +353,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 
 	// Get the device introspection
 	interfaceFound := false
-	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, appEngineJwt)
+	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
 	if err != nil {
 		return err
 	}
@@ -347,7 +389,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	t.AppendHeader(table.Row{"Timestamp", "Value"})
 	printedValues := 0
 	jsonOutput := []client.DatastreamValue{}
-	datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, interfaceName, interfacePath,
+	datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath,
 		sinceTime, toTime, resultSetOrder, appEngineJwt)
 	for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
 		page, err := datastreamPaginator.GetNextPage()
