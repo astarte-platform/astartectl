@@ -15,6 +15,7 @@
 package appengine
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -76,7 +77,7 @@ change this behavior.`,
 	RunE:    devicesGetSamplesF,
 }
 
-var supportedOutputTypes = []string{"default", "csv"}
+var supportedOutputTypes = []string{"default", "csv", "json"}
 
 func isASupportedOutputType(outputType string) bool {
 	for _, s := range supportedOutputTypes {
@@ -94,9 +95,9 @@ func init() {
 	devicesGetSamplesCmd.Flags().Bool("ascending", false, "When set, returns samples in ascending order rather than descending.")
 	devicesGetSamplesCmd.Flags().String("since", "", "When set, returns only samples newer than the provided date.")
 	devicesGetSamplesCmd.Flags().String("to", "", "When set, returns only samples older than the provided date.")
-	devicesGetSamplesCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv)")
+	devicesGetSamplesCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
 
-	devicesDataSnapshotCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv)")
+	devicesDataSnapshotCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
 
 	devicesCmd.AddCommand(
 		devicesListCmd,
@@ -169,10 +170,9 @@ func tableWriterForOutputType(outputType string) table.Writer {
 	case "default":
 		t.SetOutputMirror(os.Stdout)
 		t.SetStyle(table.StyleLight)
-		break
 	case "csv":
 		t.SetOutputMirror(os.Stdout)
-		break
+	case "json":
 	default:
 		return nil
 	}
@@ -201,6 +201,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 	// Go with the table header
 	t := tableWriterForOutputType(outputType)
 	t.AppendHeader(table.Row{"Interface", "Path", "Value", "Ownership", "Timestamp (Datastream only)"})
+	jsonOutput := make(map[string]interface{})
 
 	for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
 		// Query Realm Management to get details on the interface
@@ -217,35 +218,43 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				if err != nil {
 					return err
 				}
-				for k, v := range val.Values {
-					t.AppendRow([]interface{}{astarteInterface, k, v, interfaceDescription.Ownership.String(),
-						timestampForOutput(val.Timestamp, outputType)})
+				if outputType == "json" {
+					jsonOutput[astarteInterface] = val
+				} else {
+					for k, v := range val.Values {
+						t.AppendRow([]interface{}{astarteInterface, k, v, interfaceDescription.Ownership.String(),
+							timestampForOutput(val.Timestamp, outputType)})
+					}
 				}
 			} else {
 				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, astarteInterface, appEngineJwt)
 				if err != nil {
 					return err
 				}
+				jsonRepresentation := make(map[string]interface{})
 				for k, v := range val {
+					jsonRepresentation[k] = v
 					t.AppendRow([]interface{}{astarteInterface, k, v.Value, interfaceDescription.Ownership.String(),
 						timestampForOutput(v.Timestamp, outputType)})
 				}
-				break
+				jsonOutput[astarteInterface] = jsonRepresentation
 			}
 		case client.PropertiesType:
 			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, astarteInterface, appEngineJwt)
 			if err != nil {
 				return err
 			}
+			jsonRepresentation := make(map[string]interface{})
 			for k, v := range val {
+				jsonRepresentation[k] = v
 				t.AppendRow([]interface{}{astarteInterface, k, v, interfaceDescription.Ownership.String(), ""})
 			}
-			break
+			jsonOutput[astarteInterface] = jsonRepresentation
 		}
 	}
 
 	// Done
-	renderTableForOutput(t, outputType)
+	renderOutput(t, jsonOutput, outputType)
 
 	return nil
 }
@@ -337,6 +346,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	t := tableWriterForOutputType(outputType)
 	t.AppendHeader(table.Row{"Timestamp", "Value"})
 	printedValues := 0
+	jsonOutput := []client.DatastreamValue{}
 	datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, interfaceName, interfacePath,
 		sinceTime, toTime, resultSetOrder, appEngineJwt)
 	for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
@@ -346,16 +356,20 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 			os.Exit(1)
 		}
 
-		for _, v := range page {
-			t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
-			printedValues++
-			if printedValues >= limit && limit > 0 {
-				renderTableForOutput(t, outputType)
-				return nil
+		if outputType == "json" {
+			jsonOutput = append(jsonOutput, page...)
+		} else {
+			for _, v := range page {
+				t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+				printedValues++
+				if printedValues >= limit && limit > 0 {
+					renderOutput(t, jsonOutput, outputType)
+					return nil
+				}
 			}
 		}
 	}
-	renderTableForOutput(t, outputType)
+	renderOutput(t, jsonOutput, outputType)
 
 	return nil
 }
@@ -366,18 +380,20 @@ func timestampForOutput(timestamp time.Time, outputType string) string {
 		return timestamp.String()
 	case "csv":
 		return timestamp.Format(time.RFC3339Nano)
+	case "json":
 	}
 
 	return ""
 }
 
-func renderTableForOutput(t table.Writer, outputType string) {
+func renderOutput(t table.Writer, jsonOutput interface{}, outputType string) {
 	switch outputType {
 	case "default":
 		t.Render()
-		break
 	case "csv":
 		t.RenderCSV()
-		break
+	case "json":
+		respJSON, _ := json.MarshalIndent(jsonOutput, "", "  ")
+		fmt.Println(string(respJSON))
 	}
 }
