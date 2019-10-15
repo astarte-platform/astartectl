@@ -15,6 +15,7 @@
 package appengine
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -23,6 +24,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/astarte-platform/astartectl/client"
 	"github.com/astarte-platform/astartectl/utils"
+	"github.com/jedib0t/go-pretty/table"
 
 	"github.com/araddon/dateparse"
 
@@ -75,6 +77,17 @@ change this behavior.`,
 	RunE:    devicesGetSamplesF,
 }
 
+var supportedOutputTypes = []string{"default", "csv", "json"}
+
+func isASupportedOutputType(outputType string) bool {
+	for _, s := range supportedOutputTypes {
+		if s == outputType {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	AppEngineCmd.AddCommand(devicesCmd)
 
@@ -82,6 +95,9 @@ func init() {
 	devicesGetSamplesCmd.Flags().Bool("ascending", false, "When set, returns samples in ascending order rather than descending.")
 	devicesGetSamplesCmd.Flags().String("since", "", "When set, returns only samples newer than the provided date.")
 	devicesGetSamplesCmd.Flags().String("to", "", "When set, returns only samples older than the provided date.")
+	devicesGetSamplesCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
+
+	devicesDataSnapshotCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
 
 	devicesCmd.AddCommand(
 		devicesListCmd,
@@ -148,9 +164,19 @@ func devicesDescribeF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func prettyPrintDatastreamValue(val client.DatastreamValue) string {
-	return fmt.Sprintf("%v (Timestamp: %v, Reception Timestamp: %v)", val.Value,
-		val.Timestamp, val.ReceptionTimestamp)
+func tableWriterForOutputType(outputType string) table.Writer {
+	t := table.NewWriter()
+	switch outputType {
+	case "default":
+		t.SetOutputMirror(os.Stdout)
+		t.SetStyle(table.StyleLight)
+	case "csv":
+		t.SetOutputMirror(os.Stdout)
+	case "json":
+	default:
+		return nil
+	}
+	return t
 }
 
 func devicesDataSnapshotF(command *cobra.Command, args []string) error {
@@ -164,6 +190,18 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	outputType, err := command.Flags().GetString("output")
+	if err != nil {
+		return err
+	}
+	if !isASupportedOutputType(outputType) {
+		return fmt.Errorf("%v is not a supported output type. Supported output types are %v", outputType, supportedOutputTypes)
+	}
+
+	// Go with the table header
+	t := tableWriterForOutputType(outputType)
+	t.AppendHeader(table.Row{"Interface", "Path", "Value", "Ownership", "Timestamp (Datastream only)"})
+	jsonOutput := make(map[string]interface{})
 
 	for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
 		// Query Realm Management to get details on the interface
@@ -173,7 +211,6 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			return err
 		}
 
-		fmt.Println(astarteInterface)
 		switch interfaceDescription.Type {
 		case client.DatastreamType:
 			if interfaceDescription.Aggregation == client.ObjectAggregation {
@@ -181,34 +218,43 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				if err != nil {
 					return err
 				}
-				for k, v := range val.Values {
-					fmt.Printf("\t%v: %v\n", k, prettyPrintDatastreamValue(client.DatastreamValue{Value: v,
-						Timestamp: val.Timestamp, ReceptionTimestamp: val.ReceptionTimestamp}))
+				if outputType == "json" {
+					jsonOutput[astarteInterface] = val
+				} else {
+					for k, v := range val.Values {
+						t.AppendRow([]interface{}{astarteInterface, k, v, interfaceDescription.Ownership.String(),
+							timestampForOutput(val.Timestamp, outputType)})
+					}
 				}
-				fmt.Println()
 			} else {
 				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, astarteInterface, appEngineJwt)
 				if err != nil {
 					return err
 				}
+				jsonRepresentation := make(map[string]interface{})
 				for k, v := range val {
-					fmt.Printf("\t%v: %v\n", k, prettyPrintDatastreamValue(v))
+					jsonRepresentation[k] = v
+					t.AppendRow([]interface{}{astarteInterface, k, v.Value, interfaceDescription.Ownership.String(),
+						timestampForOutput(v.Timestamp, outputType)})
 				}
-				fmt.Println()
-				break
+				jsonOutput[astarteInterface] = jsonRepresentation
 			}
 		case client.PropertiesType:
 			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, astarteInterface, appEngineJwt)
 			if err != nil {
 				return err
 			}
+			jsonRepresentation := make(map[string]interface{})
 			for k, v := range val {
-				fmt.Printf("\t%v: %v\n", k, v)
+				jsonRepresentation[k] = v
+				t.AppendRow([]interface{}{astarteInterface, k, v, interfaceDescription.Ownership.String(), ""})
 			}
-			fmt.Println()
-			break
+			jsonOutput[astarteInterface] = jsonRepresentation
 		}
 	}
+
+	// Done
+	renderOutput(t, jsonOutput, outputType)
 
 	return nil
 }
@@ -255,6 +301,13 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 			return err
 		}
 	}
+	outputType, err := command.Flags().GetString("output")
+	if err != nil {
+		return err
+	}
+	if !isASupportedOutputType(outputType) {
+		return fmt.Errorf("%v is not a supported output type. Supported output types are %v", outputType, supportedOutputTypes)
+	}
 
 	// Get the device introspection
 	interfaceFound := false
@@ -289,7 +342,11 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	}
 
 	// We are good to go.
+	// Go with the table header
+	t := tableWriterForOutputType(outputType)
+	t.AppendHeader(table.Row{"Timestamp", "Value"})
 	printedValues := 0
+	jsonOutput := []client.DatastreamValue{}
 	datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, interfaceName, interfacePath,
 		sinceTime, toTime, resultSetOrder, appEngineJwt)
 	for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
@@ -299,14 +356,44 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 			os.Exit(1)
 		}
 
-		for _, v := range page {
-			fmt.Println(prettyPrintDatastreamValue(v))
-			printedValues++
-			if printedValues >= limit && limit > 0 {
-				return nil
+		if outputType == "json" {
+			jsonOutput = append(jsonOutput, page...)
+		} else {
+			for _, v := range page {
+				t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+				printedValues++
+				if printedValues >= limit && limit > 0 {
+					renderOutput(t, jsonOutput, outputType)
+					return nil
+				}
 			}
 		}
 	}
+	renderOutput(t, jsonOutput, outputType)
 
 	return nil
+}
+
+func timestampForOutput(timestamp time.Time, outputType string) string {
+	switch outputType {
+	case "default":
+		return timestamp.String()
+	case "csv":
+		return timestamp.Format(time.RFC3339Nano)
+	case "json":
+	}
+
+	return ""
+}
+
+func renderOutput(t table.Writer, jsonOutput interface{}, outputType string) {
+	switch outputType {
+	case "default":
+		t.Render()
+	case "csv":
+		t.RenderCSV()
+	case "json":
+		respJSON, _ := json.MarshalIndent(jsonOutput, "", "  ")
+		fmt.Println(string(respJSON))
+	}
 }
