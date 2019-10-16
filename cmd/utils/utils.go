@@ -15,18 +15,20 @@
 package utils
 
 import (
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 )
 
-// utilsCmd represents the utils command
+// UtilsCmd represents the utils command
 var UtilsCmd = &cobra.Command{
 	Use:   "utils",
 	Short: "Various utilities to interact with Astarte",
@@ -44,8 +46,37 @@ The keypair will be saved in the current directory with names <realm_name>_priva
 	RunE:    genKeypairF,
 }
 
+var jwtTypesToClaim = map[string]string{
+	"housekeeping":     "a_ha",
+	"realm-management": "a_rma",
+	"pairing":          "a_pa",
+	"appengine":        "a_aea",
+	"channels":         "a_ch",
+}
+
+var jwtTypes = []string{"housekeeping", "realm-management", "pairing", "appengine", "channels"}
+
+var genJwtCmd = &cobra.Command{
+	Use:       "gen-jwt <type>",
+	Short:     "Generate a JWT",
+	Long:      `Generate a JWT to access one of astarte APIs.`,
+	Example:   `  astartectl utils gen-jwt realm-management -k test-realm.key`,
+	Args:      cobra.ExactArgs(1),
+	ValidArgs: jwtTypes,
+	RunE:      genJwtF,
+}
+
 func init() {
+	genJwtCmd.Flags().StringP("private-key", "k", "", `Path to PEM encoded private key.
+Should be Housekeeping key to generate an housekeeping token, Realm key for everything else.`)
+	genJwtCmd.MarkFlagRequired("private-key")
+	genJwtCmd.MarkFlagFilename("private-key")
+	genJwtCmd.Flags().StringSliceP("claims", "c", nil, `The list of claims to be added in the JWT. Defaults to all-access claims.
+You can specify the flag multiple times or separate the claims with a comma.`)
+	genJwtCmd.Flags().Int64P("expiry", "e", 300, "Expiration time of the token in seconds. 0 means the token will never expire.")
+
 	UtilsCmd.AddCommand(genKeypairCmd)
+	UtilsCmd.AddCommand(genJwtCmd)
 }
 
 func genKeypairF(command *cobra.Command, args []string) error {
@@ -70,6 +101,48 @@ func genKeypairF(command *cobra.Command, args []string) error {
 	return nil
 }
 
+func validJwtType(t string) bool {
+	for _, validType := range jwtTypes {
+		if t == validType {
+			return true
+		}
+	}
+	return false
+}
+
+func genJwtF(command *cobra.Command, args []string) error {
+	jwtType := args[0]
+	astarteService, err := utils.AstarteServiceFromString(jwtType)
+	if err != nil {
+		errorString := fmt.Sprintf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
+
+		return errors.New(errorString)
+	}
+
+	privateKey, err := command.Flags().GetString("private-key")
+	if err != nil {
+		return err
+	}
+
+	expiryOffset, err := command.Flags().GetInt64("expiry")
+	if err != nil {
+		return err
+	}
+
+	accessClaims, err := command.Flags().GetStringSlice("claims")
+	if err != nil {
+		return err
+	}
+
+	tokenString, err := utils.GenerateAstarteJWTFromKeyFile(privateKey, astarteService, accessClaims, expiryOffset)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(tokenString)
+
+	return nil
+}
 
 func savePEMKey(fileName string, key *rsa.PrivateKey) {
 	outFile, err := os.Create(fileName)
@@ -77,7 +150,7 @@ func savePEMKey(fileName string, key *rsa.PrivateKey) {
 	defer outFile.Close()
 
 	var privateKey = &pem.Block{
-		Type:  "PRIVATE KEY",
+		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
 
@@ -88,12 +161,11 @@ func savePEMKey(fileName string, key *rsa.PrivateKey) {
 }
 
 func savePublicPEMKey(fileName string, pubkey rsa.PublicKey) {
-	asn1Bytes, err := asn1.Marshal(pubkey)
+	pkixBytes, err := x509.MarshalPKIXPublicKey(&pubkey)
 	checkError(err)
-
 	var pemkey = &pem.Block{
 		Type:  "PUBLIC KEY",
-		Bytes: asn1Bytes,
+		Bytes: pkixBytes,
 	}
 
 	pemfile, err := os.Create(fileName)

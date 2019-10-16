@@ -15,14 +15,14 @@
 package realm
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"io/ioutil"
-	"net/http"
 	"os"
-	"time"
+	"strconv"
+
+	"github.com/astarte-platform/astartectl/client"
+	"github.com/spf13/cobra"
 )
 
 // interfacesCmd represents the interfaces command
@@ -68,6 +68,18 @@ var interfacesInstallCmd = &cobra.Command{
 	RunE:    interfacesInstallF,
 }
 
+var interfacesDeleteCmd = &cobra.Command{
+	Use:   "delete <interface_name>",
+	Short: "Delete a draft interface",
+	Long: `Deletes the specified interface from the realm.
+Only draft interfaces for which no devices has sent data to can be removed - as such,
+only Major Version 0 of <interface_name> will be deleted, if existing.
+Non-draft interfaces should be removed manually or by your system administrator.`,
+	Example: `  astartectl realm-management interfaces delete com.my.Interface`,
+	Args:    cobra.ExactArgs(1),
+	RunE:    interfacesDeleteF,
+}
+
 var interfacesUpdateCmd = &cobra.Command{
 	Use:   "update <interface_file>",
 	Short: "Update interface",
@@ -80,10 +92,6 @@ The name and major version of the interface are read from the interface file.`,
 	RunE:    interfacesUpdateF,
 }
 
-var netClient = &http.Client{
-	Timeout: time.Second * 30,
-}
-
 func init() {
 	RealmManagementCmd.AddCommand(interfacesCmd)
 
@@ -92,134 +100,50 @@ func init() {
 		interfacesVersionsCmd,
 		interfacesShowCmd,
 		interfacesInstallCmd,
+		interfacesDeleteCmd,
 		interfacesUpdateCmd,
 	)
 }
 
 func interfacesListF(command *cobra.Command, args []string) error {
-	req, err := http.NewRequest("GET", realmManagementUrl+"/v1/"+realm+"/interfaces", nil)
+	realmInterfaces, err := astarteAPIClient.RealmManagement.ListInterfaces(realm, realmManagementJwt)
 	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+realmManagementJwt)
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == 200 {
-		var responseBody struct {
-			Data []string `json:"data"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&responseBody)
-		if err != nil {
-			return err
-		}
-
-		respJson, _ := json.MarshalIndent(&responseBody, "", "  ")
-		fmt.Println(string(respJson))
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	fmt.Println(realmInterfaces)
 	return nil
 }
 
 func interfacesVersionsF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
-
-	req, err := http.NewRequest("GET", realmManagementUrl+"/v1/"+realm+"/interfaces/"+interfaceName, nil)
+	interfaceVersions, err := astarteAPIClient.RealmManagement.ListInterfaceMajorVersions(realm, interfaceName, realmManagementJwt)
 	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+realmManagementJwt)
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == 200 {
-		var responseBody struct {
-			Data []int `json:"data"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&responseBody)
-		if err != nil {
-			return err
-		}
-
-		respJson, _ := json.MarshalIndent(responseBody, "", "  ")
-		fmt.Println(string(respJson))
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	fmt.Println(interfaceVersions)
 	return nil
 }
 
 func interfacesShowF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
-	interfaceMajor := args[1]
-
-	req, err := http.NewRequest("GET", realmManagementUrl+"/v1/"+realm+"/interfaces/"+interfaceName+"/"+interfaceMajor, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+realmManagementJwt)
-
-	resp, err := netClient.Do(req)
+	interfaceMajorString := args[1]
+	interfaceMajor, err := strconv.Atoi(interfaceMajorString)
 	if err != nil {
 		return err
 	}
 
-	if resp.StatusCode == 200 {
-		var responseBody struct {
-			Data map[string]interface{} `json:"data"`
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&responseBody)
-		if err != nil {
-			return err
-		}
-
-		respJson, _ := json.MarshalIndent(responseBody, "", "  ")
-		fmt.Println(string(respJson))
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+	interfaceDefinition, err := astarteAPIClient.RealmManagement.GetInterface(realm, interfaceName, interfaceMajor, realmManagementJwt)
+	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	respJSON, _ := json.MarshalIndent(interfaceDefinition, "", "  ")
+	fmt.Println(string(respJSON))
 	return nil
 }
 
@@ -229,52 +153,33 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var interfaceBody map[string]interface{}
+	var interfaceBody client.AstarteInterface
 	err = json.Unmarshal(interfaceFile, &interfaceBody)
 	if err != nil {
 		return err
 	}
 
-	var requestBody struct {
-		Data map[string]interface{} `json:"data"`
-	}
-	requestBody.Data = interfaceBody
-
-	b := new(bytes.Buffer)
-	err = json.NewEncoder(b).Encode(requestBody)
+	err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody, realmManagementJwt)
 	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", realmManagementUrl+"/v1/"+realm+"/interfaces", b)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+realmManagementJwt)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == 201 {
-		fmt.Println("ok")
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	fmt.Println("ok")
+	return nil
+}
+
+func interfacesDeleteF(command *cobra.Command, args []string) error {
+	interfaceName := args[0]
+	interfaceMajor := 0
+
+	err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor, realmManagementJwt)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println("ok")
 	return nil
 }
 
@@ -284,54 +189,19 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var interfaceBody map[string]interface{}
-	err = json.Unmarshal(interfaceFile, &interfaceBody)
+	var astarteInterface client.AstarteInterface
+	err = json.Unmarshal(interfaceFile, &astarteInterface)
 	if err != nil {
 		return err
 	}
 
-	interfaceName := fmt.Sprintf("%v", interfaceBody["interface_name"])
-	interfaceMajor := fmt.Sprintf("%v", interfaceBody["version_major"])
-
-	var requestBody struct {
-		Data map[string]interface{} `json:"data"`
-	}
-	requestBody.Data = interfaceBody
-
-	b := new(bytes.Buffer)
-	err = json.NewEncoder(b).Encode(requestBody)
+	err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
+		astarteInterface, realmManagementJwt)
 	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("PUT", realmManagementUrl+"/v1/"+realm+"/interfaces/"+interfaceName+"/"+interfaceMajor, b)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+realmManagementJwt)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == 201 {
-		fmt.Println("ok")
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	fmt.Println("ok")
 	return nil
 }

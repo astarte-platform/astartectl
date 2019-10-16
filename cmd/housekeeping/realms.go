@@ -15,17 +15,14 @@
 package housekeeping
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"time"
+
+	"github.com/spf13/cobra"
 )
 
 // realmsCmd represents the realms command
@@ -61,10 +58,6 @@ var realmsCreateCmd = &cobra.Command{
 	RunE:    realmsCreateF,
 }
 
-var netClient = &http.Client{
-	Timeout: time.Second * 30,
-}
-
 func init() {
 	HousekeepingCmd.AddCommand(realmsCmd)
 
@@ -86,84 +79,26 @@ You can also specify the flag multiple times instead of separating it with a com
 }
 
 func realmsListF(command *cobra.Command, args []string) error {
-	req, err := http.NewRequest("GET", housekeepingUrl+"/v1/realms", nil)
+	realms, err := astarteAPIClient.Housekeeping.ListRealms(housekeepingJwt)
 	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+housekeepingJwt)
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == 200 {
-		var responseBody struct {
-			Data []string `json:"data"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&responseBody)
-		if err != nil {
-			return err
-		}
-
-		respJson, _ := json.MarshalIndent(responseBody, "", "  ")
-		fmt.Println(string(respJson))
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	fmt.Println(realms)
 	return nil
 }
 
 func realmsShowF(command *cobra.Command, args []string) error {
 	realm := args[0]
 
-	req, err := http.NewRequest("GET", housekeepingUrl+"/v1/realms/"+realm, nil)
+	realmDetails, err := astarteAPIClient.Housekeeping.GetRealm(realm, housekeepingJwt)
 	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+housekeepingJwt)
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode == 200 {
-		var responseBody struct {
-			Data map[string]interface{} `json:"data"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&responseBody)
-		if err != nil {
-			return err
-		}
-
-		respJson, _ := json.MarshalIndent(responseBody, "", "  ")
-		fmt.Println(string(respJson))
-	} else {
-		var errorBody struct {
-			Errors map[string]interface{} `json:"errors"`
-		}
-		err = json.NewDecoder(resp.Body).Decode(&errorBody)
-		if err != nil {
-			return err
-		}
-
-		errJson, _ := json.MarshalIndent(&errorBody, "", "  ")
-		fmt.Println(string(errJson))
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	fmt.Printf("%+v\n", realmDetails)
 	return nil
 }
 
@@ -179,15 +114,6 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var requestBody struct {
-		Data map[string]interface{} `json:"data"`
-	}
-
-	requestBody.Data = map[string]interface{}{
-		"realm_name":         realm,
-		"jwt_public_key_pem": string(publicKeyContent),
-	}
-
 	replicationFactor, err := command.Flags().GetInt("replication-factor")
 	if err != nil {
 		return err
@@ -198,14 +124,13 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	if replicationFactor > 0 && datacenterReplications != nil {
+	if replicationFactor > 0 && len(datacenterReplications) > 0 {
 		return errors.New("replication-factor and datacenter-replication are mutually exclusive, you only have to specify one")
 	}
 
 	if replicationFactor > 0 {
-		requestBody.Data["replication_factor"] = replicationFactor
-	} else {
-		requestBody.Data["replication_class"] = "NetworkTopologyStrategy"
+		err = astarteAPIClient.Housekeeping.CreateRealmWithReplicationFactor(realm, string(publicKeyContent), replicationFactor, housekeepingJwt)
+	} else if len(datacenterReplications) > 0 {
 		datacenterReplicationFactors := make(map[string]int)
 		for _, datacenterString := range datacenterReplications {
 			tokens := strings.Split(datacenterString, ":")
@@ -221,43 +146,17 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 			}
 			datacenterReplicationFactors[datacenter] = datacenterReplicationFactor
 		}
-		requestBody.Data["datacenter_replication_factors"] = datacenterReplicationFactors
-	}
-
-	b := new(bytes.Buffer)
-	err = json.NewEncoder(b).Encode(requestBody)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", housekeepingUrl+"/v1/realms", b)
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Authorization", "Bearer "+housekeepingJwt)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	var responseBody struct {
-		Errors map[string]interface{} `json:"errors"`
-	}
-
-	if resp.StatusCode == 201 {
-		fmt.Println("ok")
+		err = astarteAPIClient.Housekeeping.CreateRealmWithDatacenterReplication(realm, string(publicKeyContent),
+			datacenterReplicationFactors, housekeepingJwt)
 	} else {
-		err = json.NewDecoder(resp.Body).Decode(&responseBody)
-		if err != nil {
-			return err
-		}
+		err = astarteAPIClient.Housekeeping.CreateRealm(realm, string(publicKeyContent), housekeepingJwt)
+	}
 
-		errJson, _ := json.MarshalIndent(&responseBody, "", "  ")
-		fmt.Println(string(errJson))
+	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	fmt.Println("ok")
 	return nil
 }

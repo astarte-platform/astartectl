@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/astarte-platform/astartectl/cmd/appengine"
 	"github.com/astarte-platform/astartectl/cmd/housekeeping"
 	"github.com/astarte-platform/astartectl/cmd/pairing"
 	"github.com/astarte-platform/astartectl/cmd/realm"
@@ -66,6 +67,7 @@ func init() {
 	rootCmd.AddCommand(pairing.PairingCmd)
 	rootCmd.AddCommand(realm.RealmManagementCmd)
 	rootCmd.AddCommand(utils.UtilsCmd)
+	rootCmd.AddCommand(appengine.AppEngineCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -98,7 +100,7 @@ func initConfig() {
 	// If a config file is found, read it in.
 	err := viper.ReadInConfig()
 	if err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		fmt.Fprintf(os.Stderr, "Using config file: %s\n", viper.ConfigFileUsed())
 	} else if envCfgFile != "" {
 		// If we explicitly provided a config, print a failure message
 		fmt.Printf("Cannot use %s for configuration: %s\n", viper.ConfigFileUsed(), err.Error())
