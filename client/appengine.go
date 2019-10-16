@@ -20,6 +20,8 @@ import (
 	"net/url"
 	"path"
 	"time"
+
+	"github.com/astarte-platform/astartectl/utils"
 )
 
 const defaultPageSize int = 10000
@@ -30,6 +32,34 @@ var invalidTime time.Time = time.Unix(0, 0)
 type AppEngineService struct {
 	client       *Client
 	appEngineURL *url.URL
+}
+
+// DeviceIdentifierType represents what kind of identifier is used for identifying a Device.
+type DeviceIdentifierType int
+
+const (
+	// AutodiscoverDeviceIdentifier is the default, and uses heuristics to autodetermine which kind of
+	// identifier is being used.
+	AutodiscoverDeviceIdentifier DeviceIdentifierType = iota
+	// AstarteDeviceID is the Device's ID in its standard format.
+	AstarteDeviceID
+	// AstarteDeviceAlias is one of the Device's Aliases.
+	AstarteDeviceAlias
+)
+
+func resolveDevicePath(deviceIdentifier string, deviceIdentifierType DeviceIdentifierType) string {
+	switch deviceIdentifierType {
+	case AutodiscoverDeviceIdentifier:
+		if utils.IsValidAstarteDeviceID(deviceIdentifier) {
+			return fmt.Sprintf("devices/%v", deviceIdentifier)
+		}
+		return fmt.Sprintf("devices-by-alias/%v", deviceIdentifier)
+	case AstarteDeviceID:
+		return fmt.Sprintf("devices/%v", deviceIdentifier)
+	case AstarteDeviceAlias:
+		return fmt.Sprintf("devices-by-alias/%v", deviceIdentifier)
+	}
+	return ""
 }
 
 // ListDevices returns a list of Devices in the Realm
@@ -52,9 +82,9 @@ func (s *AppEngineService) ListDevices(realm string, token string) ([]string, er
 }
 
 // GetDevice returns the DeviceDetails of a single Device in the Realm
-func (s *AppEngineService) GetDevice(realm string, deviceID string, token string) (DeviceDetails, error) {
+func (s *AppEngineService) GetDevice(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, token string) (DeviceDetails, error) {
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s", realm, deviceID))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s", realm, resolveDevicePath(deviceIdentifier, deviceIdentifierType)))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
 		return DeviceDetails{}, err
@@ -71,9 +101,10 @@ func (s *AppEngineService) GetDevice(realm string, deviceID string, token string
 }
 
 // ListDeviceInterfaces returns the list of Interfaces exposed by the Device's introspection
-func (s *AppEngineService) ListDeviceInterfaces(realm string, deviceID string, token string) ([]string, error) {
+func (s *AppEngineService) ListDeviceInterfaces(realm string, deviceIdentifier string,
+	deviceIdentifierType DeviceIdentifierType, token string) ([]string, error) {
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, "/v1/"+realm+"/devices/"+deviceID+"/interfaces")
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces", realm, resolveDevicePath(deviceIdentifier, deviceIdentifierType)))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
 		return nil, err
@@ -91,7 +122,7 @@ func (s *AppEngineService) ListDeviceInterfaces(realm string, deviceID string, t
 
 // ListDeviceAliases is an helper to list all aliases of a Device
 func (s *AppEngineService) ListDeviceAliases(realm string, deviceID string, token string) (map[string]string, error) {
-	deviceDetails, err := s.GetDevice(realm, deviceID, token)
+	deviceDetails, err := s.GetDevice(realm, deviceID, AstarteDeviceID, token)
 	if err != nil {
 		return nil, err
 	}
@@ -181,9 +212,11 @@ func parseDatastreamValue(aMap map[string]interface{}) (DatastreamValue, error) 
 }
 
 // GetProperties returns all the currently set Properties on a given Interface
-func (s *AppEngineService) GetProperties(realm string, deviceID string, interfaceName string, token string) (map[string]interface{}, error) {
+func (s *AppEngineService) GetProperties(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType,
+	interfaceName string, token string) (map[string]interface{}, error) {
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s/interfaces/%s", realm, deviceID, interfaceName))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s", realm,
+		resolveDevicePath(deviceIdentifier, deviceIdentifierType), interfaceName))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
 		return nil, err
@@ -200,9 +233,11 @@ func (s *AppEngineService) GetProperties(realm string, deviceID string, interfac
 }
 
 // GetDatastreamSnapshot returns all the last values on all paths for a Datastream interface
-func (s *AppEngineService) GetDatastreamSnapshot(realm string, deviceID string, interfaceName string, token string) (map[string]DatastreamValue, error) {
+func (s *AppEngineService) GetDatastreamSnapshot(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType,
+	interfaceName string, token string) (map[string]DatastreamValue, error) {
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s/interfaces/%s", realm, deviceID, interfaceName))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s", realm,
+		resolveDevicePath(deviceIdentifier, deviceIdentifierType), interfaceName))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
 		return nil, err
@@ -220,24 +255,24 @@ func (s *AppEngineService) GetDatastreamSnapshot(realm string, deviceID string, 
 
 // GetLastDatastreams returns all the last values on a path for a Datastream interface.
 // If limit is <= 0, it returns all existing datastreams. Consider using a GetDatastreamsPaginator in that case.
-func (s *AppEngineService) GetLastDatastreams(realm string, deviceID string, interfaceName string, interfacePath string, limit int, token string) ([]DatastreamValue, error) {
-	return s.getDatastreamInternal(realm, deviceID, interfaceName, interfacePath, invalidTime, invalidTime, limit, DescendingOrder, token)
+func (s *AppEngineService) GetLastDatastreams(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, interfacePath string, limit int, token string) ([]DatastreamValue, error) {
+	return s.getDatastreamInternal(realm, resolveDevicePath(deviceIdentifier, deviceIdentifierType), interfaceName, interfacePath, invalidTime, invalidTime, limit, DescendingOrder, token)
 }
 
 // GetDatastreamsPaginator returns a Paginator for all the values on a path for a Datastream interface.
-func (s *AppEngineService) GetDatastreamsPaginator(realm string, deviceID string, interfaceName string, interfacePath string, resultSetOrder ResultSetOrder, token string) DatastreamPaginator {
-	return s.getDatastreamPaginatorInternal(realm, deviceID, interfaceName, interfacePath, invalidTime, time.Now(), defaultPageSize, resultSetOrder, token)
+func (s *AppEngineService) GetDatastreamsPaginator(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, interfacePath string, resultSetOrder ResultSetOrder, token string) DatastreamPaginator {
+	return s.getDatastreamPaginatorInternal(realm, resolveDevicePath(deviceIdentifier, deviceIdentifierType), interfaceName, interfacePath, invalidTime, time.Now(), defaultPageSize, resultSetOrder, token)
 }
 
 // GetDatastreamsTimeWindowPaginator returns a Paginator for all the values on a path in a specified time window for a Datastream interface.
-func (s *AppEngineService) GetDatastreamsTimeWindowPaginator(realm string, deviceID string, interfaceName string, interfacePath string, since time.Time, to time.Time, resultSetOrder ResultSetOrder, token string) DatastreamPaginator {
-	return s.getDatastreamPaginatorInternal(realm, deviceID, interfaceName, interfacePath, since, to, defaultPageSize, resultSetOrder, token)
+func (s *AppEngineService) GetDatastreamsTimeWindowPaginator(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, interfacePath string, since time.Time, to time.Time, resultSetOrder ResultSetOrder, token string) DatastreamPaginator {
+	return s.getDatastreamPaginatorInternal(realm, resolveDevicePath(deviceIdentifier, deviceIdentifierType), interfaceName, interfacePath, since, to, defaultPageSize, resultSetOrder, token)
 }
 
 // GetAggregateDatastreamSnapshot returns the last value for a Datastream aggregate interface
-func (s *AppEngineService) GetAggregateDatastreamSnapshot(realm string, deviceID string, interfaceName string, token string) (DatastreamAggregateValue, error) {
+func (s *AppEngineService) GetAggregateDatastreamSnapshot(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, token string) (DatastreamAggregateValue, error) {
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s/interfaces/%s", realm, deviceID, interfaceName))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s", realm, resolveDevicePath(deviceIdentifier, deviceIdentifierType), interfaceName))
 	// It's a snapshot, so limit=1
 	callURL.RawQuery = "limit=1"
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
@@ -261,9 +296,9 @@ func (s *AppEngineService) GetAggregateDatastreamSnapshot(realm string, deviceID
 }
 
 // GetLastAggregateDatastreams returns the last count values for a Datastream aggregate interface
-func (s *AppEngineService) GetLastAggregateDatastreams(realm string, deviceID string, interfaceName string, token string, count int) ([]DatastreamAggregateValue, error) {
+func (s *AppEngineService) GetLastAggregateDatastreams(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, token string, count int) ([]DatastreamAggregateValue, error) {
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s/interfaces/%s", realm, deviceID, interfaceName))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s", realm, resolveDevicePath(deviceIdentifier, deviceIdentifierType), interfaceName))
 	callURL.RawQuery = fmt.Sprintf("limit=%v", count)
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
@@ -281,9 +316,9 @@ func (s *AppEngineService) GetLastAggregateDatastreams(realm string, deviceID st
 }
 
 // GetAggregateDatastreamsTimeWindow returns the last count values for a Datastream aggregate interface
-func (s *AppEngineService) GetAggregateDatastreamsTimeWindow(realm string, deviceID string, interfaceName string, token string, since time.Time, to time.Time) ([]DatastreamAggregateValue, error) {
+func (s *AppEngineService) GetAggregateDatastreamsTimeWindow(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, token string, since time.Time, to time.Time) ([]DatastreamAggregateValue, error) {
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s/interfaces/%s", realm, deviceID, interfaceName))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s", realm, resolveDevicePath(deviceIdentifier, deviceIdentifierType), interfaceName))
 	// It's a snapshot, so limit=1
 	callURL.RawQuery = fmt.Sprintf("since=%s&to=%s", since.UTC().Format(time.RFC3339Nano), to.UTC().Format(time.RFC3339Nano))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
@@ -329,13 +364,13 @@ func (s *AppEngineService) DeleteDeviceAlias(realm string, deviceID string, alia
 	return nil
 }
 
-func (s *AppEngineService) getDatastreamInternal(realm string, deviceID string, interfaceName string, interfacePath string,
+func (s *AppEngineService) getDatastreamInternal(realm string, devicePath string, interfaceName string, interfacePath string,
 	since time.Time, to time.Time, limit int, resultSetOrder ResultSetOrder, token string) ([]DatastreamValue, error) {
 	realLimit := limit
 	if limit < 0 || limit > defaultPageSize {
 		realLimit = defaultPageSize
 	}
-	datastreamPaginator := s.getDatastreamPaginatorInternal(realm, deviceID, interfaceName, interfacePath, since, to, realLimit, resultSetOrder, token)
+	datastreamPaginator := s.getDatastreamPaginatorInternal(realm, devicePath, interfaceName, interfacePath, since, to, realLimit, resultSetOrder, token)
 
 	var resultSet []DatastreamValue
 	for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
@@ -361,10 +396,10 @@ func (s *AppEngineService) getDatastreamInternal(realm string, deviceID string, 
 	return resultSet, nil
 }
 
-func (s *AppEngineService) getDatastreamPaginatorInternal(realm string, deviceID string, interfaceName string, interfacePath string,
+func (s *AppEngineService) getDatastreamPaginatorInternal(realm string, devicePath string, interfaceName string, interfacePath string,
 	since time.Time, to time.Time, pageSize int, resultSetOrder ResultSetOrder, token string) DatastreamPaginator {
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/devices/%s/interfaces/%s%s", realm, deviceID, interfaceName, interfacePath))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s%s", realm, devicePath, interfaceName, interfacePath))
 
 	datastreamPaginator := DatastreamPaginator{
 		baseURL:        callURL,
