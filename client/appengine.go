@@ -115,6 +115,29 @@ func (s *AppEngineService) GetDevice(realm string, deviceIdentifier string, devi
 	return responseBody.Data, nil
 }
 
+// GetDeviceIDFromDeviceIdentifier returns the DeviceID of a Device identified with a deviceIdentifier
+// of type deviceIdentifierType.
+func (s *AppEngineService) GetDeviceIDFromDeviceIdentifier(realm string, deviceIdentifier string,
+	deviceIdentifierType DeviceIdentifierType, token string) (string, error) {
+	resolvedDeviceIdentifierType := resolveDeviceIdentifierType(deviceIdentifier, deviceIdentifierType)
+	switch resolvedDeviceIdentifierType {
+	case AstarteDeviceAlias:
+		return s.GetDeviceIDFromAlias(realm, deviceIdentifier, token)
+	default:
+		return deviceIdentifier, nil
+	}
+}
+
+// GetDeviceIdFromAlias returns the Device ID of a device given one of its aliases
+func (s *AppEngineService) GetDeviceIDFromAlias(realm string, deviceAlias string, token string) (string, error) {
+	deviceDetails, err := s.GetDevice(realm, deviceAlias, AstarteDeviceAlias, token)
+	if err != nil {
+		return "", err
+	}
+
+	return deviceDetails.DeviceID, nil
+}
+
 // ListDeviceInterfaces returns the list of Interfaces exposed by the Device's introspection
 func (s *AppEngineService) ListDeviceInterfaces(realm string, deviceIdentifier string,
 	deviceIdentifierType DeviceIdentifierType, token string) ([]string, error) {
