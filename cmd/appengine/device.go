@@ -23,7 +23,6 @@ import (
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/astarte-platform/astartectl/client"
-	"github.com/astarte-platform/astartectl/utils"
 	"github.com/jedib0t/go-pretty/table"
 
 	"github.com/araddon/dateparse"
@@ -96,22 +95,6 @@ func isASupportedOutputType(outputType string) bool {
 		}
 	}
 	return false
-}
-
-func deviceIdentifierTypeFromFlags(deviceIdentifier string, forceDeviceIdentifier string) (client.DeviceIdentifierType, error) {
-	switch forceDeviceIdentifier {
-	case "":
-		return client.AutodiscoverDeviceIdentifier, nil
-	case "device-id":
-		if !utils.IsValidAstarteDeviceID(deviceIdentifier) {
-			return 0, fmt.Errorf("Required to evaluate the Device Identifier as an Astarte Device ID, but %v isn't a valid one", deviceIdentifier)
-		}
-		return client.AstarteDeviceID, nil
-	case "alias":
-		return client.AstarteDeviceAlias, nil
-	}
-
-	return 0, fmt.Errorf("%v is not a valid Astarte Device Identifier type. Valid options are [device-id alias]", forceDeviceIdentifier)
 }
 
 func init() {
