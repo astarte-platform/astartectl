@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.10.1] - Unreleased
+## [0.10.1] - 2019-10-18
 ### Added
 - Add commands to generate Device IDs and authentication JWTs
 - Add gobuild.sh script
