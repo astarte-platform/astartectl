@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.10.2] - Unreleased
+### Added
+- appengine: Add an option to skip Realm Management checks, where possible
+
 ## [0.10.1] - Unreleased
 ### Added
 - Add commands to generate Device IDs and authentication JWTs

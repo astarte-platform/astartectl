@@ -106,6 +106,7 @@ func init() {
 	devicesGetSamplesCmd.Flags().String("to", "", "When set, returns only samples older than the provided date.")
 	devicesGetSamplesCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
 	devicesGetSamplesCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	devicesGetSamplesCmd.Flags().Bool("skip-realm-management-checks", false, "When set, it skips any consistency checks on Realm Management before performing the Query. This might lead to unexpected errors.")
 
 	devicesDataSnapshotCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
 	devicesDataSnapshotCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
@@ -304,6 +305,10 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	if ascending {
 		resultSetOrder = client.AscendingOrder
 	}
+	skipRealmManagementChecks, err := command.Flags().GetBool("skip-realm-management-checks")
+	if err != nil {
+		return err
+	}
 	since, err := command.Flags().GetString("since")
 	if err != nil {
 		return err
@@ -334,36 +339,38 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 		return fmt.Errorf("%v is not a supported output type. Supported output types are %v", outputType, supportedOutputTypes)
 	}
 
-	// Get the device introspection
-	interfaceFound := false
-	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
-	if err != nil {
-		return err
-	}
-	for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
-		if astarteInterface != interfaceName {
-			continue
-		}
-
-		// Query Realm Management to get details on the interface
-		interfaceDescription, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
-			interfaceIntrospection.Major, realmManagementJwt)
+	if !skipRealmManagementChecks {
+		// Get the device introspection
+		interfaceFound := false
+		deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
 		if err != nil {
 			return err
 		}
+		for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
+			if astarteInterface != interfaceName {
+				continue
+			}
 
-		if interfaceDescription.Type != client.DatastreamType {
-			fmt.Printf("%s is not a Datastream interface. get-samples works only on Datastream interfaces\n", interfaceName)
-			os.Exit(1)
+			// Query Realm Management to get details on the interface
+			interfaceDescription, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
+				interfaceIntrospection.Major, realmManagementJwt)
+			if err != nil {
+				return err
+			}
+
+			if interfaceDescription.Type != client.DatastreamType {
+				fmt.Printf("%s is not a Datastream interface. get-samples works only on Datastream interfaces\n", interfaceName)
+				os.Exit(1)
+			}
+
+			// TODO: Check paths when we have a better parsing for interfaces
+			interfaceFound = true
 		}
 
-		// TODO: Check paths when we have a better parsing for interfaces
-		interfaceFound = true
-	}
-
-	if !interfaceFound {
-		fmt.Printf("Device %s has no interface named %s\n", deviceID, interfaceName)
-		os.Exit(1)
+		if !interfaceFound {
+			fmt.Printf("Device %s has no interface named %s\n", deviceID, interfaceName)
+			os.Exit(1)
+		}
 	}
 
 	// We are good to go.
