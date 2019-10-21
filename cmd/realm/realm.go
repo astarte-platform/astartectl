@@ -69,8 +69,9 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
 	realmManagementKey := viper.GetString("realm.key")
-	if realmManagementKey == "" {
-		return errors.New("realm-key is required")
+	explicitToken := viper.GetString("token")
+	if realmManagementKey == "" && explicitToken == "" {
+		return errors.New("either realm-key or token is required")
 	}
 
 	viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
@@ -79,10 +80,14 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("realm is required")
 	}
 
-	var err error
-	realmManagementJwt, err = generateRealmManagementJWT(realmManagementKey)
-	if err != nil {
-		return err
+	if explicitToken == "" {
+		var err error
+		realmManagementJwt, err = generateRealmManagementJWT(realmManagementKey)
+		if err != nil {
+			return err
+		}
+	} else {
+		realmManagementJwt = explicitToken
 	}
 
 	return nil

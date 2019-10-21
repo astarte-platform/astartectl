@@ -66,14 +66,19 @@ func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	housekeepingKey := viper.GetString("housekeeping.key")
-	if housekeepingKey == "" {
-		return errors.New("housekeeping-key is required")
+	explicitToken := viper.GetString("token")
+	if housekeepingKey == "" && explicitToken == "" {
+		return errors.New("housekeeping-key or token is required")
 	}
 
-	var err error
-	housekeepingJwt, err = generateHousekeepingJWT(housekeepingKey)
-	if err != nil {
-		return err
+	if explicitToken == "" {
+		var err error
+		housekeepingJwt, err = generateHousekeepingJWT(housekeepingKey)
+		if err != nil {
+			return err
+		}
+	} else {
+		housekeepingJwt = explicitToken
 	}
 
 	return nil
