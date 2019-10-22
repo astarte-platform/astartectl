@@ -61,7 +61,9 @@ func init() {
 	// will be global for your application.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.astartectl.yaml)")
 	rootCmd.PersistentFlags().StringP("astarte-url", "u", "", "Base url for your Astarte deployment (e.g. https://api.astarte.example.com)")
+	rootCmd.PersistentFlags().StringP("token", "t", "", "Token for authenticating against Astarte APIs. When set, it takes precedence over any private key setting. Claims in the token have to match the permissions needed for the individual command.")
 	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("astarte-url"))
+	viper.BindPFlag("token", rootCmd.PersistentFlags().Lookup("token"))
 
 	rootCmd.AddCommand(housekeeping.HousekeepingCmd)
 	rootCmd.AddCommand(pairing.PairingCmd)
