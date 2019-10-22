@@ -8,7 +8,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add appengine group subcommand
 
-## [0.10.1] - Unreleased
+## [0.10.3] - Unreleased
+
+## [0.10.2] - 2019-10-22
+### Added
+- appengine: Add an option to skip Realm Management checks, where possible
+- Add possibility to use a token instead of the private key
+
+## [0.10.1] - 2019-10-18
 ### Added
 - Add commands to generate Device IDs and authentication JWTs
 - Add gobuild.sh script

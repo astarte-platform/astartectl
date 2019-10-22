@@ -68,8 +68,9 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
 	pairingKey := viper.GetString("realm.key")
-	if pairingKey == "" {
-		return errors.New("realm-key is required")
+	explicitToken := viper.GetString("token")
+	if pairingKey == "" && explicitToken == "" {
+		return errors.New("realm-key or token is required")
 	}
 
 	viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
@@ -78,10 +79,14 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("realm is required")
 	}
 
-	var err error
-	pairingJwt, err = generatePairingJWT(pairingKey)
-	if err != nil {
-		return err
+	if explicitToken == "" {
+		var err error
+		pairingJwt, err = generatePairingJWT(pairingKey)
+		if err != nil {
+			return err
+		}
+	} else {
+		pairingJwt = explicitToken
 	}
 
 	return nil
