@@ -557,3 +557,17 @@ func (s *AppEngineService) RemoveDeviceFromGroup(realm string, groupName string,
 
 	return nil
 }
+
+func (s *AppEngineService) InhibitDevice(realm string, deviceIdentifier string,
+	deviceIdentifierType DeviceIdentifierType, token string, inhibit bool) error {
+	resolvedDeviceIdentifierType := resolveDeviceIdentifierType(deviceIdentifier, deviceIdentifierType)
+	callURL, _ := url.Parse(s.appEngineURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s", realm, devicePath(deviceIdentifier, resolvedDeviceIdentifierType)))
+	payload := map[string]bool{"credentials_inhibited": inhibit}
+	err := s.client.genericJSONDataAPIPatch(callURL.String(), payload, token, 200)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
