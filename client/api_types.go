@@ -97,6 +97,7 @@ type DeviceDetails struct {
 	DeviceID                 string                                  `json:"id"`
 	FirstRegistration        time.Time                               `json:"first_registration"`
 	FirstCredentialsRequest  time.Time                               `json:"first_credentials_request"`
+	CredentialsInhibited     bool                                    `json:"credentials_inhibited"`
 	Connected                bool                                    `json:"connected"`
 	Introspection            map[string]DeviceInterfaceIntrospection `json:"introspection"`
 	Aliases                  map[string]string                       `json:"aliases"`
