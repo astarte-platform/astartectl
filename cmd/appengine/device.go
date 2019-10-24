@@ -134,6 +134,9 @@ func devicesListF(command *cobra.Command, args []string) error {
 
 func prettyPrintDeviceDetails(deviceDetails client.DeviceDetails) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	if deviceDetails.CredentialsInhibited {
+		fmt.Fprintf(w, "Credentials Inhibited:\t%v\n", deviceDetails.CredentialsInhibited)
+	}
 	fmt.Fprintf(w, "Device ID:\t%v\n", deviceDetails.DeviceID)
 	fmt.Fprintf(w, "Connected:\t%v\n", deviceDetails.Connected)
 	fmt.Fprintf(w, "Last Connection:\t%v\n", deviceDetails.LastConnection)
