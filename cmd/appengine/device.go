@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -108,6 +109,7 @@ func init() {
 	devicesGetSamplesCmd.Flags().String("to", "", "When set, returns only samples older than the provided date.")
 	devicesGetSamplesCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
 	devicesGetSamplesCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	devicesGetSamplesCmd.Flags().Bool("aggregate", false, "When set, if Realm Management checks are disabled, it forces resolution of the interface as an aggregate datastream.")
 	devicesGetSamplesCmd.Flags().Bool("skip-realm-management-checks", false, "When set, it skips any consistency checks on Realm Management before performing the Query. This might lead to unexpected errors.")
 
 	devicesDataSnapshotCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
@@ -330,6 +332,10 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	forceAggregate, err := command.Flags().GetBool("aggregate")
+	if err != nil {
+		return err
+	}
 	since, err := command.Flags().GetString("since")
 	if err != nil {
 		return err
@@ -360,6 +366,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 		return fmt.Errorf("%v is not a supported output type. Supported output types are %v", outputType, supportedOutputTypes)
 	}
 
+	var isAggregate bool
 	if !skipRealmManagementChecks {
 		// Get the device introspection
 		interfaceFound := false
@@ -386,43 +393,106 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 
 			// TODO: Check paths when we have a better parsing for interfaces
 			interfaceFound = true
+			err = utils.ValidateInterfacePath(interfaceDescription, interfacePath)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			interfacePathTokens := strings.Split(interfacePath, "/")
+			validationEndpointTokens := strings.Split(interfaceDescription.Mappings[0].Endpoint, "/")
+			isAggregate = interfaceDescription.Aggregation == common.ObjectAggregation
+			// Special case
+			if len(interfacePathTokens) == len(validationEndpointTokens) && interfacePath != "/" {
+				isAggregate = false
+			}
 		}
 
 		if !interfaceFound {
 			fmt.Printf("Device %s has no interface named %s\n", deviceID, interfaceName)
 			os.Exit(1)
 		}
+	} else {
+		isAggregate = forceAggregate
+	}
+
+	if interfacePath == "/" {
+		interfacePath = ""
 	}
 
 	// We are good to go.
-	// Go with the table header
 	t := tableWriterForOutputType(outputType)
-	t.AppendHeader(table.Row{"Timestamp", "Value"})
-	printedValues := 0
-	jsonOutput := []client.DatastreamValue{}
-	datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath,
-		sinceTime, toTime, resultSetOrder, appEngineJwt)
-	for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
-		page, err := datastreamPaginator.GetNextPage()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	if !isAggregate {
+		// Go with the table header
+		t.AppendHeader(table.Row{"Timestamp", "Value"})
+		printedValues := 0
+		jsonOutput := []client.DatastreamValue{}
+		datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID,
+			deviceIdentifierType, interfaceName, interfacePath, sinceTime, toTime, resultSetOrder, appEngineJwt)
+		for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
+			page, err := datastreamPaginator.GetNextPage()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 
-		if outputType == "json" {
-			jsonOutput = append(jsonOutput, page...)
-		} else {
-			for _, v := range page {
-				t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
-				printedValues++
-				if printedValues >= limit && limit > 0 {
-					renderOutput(t, jsonOutput, outputType)
-					return nil
+			if outputType == "json" {
+				jsonOutput = append(jsonOutput, page...)
+			} else {
+				for _, v := range page {
+					t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+					printedValues++
+					if printedValues >= limit && limit > 0 {
+						renderOutput(t, jsonOutput, outputType)
+						return nil
+					}
 				}
 			}
 		}
+		renderOutput(t, jsonOutput, outputType)
+	} else {
+		headerRow := table.Row{"Timestamp"}
+		headerPrinted := false
+
+		jsonOutput := []client.DatastreamAggregateValue{}
+		printedValues := 0
+		datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath,
+			sinceTime, toTime, resultSetOrder, appEngineJwt)
+		for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
+			page, err := datastreamPaginator.GetNextAggregatePage()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			if outputType == "json" {
+				jsonOutput = append(jsonOutput, page...)
+			} else {
+				for _, v := range page {
+					// Iterate the aggregate
+					line := []interface{}{}
+					line = append(line, timestampForOutput(v.Timestamp, outputType))
+					for _, path := range v.Values.Keys() {
+						value, _ := v.Values.Get(path)
+						if !headerPrinted {
+							headerRow = append(headerRow, fmt.Sprintf("%s/%s", interfacePath, path))
+						}
+						line = append(line, value)
+					}
+					if !headerPrinted {
+						t.AppendHeader(headerRow)
+						headerPrinted = true
+					}
+					t.AppendRow(line)
+					printedValues++
+					if printedValues >= limit && limit > 0 {
+						renderOutput(t, jsonOutput, outputType)
+						return nil
+					}
+				}
+			}
+		}
+		renderOutput(t, jsonOutput, outputType)
 	}
-	renderOutput(t, jsonOutput, outputType)
 
 	return nil
 }
