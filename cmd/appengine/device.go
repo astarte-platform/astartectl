@@ -23,6 +23,8 @@ import (
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/astarte-platform/astartectl/client"
+	"github.com/astarte-platform/astartectl/common"
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/jedib0t/go-pretty/table"
 
 	"github.com/araddon/dateparse"
@@ -234,18 +236,35 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		}
 
 		switch interfaceDescription.Type {
-		case client.DatastreamType:
-			if interfaceDescription.Aggregation == client.ObjectAggregation {
-				val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
-				if err != nil {
-					return err
-				}
-				if outputType == "json" {
-					jsonOutput[astarteInterface] = val
+		case common.DatastreamType:
+			if interfaceDescription.Aggregation == common.ObjectAggregation {
+				if interfaceDescription.IsParametric() {
+					val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
+					if err != nil {
+						return err
+					}
+					for path, aggregate := range val {
+						if outputType == "json" {
+							jsonOutput[astarteInterface] = val
+						} else {
+							for k, v := range aggregate.Values {
+								t.AppendRow([]interface{}{astarteInterface, fmt.Sprintf("%s/%s", path, k), v, interfaceDescription.Ownership.String(),
+									timestampForOutput(aggregate.Timestamp, outputType)})
+							}
+						}
+					}
 				} else {
-					for k, v := range val.Values {
-						t.AppendRow([]interface{}{astarteInterface, k, v, interfaceDescription.Ownership.String(),
-							timestampForOutput(val.Timestamp, outputType)})
+					val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
+					if err != nil {
+						return err
+					}
+					if outputType == "json" {
+						jsonOutput[astarteInterface] = val
+					} else {
+						for k, v := range val.Values {
+							t.AppendRow([]interface{}{astarteInterface, fmt.Sprintf("/%s", k), v, interfaceDescription.Ownership.String(),
+								timestampForOutput(val.Timestamp, outputType)})
+						}
 					}
 				}
 			} else {
@@ -261,7 +280,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				}
 				jsonOutput[astarteInterface] = jsonRepresentation
 			}
-		case client.PropertiesType:
+		case common.PropertiesType:
 			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
 			if err != nil {
 				return err
@@ -358,7 +377,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				return err
 			}
 
-			if interfaceDescription.Type != client.DatastreamType {
+			if interfaceDescription.Type != common.DatastreamType {
 				fmt.Printf("%s is not a Datastream interface. get-samples works only on Datastream interfaces\n", interfaceName)
 				os.Exit(1)
 			}
