@@ -74,27 +74,7 @@ func (d *DatastreamPaginator) GetNextPage() ([]DatastreamValue, error) {
 		return nil, errors.New("No more pages available")
 	}
 
-	callURL, _ := url.Parse(d.baseURL.String())
-	queryString := ""
-	if d.resultSetOrder == AscendingOrder {
-		queryString += fmt.Sprintf("page_size=%v&to=%v", d.pageSize, d.windowEnd.UTC().Format(time.RFC3339Nano))
-		if d.windowStart != invalidTime && d.nextWindow == invalidTime {
-			queryString += fmt.Sprintf("&since=%v", d.windowStart.UTC().Format(time.RFC3339Nano))
-		} else if d.nextWindow != invalidTime {
-			queryString += fmt.Sprintf("&since_after=%v", d.nextWindow.UTC().Format(time.RFC3339Nano))
-		}
-	} else {
-		queryString += fmt.Sprintf("limit=%v", d.pageSize)
-		if d.windowStart != invalidTime {
-			queryString += fmt.Sprintf("&since=%v", d.windowStart.UTC().Format(time.RFC3339Nano))
-		}
-		if d.nextWindow == invalidTime {
-			queryString += fmt.Sprintf("&to=%v", d.windowEnd.UTC().Format(time.RFC3339Nano))
-		} else {
-			queryString += fmt.Sprintf("&to=%v", d.nextWindow.UTC().Format(time.RFC3339Nano))
-		}
-	}
-	callURL.RawQuery = queryString
+	callURL, _ := d.setupCallURL()
 
 	decoder, err := d.client.genericJSONDataAPIGET(callURL.String(), d.token, 200)
 	if err != nil {
@@ -116,4 +96,65 @@ func (d *DatastreamPaginator) GetNextPage() ([]DatastreamValue, error) {
 	}
 
 	return responseBody.Data, nil
+}
+
+// GetNextAggregatePage retrieves the next result page from the paginator for an Aggregate interface.
+// Returns the page as an array of DatastreamAggregateValue.
+// If no more results are available, HasNextPage will return false. GetNextPage throws an error if no more pages are available.
+func (d *DatastreamPaginator) GetNextAggregatePage() ([]DatastreamAggregateValue, error) {
+	if !d.hasNextPage {
+		return nil, errors.New("No more pages available")
+	}
+
+	callURL, _ := d.setupCallURL()
+
+	decoder, err := d.client.genericJSONDataAPIGET(callURL.String(), d.token, 200)
+	if err != nil {
+		return nil, err
+	}
+	var responseBody struct {
+		Data []DatastreamAggregateValue `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(responseBody.Data) < d.pageSize {
+		d.hasNextPage = false
+	} else {
+		d.hasNextPage = true
+		d.nextWindow = responseBody.Data[len(responseBody.Data)-1].Timestamp
+	}
+
+	return responseBody.Data, nil
+}
+
+func (d *DatastreamPaginator) setupCallURL() (*url.URL, error) {
+	callURL, err := url.Parse(d.baseURL.String())
+	if err != nil {
+		return nil, err
+	}
+	queryString := ""
+	if d.resultSetOrder == AscendingOrder {
+		queryString += fmt.Sprintf("page_size=%v&to=%v", d.pageSize, d.windowEnd.UTC().Format(time.RFC3339Nano))
+		if d.windowStart != invalidTime && d.nextWindow == invalidTime {
+			queryString += fmt.Sprintf("&since=%v", d.windowStart.UTC().Format(time.RFC3339Nano))
+		} else if d.nextWindow != invalidTime {
+			queryString += fmt.Sprintf("&since_after=%v", d.nextWindow.UTC().Format(time.RFC3339Nano))
+		}
+	} else {
+		queryString += fmt.Sprintf("limit=%v", d.pageSize)
+		if d.windowStart != invalidTime {
+			queryString += fmt.Sprintf("&since=%v", d.windowStart.UTC().Format(time.RFC3339Nano))
+		}
+		if d.nextWindow == invalidTime {
+			queryString += fmt.Sprintf("&to=%v", d.windowEnd.UTC().Format(time.RFC3339Nano))
+		} else {
+			queryString += fmt.Sprintf("&to=%v", d.nextWindow.UTC().Format(time.RFC3339Nano))
+		}
+	}
+	callURL.RawQuery = queryString
+
+	return callURL, nil
 }
