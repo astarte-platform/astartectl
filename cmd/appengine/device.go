@@ -247,7 +247,8 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 						if outputType == "json" {
 							jsonOutput[astarteInterface] = val
 						} else {
-							for k, v := range aggregate.Values {
+							for _, k := range aggregate.Values.Keys() {
+								v, _ := aggregate.Values.Get(k)
 								t.AppendRow([]interface{}{astarteInterface, fmt.Sprintf("%s/%s", path, k), v, interfaceDescription.Ownership.String(),
 									timestampForOutput(aggregate.Timestamp, outputType)})
 							}
@@ -261,7 +262,8 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					if outputType == "json" {
 						jsonOutput[astarteInterface] = val
 					} else {
-						for k, v := range val.Values {
+						for _, k := range val.Values.Keys() {
+							v, _ := val.Values.Get(k)
 							t.AppendRow([]interface{}{astarteInterface, fmt.Sprintf("/%s", k), v, interfaceDescription.Ownership.String(),
 								timestampForOutput(val.Timestamp, outputType)})
 						}
