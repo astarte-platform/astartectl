@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Add appengine group subcommand
+- Add support for credentials inhibition
 
 ## [0.10.3] - Unreleased
 
