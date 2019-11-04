@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"net"
 	"time"
+
+	"github.com/iancoleman/orderedmap"
 )
 
 // ReplicationClass represents different Replication Strategies for a Realm.
@@ -111,7 +113,32 @@ type DatastreamValue struct {
 
 // DatastreamAggregateValue represent one single Datastream Value for an Aggregate
 type DatastreamAggregateValue struct {
-	Values             map[string]interface{} `json:"value"`
-	Timestamp          time.Time              `json:"timestamp"`
-	ReceptionTimestamp time.Time              `json:"reception_timestamp"`
+	Values    orderedmap.OrderedMap
+	Timestamp time.Time
+}
+
+// UnmarshalJSON unmarshals a quoted json string to a DatastreamAggregateValue
+func (s *DatastreamAggregateValue) UnmarshalJSON(b []byte) error {
+	var j orderedmap.OrderedMap
+	err := json.Unmarshal(b, &j)
+	if err != nil {
+		return err
+	}
+
+	timestampInterface, _ := j.Get("timestamp")
+	switch timestampInterface.(type) {
+	case time.Time:
+		s.Timestamp = timestampInterface.(time.Time)
+	case string:
+		var err error
+		s.Timestamp, err = time.Parse(time.RFC3339Nano, timestampInterface.(string))
+		if err != nil {
+			return err
+		}
+	}
+
+	j.Delete("timestamp")
+	s.Values = j
+
+	return nil
 }

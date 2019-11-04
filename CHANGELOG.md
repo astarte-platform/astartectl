@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ## [0.10.3] - Unreleased
+### Added
+- appengine: Aggregates are correctly supported in get-samples
+- appengine: get-samples performs path validation against the requested interface
 
 ## [0.10.2] - 2019-10-22
 ### Added
