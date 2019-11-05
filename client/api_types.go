@@ -104,6 +104,7 @@ type DeviceDetails struct {
 	Connected                bool                                    `json:"connected"`
 	Introspection            map[string]DeviceInterfaceIntrospection `json:"introspection"`
 	Aliases                  map[string]string                       `json:"aliases"`
+	PreviousInterfaces       []DeviceInterfaceIntrospection          `json:"previous_interfaces,omitempty"`
 }
 
 // DatastreamValue represent one single Datastream Value
