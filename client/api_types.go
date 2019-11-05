@@ -84,8 +84,11 @@ type RealmDetails struct {
 // DeviceInterfaceIntrospection represents a single entry in a Device Introspection array retrieved
 // from DeviceDetails
 type DeviceInterfaceIntrospection struct {
-	Major int `json:"major"`
-	Minor int `json:"minor"`
+	Name              string `json:"name,omitempty"`
+	Major             int    `json:"major"`
+	Minor             int    `json:"minor"`
+	ExchangedMessages uint64 `json:"exchanged_msgs,omitempty"`
+	ExchangedBytes    uint64 `json:"exchanged_bytes,omitempty"`
 }
 
 // DeviceDetails maps to the JSON object returned by a Device Details call to AppEngine API
@@ -103,6 +106,7 @@ type DeviceDetails struct {
 	Connected                bool                                    `json:"connected"`
 	Introspection            map[string]DeviceInterfaceIntrospection `json:"introspection"`
 	Aliases                  map[string]string                       `json:"aliases"`
+	PreviousInterfaces       []DeviceInterfaceIntrospection          `json:"previous_interfaces,omitempty"`
 }
 
 // DatastreamValue represent one single Datastream Value

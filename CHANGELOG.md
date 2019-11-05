@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add appengine group subcommand
 - Add support for credentials inhibition
+- Add support for interfaces stats in device describe subcommand
 
 ## [0.10.3] - Unreleased
 ### Added

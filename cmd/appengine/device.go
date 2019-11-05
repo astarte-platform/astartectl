@@ -149,7 +149,14 @@ func prettyPrintDeviceDetails(deviceDetails client.DeviceDetails) {
 		fmt.Fprintf(w, "Introspection:")
 		// Iterate the introspection
 		for i, v := range deviceDetails.Introspection {
-			fmt.Fprintf(w, "\t%v v%v.%v\n", i, v.Major, v.Minor)
+			interfaceLine := fmt.Sprintf("\t%v v%v.%v", i, v.Major, v.Minor)
+			if v.ExchangedMessages > 0 {
+				interfaceLine += fmt.Sprintf(" exchanged messages: %v", v.ExchangedMessages)
+			}
+			if v.ExchangedBytes > 0 {
+				interfaceLine += fmt.Sprintf(" exchanged bytes: %v", bytefmt.ByteSize(v.ExchangedBytes))
+			}
+			fmt.Fprintln(w, interfaceLine)
 		}
 	}
 	if len(deviceDetails.Aliases) > 0 {
@@ -161,6 +168,20 @@ func prettyPrintDeviceDetails(deviceDetails client.DeviceDetails) {
 	}
 	fmt.Fprintf(w, "Received Messages:\t%v\n", deviceDetails.TotalReceivedMessages)
 	fmt.Fprintf(w, "Data Received:\t%v\n", bytefmt.ByteSize(deviceDetails.TotalReceivedBytes))
+	if len(deviceDetails.PreviousInterfaces) > 0 {
+		fmt.Fprintf(w, "Previous Interfaces:")
+		// Iterate the previous introspection
+		for _, v := range deviceDetails.PreviousInterfaces {
+			interfaceLine := fmt.Sprintf("\t%v v%v.%v", v.Name, v.Major, v.Minor)
+			if v.ExchangedMessages > 0 {
+				interfaceLine += fmt.Sprintf(" exchanged messages: %v", v.ExchangedMessages)
+			}
+			if v.ExchangedBytes > 0 {
+				interfaceLine += fmt.Sprintf(" exchanged bytes: %v", bytefmt.ByteSize(v.ExchangedBytes))
+			}
+			fmt.Fprintln(w, interfaceLine)
+		}
+	}
 	fmt.Fprintf(w, "Last Seen IP:\t%v\n", deviceDetails.LastSeenIP)
 	fmt.Fprintf(w, "Last Credentials Request IP:\t%v\n", deviceDetails.LastCredentialsRequestIP)
 	fmt.Fprintf(w, "First Registration:\t%v\n", deviceDetails.FirstRegistration)
