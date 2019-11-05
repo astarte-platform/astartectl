@@ -78,6 +78,16 @@ This command is guaranteed to return always the same ID upon providing the same 
 	RunE:    computeDeviceIDFromBytesF,
 }
 
+var toUUIDDeviceIDCmd = &cobra.Command{
+	Use:   "to-uuid <device_id>",
+	Short: "Prints the UUID representation of a device ID",
+	Long: `Prints the UUID representation of a device ID.
+This is useful to interact with Cassandra, where the Device ID is saved as UUID.`,
+	Example: `  astartectl utils device-id to-uuid 2TBn-jNESuuHamE2Zo1anA`,
+	Args:    cobra.ExactArgs(1),
+	RunE:    toUUIDDeviceIDF,
+}
+
 func init() {
 	UtilsCmd.AddCommand(deviceIDCmd)
 
@@ -86,6 +96,7 @@ func init() {
 		generateRandomDeviceIDCmd,
 		computeDeviceIDFromStringCmd,
 		computeDeviceIDFromBytesCmd,
+		toUUIDDeviceIDCmd,
 	)
 }
 
@@ -137,5 +148,21 @@ func computeDeviceIDFromBytesF(command *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(deviceID)
+	return nil
+}
+
+func toUUIDDeviceIDF(command *cobra.Command, args []string) error {
+	deviceID := args[0]
+	if !utils.IsValidAstarteDeviceID(deviceID) {
+		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
+		os.Exit(1)
+	}
+
+	deviceUUID, err := utils.DeviceIDToUUID(deviceID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(deviceUUID)
 	return nil
 }
