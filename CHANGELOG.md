@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - appengine: Aggregates are correctly supported in get-samples
 - appengine: get-samples performs path validation against the requested interface
+- utils: add command to convert a Device ID to its UUID representation and viceversa
 
 ## [0.10.2] - 2019-10-22
 ### Added
