@@ -52,3 +52,19 @@ func GetNamespacedAstarteDeviceID(uuidNamespace string, payloadData []byte) (str
 
 	return base64.RawURLEncoding.EncodeToString(deviceID), nil
 }
+
+// DeviceIDToUUID converts a Device ID from the standard Astarte representation (Base 64 Url Encoded) to
+// UUID string representation. This is useful to interact directly with Cassandra, that uses that
+// representation to store Device IDs.
+func DeviceIDToUUID(deviceID string) (string, error) {
+	bytes, err := base64.RawURLEncoding.DecodeString(deviceID)
+	if err != nil {
+		return "", err
+	}
+	deviceUUID, err := uuid.FromBytes(bytes)
+	if err != nil {
+		return "", err
+	}
+
+	return deviceUUID.String(), nil
+}
