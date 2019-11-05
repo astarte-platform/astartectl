@@ -68,3 +68,18 @@ func DeviceIDToUUID(deviceID string) (string, error) {
 
 	return deviceUUID.String(), nil
 }
+
+// UUIDToDeviceID converts a UUID string to a Device ID in the standard Astarte representation (Base
+// 64 Url Encoded)
+func UUIDToDeviceID(deviceUUIDString string) (string, error) {
+	deviceUUID, err := uuid.Parse(deviceUUIDString)
+	if err != nil {
+		return "", err
+	}
+	deviceID, err := deviceUUID.MarshalBinary()
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(deviceID), nil
+}
