@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+
+	"github.com/astarte-platform/astartectl/common"
 )
 
 // RealmManagementService is the API Client for RealmManagement API
@@ -65,26 +67,26 @@ func (s *RealmManagementService) ListInterfaceMajorVersions(realm string, interf
 }
 
 // GetInterface returns an interface, identified by a Major version, in a Realm
-func (s *RealmManagementService) GetInterface(realm string, interfaceName string, interfaceMajor int, token string) (AstarteInterface, error) {
+func (s *RealmManagementService) GetInterface(realm string, interfaceName string, interfaceMajor int, token string) (common.AstarteInterface, error) {
 	callURL, _ := url.Parse(s.realmManagementURL.String())
 	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces/%s/%v", realm, interfaceName, interfaceMajor))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
-		return AstarteInterface{}, err
+		return common.AstarteInterface{}, err
 	}
 	var responseBody struct {
-		Data AstarteInterface `json:"data"`
+		Data common.AstarteInterface `json:"data"`
 	}
 	err = decoder.Decode(&responseBody)
 	if err != nil {
-		return AstarteInterface{}, err
+		return common.AstarteInterface{}, err
 	}
 
 	return responseBody.Data, nil
 }
 
 // InstallInterface installs a new major version of an Interface into the Realm
-func (s *RealmManagementService) InstallInterface(realm string, interfacePayload AstarteInterface, token string) error {
+func (s *RealmManagementService) InstallInterface(realm string, interfacePayload common.AstarteInterface, token string) error {
 	callURL, _ := url.Parse(s.realmManagementURL.String())
 	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces", realm))
 	return s.client.genericJSONDataAPIPost(callURL.String(), interfacePayload, token, 201)
@@ -98,7 +100,7 @@ func (s *RealmManagementService) DeleteInterface(realm string, interfaceName str
 }
 
 // UpdateInterface updates an existing major version of an Interface to a new minor.
-func (s *RealmManagementService) UpdateInterface(realm string, interfaceName string, interfaceMajor int, interfacePayload AstarteInterface, token string) error {
+func (s *RealmManagementService) UpdateInterface(realm string, interfaceName string, interfaceMajor int, interfacePayload common.AstarteInterface, token string) error {
 	callURL, _ := url.Parse(s.realmManagementURL.String())
 	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/interfaces/%s/%v", realm, interfaceName, interfaceMajor))
 	return s.client.genericJSONDataAPIPut(callURL.String(), interfacePayload, token, 204)

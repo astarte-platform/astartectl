@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package common
 
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // AstarteInterfaceType represents which kind of Astarte interface the object represents
@@ -266,4 +267,14 @@ type AstarteInterface struct {
 	Description       string                      `json:"description,omitempty"`
 	Documentation     string                      `json:"doc,omitempty"`
 	Mappings          []AstarteInterfaceMapping   `json:"mappings"`
+}
+
+// IsParametric returns whether the interface has at least one parametric mapping
+func (a *AstarteInterface) IsParametric() bool {
+	for _, v := range a.Mappings {
+		if strings.Contains(v.Endpoint, "%{") {
+			return true
+		}
+	}
+	return false
 }

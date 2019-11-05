@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/astarte-platform/astartectl/utils"
+	"github.com/iancoleman/orderedmap"
 )
 
 const defaultPageSize int = 10000
@@ -178,9 +179,9 @@ func parseDatastreamInterface(interfaceMap map[string]interface{}) (map[string]D
 	return parseDatastreamMap(interfaceMap, "")
 }
 
-func parseAggregateDatastreamInterface(interfaceMap map[string]interface{}) (DatastreamAggregateValue, error) {
+func parseAggregateDatastreamInterface(interfaceMap orderedmap.OrderedMap) (map[string]DatastreamAggregateValue, error) {
 	// Start recursion and return resulting map
-	return DatastreamAggregateValue{}, nil
+	return parseAggregateDatastreamMap(interfaceMap, "")
 }
 
 func parsePropertiesMap(aMap map[string]interface{}, completeKeyPath string) map[string]interface{} {
@@ -198,6 +199,66 @@ func parsePropertiesMap(aMap map[string]interface{}, completeKeyPath string) map
 	}
 
 	return m
+}
+
+func parseAggregateDatastreamMap(aMap orderedmap.OrderedMap, completeKeyPath string) (map[string]DatastreamAggregateValue, error) {
+	m := make(map[string]DatastreamAggregateValue)
+
+	// Special case: have we hit the bottom?
+	if timestampInterface, ok := aMap.Get("timestamp"); ok {
+		// Not so fast. This could be a token in the path.
+		bottomWasHit := false
+		switch timestampInterface.(type) {
+		case time.Time:
+			bottomWasHit = true
+		case string:
+			bottomWasHit = true
+		}
+
+		if bottomWasHit {
+			datastreamValue, err := parseAggregateDatastreamValue(aMap)
+			if err != nil {
+				return nil, err
+			}
+			m[completeKeyPath] = datastreamValue
+			return m, nil
+		}
+	}
+
+	for _, key := range aMap.Keys() {
+		val, _ := aMap.Get(key)
+		switch val.(type) {
+		case orderedmap.OrderedMap:
+			parsedMap, err := parseAggregateDatastreamMap(val.(orderedmap.OrderedMap), completeKeyPath+"/"+key)
+			if err != nil {
+				return nil, err
+			}
+			for k, v := range parsedMap {
+				m[k] = v
+			}
+		}
+	}
+
+	return m, nil
+}
+
+func parseAggregateDatastreamValue(aMap orderedmap.OrderedMap) (DatastreamAggregateValue, error) {
+	// Ensure some type safety
+	var timestamp time.Time
+	timestampInterface, _ := aMap.Get("timestamp")
+	switch timestampInterface.(type) {
+	case time.Time:
+		timestamp = timestampInterface.(time.Time)
+	case string:
+		var err error
+		timestamp, err = time.Parse(time.RFC3339Nano, timestampInterface.(string))
+		if err != nil {
+			return DatastreamAggregateValue{}, err
+		}
+	}
+
+	aMap.Delete("timestamp")
+	return DatastreamAggregateValue{Values: aMap, Timestamp: timestamp}, nil
 }
 
 func parseDatastreamMap(aMap map[string]interface{}, completeKeyPath string) (map[string]DatastreamValue, error) {
@@ -313,7 +374,34 @@ func (s *AppEngineService) GetDatastreamsTimeWindowPaginator(realm string, devic
 	return s.getDatastreamPaginatorInternal(realm, devicePath(deviceIdentifier, resolvedDeviceIdentifierType), interfaceName, interfacePath, since, to, defaultPageSize, resultSetOrder, token)
 }
 
-// GetAggregateDatastreamSnapshot returns the last value for a Datastream aggregate interface
+// GetAggregateParametricDatastreamSnapshot returns the last value for a Parametric Datastream aggregate interface
+func (s *AppEngineService) GetAggregateParametricDatastreamSnapshot(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, token string) (map[string]DatastreamAggregateValue, error) {
+	resolvedDeviceIdentifierType := resolveDeviceIdentifierType(deviceIdentifier, deviceIdentifierType)
+	callURL, _ := url.Parse(s.appEngineURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s", realm, devicePath(deviceIdentifier, resolvedDeviceIdentifierType), interfaceName))
+	// It's a snapshot, so limit=1
+	callURL.RawQuery = "limit=1"
+	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
+	if err != nil {
+		return nil, err
+	}
+	var responseBody struct {
+		Data orderedmap.OrderedMap `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	// If there is no data, return an empty value
+	if len(responseBody.Data.Keys()) == 0 {
+		return nil, nil
+	}
+
+	return parseAggregateDatastreamInterface(responseBody.Data)
+}
+
+// GetAggregateDatastreamSnapshot returns the last value for a non-parametric, Datastream aggregate interface
 func (s *AppEngineService) GetAggregateDatastreamSnapshot(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, token string) (DatastreamAggregateValue, error) {
 	resolvedDeviceIdentifierType := resolveDeviceIdentifierType(deviceIdentifier, deviceIdentifierType)
 	callURL, _ := url.Parse(s.appEngineURL.String())
@@ -325,7 +413,7 @@ func (s *AppEngineService) GetAggregateDatastreamSnapshot(realm string, deviceId
 		return DatastreamAggregateValue{}, err
 	}
 	var responseBody struct {
-		Data []map[string]interface{} `json:"data"`
+		Data []DatastreamAggregateValue `json:"data"`
 	}
 	err = decoder.Decode(&responseBody)
 	if err != nil {
@@ -337,14 +425,15 @@ func (s *AppEngineService) GetAggregateDatastreamSnapshot(realm string, deviceId
 		return DatastreamAggregateValue{}, nil
 	}
 
-	return parseAggregateDatastreamInterface(responseBody.Data[0])
+	return responseBody.Data[0], nil
 }
 
 // GetLastAggregateDatastreams returns the last count values for a Datastream aggregate interface
-func (s *AppEngineService) GetLastAggregateDatastreams(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, token string, count int) ([]DatastreamAggregateValue, error) {
+func (s *AppEngineService) GetLastAggregateDatastreams(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, interfacePath string, token string, count int) ([]DatastreamAggregateValue, error) {
 	resolvedDeviceIdentifierType := resolveDeviceIdentifierType(deviceIdentifier, deviceIdentifierType)
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s", realm, devicePath(deviceIdentifier, resolvedDeviceIdentifierType), interfaceName))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s%s", realm,
+		devicePath(deviceIdentifier, resolvedDeviceIdentifierType), interfaceName, interfacePath))
 	callURL.RawQuery = fmt.Sprintf("limit=%v", count)
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
 	if err != nil {
@@ -362,10 +451,11 @@ func (s *AppEngineService) GetLastAggregateDatastreams(realm string, deviceIdent
 }
 
 // GetAggregateDatastreamsTimeWindow returns the last count values for a Datastream aggregate interface
-func (s *AppEngineService) GetAggregateDatastreamsTimeWindow(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, token string, since time.Time, to time.Time) ([]DatastreamAggregateValue, error) {
+func (s *AppEngineService) GetAggregateDatastreamsTimeWindow(realm string, deviceIdentifier string, deviceIdentifierType DeviceIdentifierType, interfaceName string, interfacePath string, token string, since time.Time, to time.Time) ([]DatastreamAggregateValue, error) {
 	resolvedDeviceIdentifierType := resolveDeviceIdentifierType(deviceIdentifier, deviceIdentifierType)
 	callURL, _ := url.Parse(s.appEngineURL.String())
-	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s", realm, devicePath(deviceIdentifier, resolvedDeviceIdentifierType), interfaceName))
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/%s/interfaces/%s%s", realm,
+		devicePath(deviceIdentifier, resolvedDeviceIdentifierType), interfaceName, interfacePath))
 	// It's a snapshot, so limit=1
 	callURL.RawQuery = fmt.Sprintf("since=%s&to=%s", since.UTC().Format(time.RFC3339Nano), to.UTC().Format(time.RFC3339Nano))
 	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)

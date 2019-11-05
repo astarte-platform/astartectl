@@ -4,6 +4,22 @@ Command line utility to manage Astarte
 
 ## Installation
 
+### Using homebrew
+
+If you are using [homebrew](https://brew.sh/) on your system, you can install `astartectl` out of its tap:
+
+```bash
+brew tap astarte-platform/astarte
+brew update
+brew install astartectl
+```
+
+### Using binaries from Github Release
+
+You can download latest `astartectl` binaries for all platforms from [GitHub Releases](https://github.com/astarte-platform/astartectl/releases).
+
+### Using go get
+
 Assuming you have you go installation and [GOPATH set up](https://github.com/golang/go/wiki/SettingGOPATH),
 you can just run
 
