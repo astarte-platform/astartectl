@@ -21,6 +21,7 @@ import (
 
 	"github.com/astarte-platform/astartectl/utils"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -88,6 +89,16 @@ This is useful to interact with Cassandra, where the Device ID is saved as UUID.
 	RunE:    toUUIDDeviceIDF,
 }
 
+var fromUUIDDeviceIDCmd = &cobra.Command{
+	Use:   "from-uuid <device_id>",
+	Short: "Prints the Device ID representation of the given UUID",
+	Long: `Prints the Device ID representation of the given UUID",
+This is useful to interact with Cassandra, where the Device ID is saved as UUID.`,
+	Example: `  astartectl utils device-id from-uuid d93067fa-3344-4aeb-876a-6136668d5a9c`,
+	Args:    cobra.ExactArgs(1),
+	RunE:    fromUUIDDeviceIDF,
+}
+
 func init() {
 	UtilsCmd.AddCommand(deviceIDCmd)
 
@@ -97,6 +108,7 @@ func init() {
 		computeDeviceIDFromStringCmd,
 		computeDeviceIDFromBytesCmd,
 		toUUIDDeviceIDCmd,
+		fromUUIDDeviceIDCmd,
 	)
 }
 
@@ -164,5 +176,22 @@ func toUUIDDeviceIDF(command *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(deviceUUID)
+	return nil
+}
+
+func fromUUIDDeviceIDF(command *cobra.Command, args []string) error {
+	deviceUUID := args[0]
+	_, err := uuid.Parse(deviceUUID)
+	if err != nil {
+		fmt.Printf("%s is not a valid UUID\n", deviceUUID)
+		os.Exit(1)
+	}
+
+	deviceID, err := utils.UUIDToDeviceID(deviceUUID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(deviceID)
 	return nil
 }
