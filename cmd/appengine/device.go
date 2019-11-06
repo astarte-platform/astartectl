@@ -35,9 +35,10 @@ import (
 
 // DevicesCmd represents the devices command
 var devicesCmd = &cobra.Command{
-	Use:   "devices",
-	Short: "Interact with Devices",
-	Long:  `Perform actions on Astarte Devices.`,
+	Use:     "devices",
+	Short:   "Interact with Devices",
+	Long:    `Perform actions on Astarte Devices.`,
+	Aliases: []string{"device"},
 }
 
 var devicesListCmd = &cobra.Command{
@@ -46,18 +47,19 @@ var devicesListCmd = &cobra.Command{
 	Long:    `List all devices in the realm.`,
 	Example: `  astartectl appengine devices list`,
 	RunE:    devicesListF,
+	Aliases: []string{"ls"},
 }
 
-var devicesDescribeCmd = &cobra.Command{
-	Use:   "describe <device_id_or_alias>",
-	Short: "Describes a Device",
-	Long: `Describes a Device in the realm, printing all its known information.
+var devicesShowCmd = &cobra.Command{
+	Use:   "show <device_id_or_alias>",
+	Short: "Show a Device",
+	Long: `Show a Device in the realm, printing all its known information.
 <device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
 this is automatically determined - however, you can tweak this behavior by using --force-device-id or
 --force-id-type={device-id,alias}.`,
-	Example: `  astartectl appengine devices describe 2TBn-jNESuuHamE2Zo1anA`,
+	Example: `  astartectl appengine devices show 2TBn-jNESuuHamE2Zo1anA`,
 	Args:    cobra.ExactArgs(1),
-	RunE:    devicesDescribeF,
+	RunE:    devicesShowF,
 }
 
 var devicesDataSnapshotCmd = &cobra.Command{
@@ -115,11 +117,11 @@ func init() {
 	devicesDataSnapshotCmd.Flags().StringP("output", "o", "default", "The type of output (default,csv,json)")
 	devicesDataSnapshotCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
 
-	devicesDescribeCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	devicesShowCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
 
 	devicesCmd.AddCommand(
 		devicesListCmd,
-		devicesDescribeCmd,
+		devicesShowCmd,
 		devicesDataSnapshotCmd,
 		devicesGetSamplesCmd,
 	)
@@ -165,7 +167,7 @@ func prettyPrintDeviceDetails(deviceDetails client.DeviceDetails) {
 	w.Flush()
 }
 
-func devicesDescribeF(command *cobra.Command, args []string) error {
+func devicesShowF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	forceIDType, err := command.Flags().GetString("force-id-type")
 	if err != nil {

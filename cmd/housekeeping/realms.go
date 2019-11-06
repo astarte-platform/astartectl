@@ -27,9 +27,10 @@ import (
 
 // realmsCmd represents the realms command
 var realmsCmd = &cobra.Command{
-	Use:   "realms",
-	Short: "Manage realms",
-	Long:  `List, show or create realms in your Astarte instance.`,
+	Use:     "realms",
+	Short:   "Manage realms",
+	Long:    `List, show or create realms in your Astarte instance.`,
+	Aliases: []string{"realm"},
 }
 
 var realmsListCmd = &cobra.Command{
@@ -38,6 +39,7 @@ var realmsListCmd = &cobra.Command{
 	Long:    "List realms present in your Astarte instance.",
 	Example: `  astartectl housekeeping realms list`,
 	RunE:    realmsListF,
+	Aliases: []string{"ls"},
 }
 
 var realmsShowCmd = &cobra.Command{

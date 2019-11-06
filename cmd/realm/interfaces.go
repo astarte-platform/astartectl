@@ -27,9 +27,10 @@ import (
 
 // interfacesCmd represents the interfaces command
 var interfacesCmd = &cobra.Command{
-	Use:   "interfaces",
-	Short: "Manage interfaces",
-	Long:  `List, show, install or update interfaces in your realm.`,
+	Use:     "interfaces",
+	Short:   "Manage interfaces",
+	Long:    `List, show, install or update interfaces in your realm.`,
+	Aliases: []string{"interface"},
 }
 
 var interfacesListCmd = &cobra.Command{
@@ -38,6 +39,7 @@ var interfacesListCmd = &cobra.Command{
 	Long:    `List the name of the interfaces installed in the realm.`,
 	Example: `  astartectl realm-management interfaces list`,
 	RunE:    interfacesListF,
+	Aliases: []string{"ls"},
 }
 
 var interfacesVersionsCmd = &cobra.Command{
@@ -78,6 +80,7 @@ Non-draft interfaces should be removed manually or by your system administrator.
 	Example: `  astartectl realm-management interfaces delete com.my.Interface`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    interfacesDeleteF,
+	Aliases: []string{"del"},
 }
 
 var interfacesUpdateCmd = &cobra.Command{
