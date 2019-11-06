@@ -25,9 +25,10 @@ import (
 
 // AliasesCmd represents the aliases command
 var aliasesCmd = &cobra.Command{
-	Use:   "aliases",
-	Short: "Interact with Device Aliases",
-	Long:  `Perform actions on Astarte Device Aliases.`,
+	Use:     "aliases",
+	Short:   "Interact with Device Aliases",
+	Long:    `Perform actions on Astarte Device Aliases.`,
+	Aliases: []string{"alias"},
 }
 
 var aliasesListCmd = &cobra.Command{
@@ -37,6 +38,7 @@ var aliasesListCmd = &cobra.Command{
 	Example: `  astartectl appengine devices aliases list`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    aliasesListF,
+	Aliases: []string{"ls"},
 }
 
 var aliasesAddCmd = &cobra.Command{
@@ -54,7 +56,8 @@ var aliasesRemoveCmd = &cobra.Command{
 	Long:    `Removes an Alias from the Device with ID <device_id>, by specifying its tag.`,
 	Example: `  astartectl appengine devices aliases remove 2TBn-jNESuuHamE2Zo1anA my-alias-tag`,
 	Args:    cobra.ExactArgs(2),
-	RunE:    aliasesDeleteF,
+	RunE:    aliasesRemoveF,
+	Aliases: []string{"rm"},
 }
 
 func init() {
@@ -106,7 +109,7 @@ func aliasesAddF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func aliasesDeleteF(command *cobra.Command, args []string) error {
+func aliasesRemoveF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	if !utils.IsValidAstarteDeviceID(deviceID) {
 		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
