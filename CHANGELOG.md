@@ -10,11 +10,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add support for credentials inhibition
 - Add support for interfaces stats in device describe subcommand
 
-## [0.10.3] - Unreleased
+## [0.10.3] - 2019-11-06
 ### Added
 - appengine: Aggregates are correctly supported in get-samples
 - appengine: get-samples performs path validation against the requested interface
 - utils: add command to convert a Device ID to its UUID representation and viceversa
+- Added common aliases for all commands where this is applicable
+- appengine: devices data-snapshot now accepts an additional argument to print the snapshot of a specific interface only
+
+### Changed
+- "appengine device describe" has been renamed into "appengine device show"
 
 ## [0.10.2] - 2019-10-22
 ### Added

@@ -25,9 +25,10 @@ import (
 
 // triggersCmd represents the triggers command
 var triggersCmd = &cobra.Command{
-	Use:   "triggers",
-	Short: "Manage triggers",
-	Long:  `List, show, install or delete triggers in your realm.`,
+	Use:     "triggers",
+	Short:   "Manage triggers",
+	Long:    `List, show, install or delete triggers in your realm.`,
+	Aliases: []string{"trigger"},
 }
 
 var triggersListCmd = &cobra.Command{
@@ -36,6 +37,7 @@ var triggersListCmd = &cobra.Command{
 	Long:    `List the name of triggers installed in the realm.`,
 	Example: `  astartectl realm-management triggers list`,
 	RunE:    triggersListF,
+	Aliases: []string{"ls"},
 }
 
 var triggersShowCmd = &cobra.Command{
@@ -64,6 +66,7 @@ var triggersDeleteCmd = &cobra.Command{
 	Example: `  astartectl realm-management triggers delete my_data_trigger`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    triggersDeleteF,
+	Aliases: []string{"del"},
 }
 
 func init() {
