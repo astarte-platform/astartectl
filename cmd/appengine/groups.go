@@ -35,7 +35,7 @@ var groupsListCmd = &cobra.Command{
 	Use:     "list",
 	Short:   "List groups",
 	Long:    `List the name of the groups installed in the realm.`,
-	Example: `  astartectl realm-management groups list`,
+	Example: `  astartectl appengine groups list`,
 	RunE:    groupsListF,
 }
 
@@ -45,7 +45,7 @@ var groupsCreateCmd = &cobra.Command{
 	Long: `Create a group in the realm.
 <device_list> must be a comma separated list of Device identifiers (i.e. a Device ID or an alias).
 All devices must already be registered in the realm.`,
-	Example: `  astartectl realm-management groups create mygroup dI2dZrblSbObnAazrduIDw,r0mDcECmSa2exhGCs7D38A`,
+	Example: `  astartectl appengine groups create mygroup dI2dZrblSbObnAazrduIDw,r0mDcECmSa2exhGCs7D38A`,
 	Args:    cobra.ExactArgs(2),
 	RunE:    groupsCreateF,
 }
@@ -61,7 +61,7 @@ var groupsDevicesListCmd = &cobra.Command{
 	Use:     "list <group_name>",
 	Short:   "List devices in a group",
 	Long:    `List devices in a group`,
-	Example: `  astartectl realm-management groups devices list mygroup`,
+	Example: `  astartectl appengine groups devices list mygroup`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    groupsDevicesListF,
 }
@@ -70,7 +70,7 @@ var groupsDevicesAddCmd = &cobra.Command{
 	Use:     "add <group_name> <device_id_or_alias>",
 	Short:   "Add a device to a group",
 	Long:    `Add a device to a group`,
-	Example: `  astartectl realm-management groups devices add mygroup 7O1hqtg0TSyKpNXr_AqEJA`,
+	Example: `  astartectl appengine groups devices add mygroup 7O1hqtg0TSyKpNXr_AqEJA`,
 	Args:    cobra.ExactArgs(2),
 	RunE:    groupsDevicesAddF,
 }
@@ -79,7 +79,7 @@ var groupsDevicesRemoveCmd = &cobra.Command{
 	Use:     "remove <group_name> <device_id_or_alias>",
 	Short:   "Remove a device from a group",
 	Long:    `Remove a device from a group`,
-	Example: `  astartectl realm-management groups devices remove mygroup y3QgB6BAST2BGGK8GtNSmQ`,
+	Example: `  astartectl appengine groups devices remove mygroup y3QgB6BAST2BGGK8GtNSmQ`,
 	Args:    cobra.ExactArgs(2),
 	RunE:    groupsDevicesRemoveF,
 }
