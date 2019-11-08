@@ -31,7 +31,7 @@ var aliasesCmd = &cobra.Command{
 }
 
 var aliasesListCmd = &cobra.Command{
-	Use:     "list",
+	Use:     "list <device_id>",
 	Short:   "List aliases",
 	Long:    `List all aliases for a device.`,
 	Example: `  astartectl appengine devices aliases list`,
