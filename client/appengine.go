@@ -661,3 +661,22 @@ func (s *AppEngineService) InhibitDevice(realm string, deviceIdentifier string,
 
 	return nil
 }
+
+// GetDevicesStats returns the DevicesStats of a Realm
+func (s *AppEngineService) GetDevicesStats(realm string, token string) (DevicesStats, error) {
+	callURL, _ := url.Parse(s.appEngineURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/stats/devices", realm))
+	decoder, err := s.client.genericJSONDataAPIGET(callURL.String(), token, 200)
+	if err != nil {
+		return DevicesStats{}, err
+	}
+	var responseBody struct {
+		Data DevicesStats `json:"data"`
+	}
+	err = decoder.Decode(&responseBody)
+	if err != nil {
+		return DevicesStats{}, err
+	}
+
+	return responseBody.Data, nil
+}

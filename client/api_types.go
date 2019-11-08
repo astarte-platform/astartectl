@@ -147,3 +147,8 @@ func (s *DatastreamAggregateValue) UnmarshalJSON(b []byte) error {
 
 	return nil
 }
+
+type DevicesStats struct {
+	TotalDevices     int64 `json:"total_devices"`
+	ConnectedDevices int64 `json:"connected_devices"`
+}
