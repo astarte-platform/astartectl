@@ -25,6 +25,7 @@ require (
 	github.com/spf13/viper v1.4.0
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
 	golang.org/x/text v0.3.2 // indirect
+	gopkg.in/yaml.v2 v2.2.5
 	k8s.io/api v0.0.0-20191016110246-af539daaa43a
 	k8s.io/apimachinery v0.0.0-20191004115701-31ade1b30762
 	k8s.io/client-go v0.0.0-20191016110837-54936ba21026

@@ -16,6 +16,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -51,10 +52,18 @@ func getAstarteOperator() (*appsv1.Deployment, error) {
 }
 
 func getLastOperatorRelease() (string, error) {
+	return getLastReleaseForAstarteRepo("astarte-kubernetes-operator")
+}
+
+func getLastAstarteRelease() (string, error) {
+	return getLastReleaseForAstarteRepo("astarte")
+}
+
+func getLastReleaseForAstarteRepo(repo string) (string, error) {
 	ctx := context.Background()
 	client := github.NewClient(nil)
 
-	tags, _, err := client.Repositories.ListTags(ctx, "astarte-platform", "astarte-kubernetes-operator", &github.ListOptions{})
+	tags, _, err := client.Repositories.ListTags(ctx, "astarte-platform", repo, &github.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -76,10 +85,14 @@ func getLastOperatorRelease() (string, error) {
 }
 
 func getOperatorContent(path string, tag string) (string, error) {
+	return getContentFromAstarteRepo("astarte-kubernetes-operator", path, tag)
+}
+
+func getContentFromAstarteRepo(repo string, path string, tag string) (string, error) {
 	ctx := context.Background()
 	client := github.NewClient(nil)
 
-	content, _, _, err := client.Repositories.GetContents(ctx, "astarte-platform", "astarte-kubernetes-operator",
+	content, _, _, err := client.Repositories.GetContents(ctx, "astarte-platform", repo,
 		path, &github.RepositoryContentGetOptions{Ref: "v" + tag})
 
 	if err != nil {
@@ -87,4 +100,29 @@ func getOperatorContent(path string, tag string) (string, error) {
 	}
 
 	return content.GetContent()
+}
+
+func getClusterAllocatableResources() (int, int64, int64, error) {
+	// List Nodes
+	list, err := kubernetesClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return 0, 0, 0, nil
+	}
+
+	var allocatableCPU int64 = 0
+	var allocatableMemory int64 = 0
+	for _, node := range list.Items {
+		nodeAllocatableCPU, ok := node.Status.Allocatable.Cpu().AsDec().Unscaled()
+		if !ok {
+			return 0, 0, 0, fmt.Errorf("Could not retrieve allocatable CPU for node %s", node.GetName())
+		}
+		allocatableCPU += nodeAllocatableCPU
+		nodeAllocatableMemory, ok := node.Status.Allocatable.Memory().AsDec().Unscaled()
+		if !ok {
+			return 0, 0, 0, fmt.Errorf("Could not retrieve allocatable Memory for node %s", node.GetName())
+		}
+		allocatableMemory += nodeAllocatableMemory
+	}
+
+	return len(list.Items), allocatableCPU, allocatableMemory, nil
 }

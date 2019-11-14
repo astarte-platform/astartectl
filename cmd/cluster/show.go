@@ -57,15 +57,27 @@ func clusterShowF(command *cobra.Command, args []string) error {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleLight)
-	t.AppendHeader(table.Row{"Name", "Namespace", "Version", "Operator Status", "Last Transition"})
+	t.AppendHeader(table.Row{"Name", "Namespace", "Version", "Deployment Profile", "Operator Status", "Last Transition"})
 
 	for _, v := range astartes {
 		for _, res := range v.Items {
+			var operatorStatus interface{} = "Initializing"
+			var lastTransition interface{} = ""
+			var deploymentProfile interface{} = "N/A"
+			if status, ok := res.Object["status"]; ok {
+				operatorStatus = status.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["type"]
+				lastTransition = status.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["lastTransitionTime"]
+			}
+			if annotations, ok := res.Object["metadata"].(map[string]interface{})["annotations"]; ok {
+				if dP, ok := annotations.(map[string]interface{})["astarte-platform.org/deployment-profile"]; ok {
+					deploymentProfile = dP
+				}
+			}
+
 			t.AppendRow(table.Row{res.Object["metadata"].(map[string]interface{})["name"],
 				res.Object["metadata"].(map[string]interface{})["namespace"],
 				res.Object["spec"].(map[string]interface{})["version"],
-				res.Object["status"].(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["type"],
-				res.Object["status"].(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["lastTransitionTime"],
+				deploymentProfile, operatorStatus, lastTransition,
 			})
 		}
 	}

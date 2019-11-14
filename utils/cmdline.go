@@ -28,3 +28,33 @@ func AskForConfirmation(s string) (bool, error) {
 		}
 	}
 }
+
+// PromptChoice gets input from the user
+func PromptChoice(question string, defaultValue string, allowEmpty bool) (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Printf(question)
+		if defaultValue != "" {
+			fmt.Printf(" [%s]", defaultValue)
+		}
+		fmt.Printf(" ")
+
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			return "", err
+		}
+
+		response = strings.TrimSpace(response)
+
+		if response == "" && defaultValue == "" && !allowEmpty {
+			continue
+		}
+
+		if defaultValue != "" && response == "" {
+			response = defaultValue
+		}
+
+		return response, nil
+	}
+}

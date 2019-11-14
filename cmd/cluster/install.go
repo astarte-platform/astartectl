@@ -15,7 +15,6 @@
 package cluster
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -29,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/yaml"
 )
 
 var installCmd = &cobra.Command{
@@ -67,16 +65,14 @@ func unmarshalYAML(res string, version string) runtime.Object {
 	return obj
 }
 
-func unmarshalYAMLToJSON(res string, version string) map[string]interface{} {
+func unmarshalOperatorContentYAMLToJSON(res string, version string) map[string]interface{} {
 	content, err := getOperatorContent(res, version)
-	j2, err := yaml.YAMLToJSON([]byte(content))
+	jsonStruct, err := utils.UnmarshalYAMLToJSON([]byte(content))
 	if err != nil {
 		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	var jsonStruct map[string]interface{}
-	json.Unmarshal(j2, &jsonStruct)
 	return jsonStruct
 }
 
@@ -160,7 +156,7 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	fmt.Println("RBAC Roles Successfully installed.")
 	fmt.Println("Installing Astarte Custom Resource Definitions...")
 
-	astarteCRD := unmarshalYAMLToJSON("deploy/crds/api_v1alpha1_astarte_crd.yaml", version)
+	astarteCRD := unmarshalOperatorContentYAMLToJSON("deploy/crds/api_v1alpha1_astarte_crd.yaml", version)
 	_, err = kubernetesDynamicClient.Resource(crdResource).Create(&unstructured.Unstructured{Object: astarteCRD},
 		metav1.CreateOptions{})
 	if err != nil {
@@ -173,7 +169,7 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	astarteVoyagerIngressCRD := unmarshalYAMLToJSON("deploy/crds/api_v1alpha1_astarte_voyager_ingress_crd.yaml", version)
+	astarteVoyagerIngressCRD := unmarshalOperatorContentYAMLToJSON("deploy/crds/api_v1alpha1_astarte_voyager_ingress_crd.yaml", version)
 	_, err = kubernetesDynamicClient.Resource(crdResource).Create(&unstructured.Unstructured{Object: astarteVoyagerIngressCRD},
 		metav1.CreateOptions{})
 	if err != nil {
