@@ -30,7 +30,7 @@ var destroyCmd = &cobra.Command{
 	Short: "Destroy an Astarte Instance in the current Kubernetes Cluster",
 	Long: `Destroy an Astarte Instance in the current Kubernetes Cluster. This will adhere to the same current-context
 kubectl mentions. Please be aware of the fact that when an Astarte instance is destroyed, there is no way to recover it.`,
-	Example: `  astartectl cluster destroy astarte`,
+	Example: `  astartectl cluster instances destroy astarte`,
 	RunE:    clusterDestroyF,
 	Args:    cobra.ExactArgs(1),
 }
@@ -40,7 +40,7 @@ func init() {
 	destroyCmd.PersistentFlags().Bool("delete-volumes", false, "When set, all the Persistent Volume Claims will be destroyed. All data will be lost with no means of recovery.")
 	destroyCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
 
-	ClusterCmd.AddCommand(destroyCmd)
+	InstancesCmd.AddCommand(destroyCmd)
 }
 
 func clusterDestroyF(command *cobra.Command, args []string) error {

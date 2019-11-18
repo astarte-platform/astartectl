@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/araddon/dateparse"
 	"github.com/google/go-github/v28/github"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -125,4 +127,25 @@ func getClusterAllocatableResources() (int, int64, int64, error) {
 	}
 
 	return len(list.Items), allocatableCPU, allocatableMemory, nil
+}
+
+func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, time.Time, string, string) {
+	var operatorStatus string = "Initializing"
+	var lastTransition time.Time
+	var deploymentManager string = ""
+	var deploymentProfile string = ""
+	if status, ok := res.Object["status"]; ok {
+		operatorStatus = status.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["type"].(string)
+		lastTransition, _ = dateparse.ParseAny(status.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["lastTransitionTime"].(string))
+	}
+	if annotations, ok := res.Object["metadata"].(map[string]interface{})["annotations"]; ok {
+		if dM, ok := annotations.(map[string]interface{})["astarte-platform.org/deployment-manager"]; ok {
+			deploymentManager = dM.(string)
+		}
+		if dP, ok := annotations.(map[string]interface{})["astarte-platform.org/deployment-profile"]; ok {
+			deploymentProfile = dP.(string)
+		}
+	}
+
+	return operatorStatus, lastTransition, deploymentManager, deploymentProfile
 }

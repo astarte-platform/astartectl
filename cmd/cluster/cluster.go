@@ -41,6 +41,16 @@ by installing, upgrading and managing Astarte through its Operator.`,
 	PersistentPreRunE: clusterPersistentPreRunE,
 }
 
+var InstancesCmd = &cobra.Command{
+	Use:   "instances",
+	Short: "Interact with an Astarte Instance on a remote Astarte Cluster",
+	Long: `Interact with an Astarte Instance on a remote Astarte Cluster. Through this command it is possible to
+manage the entire lifecycle of an Astarte instance, including its installation and maintenance.`,
+	Aliases: []string{"instance"},
+}
+
+// InstanceCmd represents the cluster instance command
+
 // Set here all custom resources for Astarte
 var (
 	kubernetesClient        *kubernetes.Clientset
@@ -77,6 +87,8 @@ func init() {
 	ClusterCmd.PersistentFlags().StringP("kubeconfig", "k", defaultKubeconfigPath,
 		"(optional) absolute path to the kubeconfig file")
 	viper.BindPFlag("kubeconfig", ClusterCmd.PersistentFlags().Lookup("kubeconfig"))
+
+	ClusterCmd.AddCommand(InstancesCmd)
 }
 
 func clusterPersistentPreRunE(cmd *cobra.Command, args []string) error {

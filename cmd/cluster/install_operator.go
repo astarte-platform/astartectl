@@ -31,11 +31,11 @@ import (
 )
 
 var installCmd = &cobra.Command{
-	Use:   "install",
+	Use:   "install-operator",
 	Short: "Install Astarte Operator in the current Kubernetes Cluster",
 	Long: `Install Astarte Operator in the current Kubernetes Cluster. This will adhere to the same current-context
 kubectl mentions. If no versions are specified, the last stable version is installed.`,
-	Example: `  astartectl cluster install`,
+	Example: `  astartectl cluster install-operator`,
 	RunE:    clusterInstallF,
 }
 
@@ -215,7 +215,7 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 		}
 
 		if deployment.Status.ReadyReplicas >= 1 {
-			fmt.Println("Astarte Operator deployment ready! Check the state of your cluster with astartectl cluster show, and then deploy your Astarte installation with astartectl cluster deploy.")
+			fmt.Println("Astarte Operator deployment ready! Check the state of your cluster with astartectl cluster show, and then deploy your Astarte installation with astartectl cluster instance deploy.")
 			return nil
 		}
 	}

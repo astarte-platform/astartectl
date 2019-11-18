@@ -40,7 +40,7 @@ func clusterShowF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println("Could not find an Astarte Operator Deployment on this Kubernetes Cluster.")
 		fmt.Println()
-		fmt.Println("To install Astarte Operator in this cluster, please run astartectl cluster install.")
+		fmt.Println("To install Astarte Operator in this cluster, please run astartectl cluster install-operator.")
 		os.Exit(0)
 	}
 
@@ -49,7 +49,7 @@ func clusterShowF(command *cobra.Command, args []string) error {
 
 	astartes, err := listAstartes()
 	if err != nil || len(astartes) == 0 {
-		fmt.Println("No Managed Astarte installations found. Maybe you want to deploy one with astartectl cluster deploy?")
+		fmt.Println("No Managed Astarte installations found. Maybe you want to deploy one with astartectl cluster instance deploy?")
 		return nil
 	}
 
@@ -61,18 +61,7 @@ func clusterShowF(command *cobra.Command, args []string) error {
 
 	for _, v := range astartes {
 		for _, res := range v.Items {
-			var operatorStatus interface{} = "Initializing"
-			var lastTransition interface{} = ""
-			var deploymentProfile interface{} = "N/A"
-			if status, ok := res.Object["status"]; ok {
-				operatorStatus = status.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["type"]
-				lastTransition = status.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["lastTransitionTime"]
-			}
-			if annotations, ok := res.Object["metadata"].(map[string]interface{})["annotations"]; ok {
-				if dP, ok := annotations.(map[string]interface{})["astarte-platform.org/deployment-profile"]; ok {
-					deploymentProfile = dP
-				}
-			}
+			operatorStatus, lastTransition, _, deploymentProfile := getManagedAstarteResourceStatus(res)
 
 			t.AppendRow(table.Row{res.Object["metadata"].(map[string]interface{})["name"],
 				res.Object["metadata"].(map[string]interface{})["namespace"],

@@ -37,7 +37,7 @@ var deployCmd = &cobra.Command{
 	Short: "Deploy an Astarte Instance in the current Kubernetes Cluster",
 	Long: `Deploy an Astarte Instance in the current Kubernetes Cluster. This will adhere to the same current-context
 kubectl mentions. If no versions are specified, the last stable version is deployed.`,
-	Example: `  astartectl cluster deploy`,
+	Example: `  astartectl cluster instances deploy`,
 	RunE:    clusterDeployF,
 }
 
@@ -59,7 +59,7 @@ func init() {
 	deployCmd.PersistentFlags().Bool("no-ssl", false, "Don't use SSL for the API and Broker endpoints. Strongly not recommended.")
 	deployCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
 
-	ClusterCmd.AddCommand(deployCmd)
+	InstancesCmd.AddCommand(deployCmd)
 }
 
 func clusterDeployF(command *cobra.Command, args []string) error {

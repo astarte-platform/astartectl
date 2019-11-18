@@ -24,11 +24,11 @@ import (
 )
 
 var uninstallCmd = &cobra.Command{
-	Use:   "uninstall",
+	Use:   "uninstall-operator",
 	Short: "Uninstall Astarte Operator from the current Kubernetes Cluster",
 	Long: `Uninstall Astarte Operator from the current Kubernetes Cluster. This will adhere to the same current-context
 kubectl mentions. This command will refuse to run unless no Astarte instances are managed by this Cluster.`,
-	Example: `  astartectl cluster install`,
+	Example: `  astartectl cluster uninstall-operator`,
 	RunE:    clusterUninstallF,
 }
 
