@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - utils: add command to convert a Device ID to its UUID representation and viceversa
 - Added common aliases for all commands where this is applicable
 - appengine: devices data-snapshot now accepts an additional argument to print the snapshot of a specific interface only
+- Added the new cluster command, to manage remote, Kubernetes-based, clusters
 
 ### Changed
 - "appengine device describe" has been renamed into "appengine device show"
