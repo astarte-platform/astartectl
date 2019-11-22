@@ -4,9 +4,11 @@ go 1.13
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190819182555-854d396b647c
+	github.com/Masterminds/semver/v3 v3.0.1
 	github.com/araddon/dateparse v0.0.0-20190622164848-0fb0a474d195
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-openapi/strfmt v0.19.3 // indirect
+	github.com/google/go-github/v28 v28.1.1
 	github.com/google/uuid v1.1.1
 	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
@@ -23,4 +25,9 @@ require (
 	github.com/spf13/viper v1.4.0
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
 	golang.org/x/text v0.3.2 // indirect
+	gopkg.in/yaml.v2 v2.2.5
+	k8s.io/api v0.0.0-20191016110246-af539daaa43a
+	k8s.io/apimachinery v0.0.0-20191004115701-31ade1b30762
+	k8s.io/client-go v0.0.0-20191016110837-54936ba21026
+	sigs.k8s.io/yaml v1.1.0
 )
