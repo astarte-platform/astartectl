@@ -15,20 +15,68 @@
 package cluster
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/araddon/dateparse"
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/google/go-github/v28/github"
 	appsv1 "k8s.io/api/apps/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
 )
+
+func init() {
+	apiextensions.Install(scheme.Scheme)
+}
+
+func unmarshalYAML(res string, version string) runtime.Object {
+	content, err := getOperatorContent(res, version)
+	if err != nil {
+		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	obj, _, err := decode([]byte(content), nil, nil)
+	if err != nil {
+		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return obj
+}
+
+func runtimeObjectToJSON(object runtime.Object) ([]byte, error) {
+	serializer := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
+	buffer := bytes.NewBuffer([]byte{})
+	err := serializer.Encode(object, buffer)
+	return buffer.Bytes(), err
+}
+
+func unmarshalOperatorContentYAMLToJSON(res string, version string) map[string]interface{} {
+	content, err := getOperatorContent(res, version)
+	jsonStruct, err := utils.UnmarshalYAMLToJSON([]byte(content))
+	if err != nil {
+		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return jsonStruct
+}
 
 func listAstartes() (map[string]*unstructured.UnstructuredList, error) {
 	ret := make(map[string]*unstructured.UnstructuredList)
