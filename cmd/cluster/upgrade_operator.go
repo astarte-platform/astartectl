@@ -85,6 +85,20 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 		fmt.Printf("You're currently running Astarte Operator version %s, no updates are available.\n", currentAstarteOperatorVersion)
 		return nil
 	}
+	if isUnstableVersion(currentAstarteOperatorVersion.Original()) {
+		baseVersion, err := getBaseVersionFromUnstable(currentAstarteOperatorVersion.Original())
+		if err != nil {
+			fmt.Println("Your cluster is currently running on snapshot - honestly, there isn't much I can do. If you're running a production cluster, I really hope you know what you're doing.")
+			fmt.Println("In case you didn't really mean to run on the most unstable thing you could run on, I strongly suggest running astartectl cluster uninstall-operator and astartectl cluster install-operator.")
+			os.Exit(1)
+		}
+		currentAstarteOperatorVersion, err = semver.NewVersion(baseVersion)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Printf("Your cluster is currently running on an unstable snapshot - which, by the way, is a bad idea. I'm happy to reconcile you to something more stable, and I'm assuming you're upgrading from %s.\n", currentAstarteOperatorVersion)
+	}
 	fmt.Printf("Will upgrade Astarte Operator to version %s.\n", version)
 
 	if !nonInteractive {

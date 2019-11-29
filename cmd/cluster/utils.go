@@ -17,6 +17,7 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -196,4 +197,24 @@ func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, tim
 	}
 
 	return operatorStatus, lastTransition, deploymentManager, deploymentProfile
+}
+
+func isUnstableVersion(version string) bool {
+	return strings.HasSuffix(version, "-snapshot") || version == "snapshot"
+}
+
+func getBaseVersionFromUnstable(version string) (string, error) {
+	if !isUnstableVersion(version) {
+		return "", fmt.Errorf("%v is not an unstable version", version)
+	}
+
+	if version == "snapshot" {
+		return "", errors.New("You are running on snapshot - I have no way of reconciling you from here")
+	}
+
+	// Get the base version, and add a .0.
+	baseVersion := strings.Replace(version, "-snapshot", "", 1)
+	baseVersion += ".0"
+
+	return baseVersion, nil
 }
