@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Added the new cluster command, to manage remote, Kubernetes-based, clusters
 
+### Fixed
+- Avoid flaky parsing when "value" is a path token (#48)
+
 ## [0.10.3] - 2019-11-06
 ### Added
 - appengine: Aggregates are correctly supported in get-samples
