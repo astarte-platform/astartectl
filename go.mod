@@ -26,8 +26,9 @@ require (
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/yaml.v2 v2.2.5
-	k8s.io/api v0.0.0-20191016110246-af539daaa43a
+	k8s.io/api v0.0.0-20191114100237-2cd11237263f
+	k8s.io/apiextensions-apiserver v0.0.0-20191114105316-e8706470940d
 	k8s.io/apimachinery v0.0.0-20191004115701-31ade1b30762
-	k8s.io/client-go v0.0.0-20191016110837-54936ba21026
+	k8s.io/client-go v0.0.0-20191114101336-8cba805ad12d
 	sigs.k8s.io/yaml v1.1.0
 )

@@ -205,17 +205,10 @@ func parseAggregateDatastreamMap(aMap orderedmap.OrderedMap, completeKeyPath str
 	m := make(map[string]DatastreamAggregateValue)
 
 	// Special case: have we hit the bottom?
-	if timestampInterface, ok := aMap.Get("timestamp"); ok {
-		// Not so fast. This could be a token in the path.
-		bottomWasHit := false
-		switch timestampInterface.(type) {
-		case time.Time:
-			bottomWasHit = true
-		case string:
-			bottomWasHit = true
-		}
-
-		if bottomWasHit {
+	if val, ok := aMap.Get("timestamp"); ok {
+		// Corner case: this might actually be just a token in the path named "timestamp". Let's ensure it
+		// does not contain an object.
+		if _, ok := val.(map[string]interface{}); !ok {
 			datastreamValue, err := parseAggregateDatastreamValue(aMap)
 			if err != nil {
 				return nil, err
@@ -265,13 +258,17 @@ func parseDatastreamMap(aMap map[string]interface{}, completeKeyPath string) (ma
 	m := make(map[string]DatastreamValue)
 
 	// Special case: have we hit the bottom?
-	if _, ok := aMap["value"]; ok {
-		datastreamValue, err := parseDatastreamValue(aMap)
-		if err != nil {
-			return nil, err
+	if val, ok := aMap["value"]; ok {
+		// Corner case: this might actually be just a token in the path named "value". Let's ensure it
+		// does not contain an object.
+		if _, ok := val.(map[string]interface{}); !ok {
+			datastreamValue, err := parseDatastreamValue(aMap)
+			if err != nil {
+				return nil, err
+			}
+			m[completeKeyPath] = datastreamValue
+			return m, nil
 		}
-		m[completeKeyPath] = datastreamValue
-		return m, nil
 	}
 
 	for key, val := range aMap {

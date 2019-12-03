@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -53,8 +54,9 @@ manage the entire lifecycle of an Astarte instance, including its installation a
 
 // Set here all custom resources for Astarte
 var (
-	kubernetesClient        *kubernetes.Clientset
-	kubernetesDynamicClient dynamic.Interface
+	kubernetesClient              *kubernetes.Clientset
+	kubernetesAPIExtensionsClient *apiextensions.Clientset
+	kubernetesDynamicClient       dynamic.Interface
 
 	astarteGroupResource = schema.GroupResource{
 		Group:    "api.astarte-platform.org",
@@ -107,8 +109,12 @@ func clusterPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// create the clientset
+	// create the clientsets
 	kubernetesClient, err = kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	kubernetesAPIExtensionsClient, err = apiextensions.NewForConfig(config)
 	if err != nil {
 		return err
 	}

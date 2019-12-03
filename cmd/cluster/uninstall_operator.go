@@ -101,7 +101,7 @@ func clusterUninstallF(command *cobra.Command, args []string) error {
 	}
 
 	// Delete Astarte CRD
-	err = kubernetesDynamicClient.Resource(crdResource).Delete("astartes.api.astarte-platform.org",
+	err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("astartes.api.astarte-platform.org",
 		&metav1.DeleteOptions{})
 	if err != nil {
 		fmt.Println("WARNING: Could not delete Astarte CRD.")
@@ -109,7 +109,7 @@ func clusterUninstallF(command *cobra.Command, args []string) error {
 	}
 
 	// Delete AstarteVoyagerIngress CRD
-	err = kubernetesDynamicClient.Resource(crdResource).Delete("astartevoyageringresses.api.astarte-platform.org",
+	err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("astartevoyageringresses.api.astarte-platform.org",
 		&metav1.DeleteOptions{})
 	if err != nil {
 		fmt.Println("WARNING: Could not delete Astarte CRD.")

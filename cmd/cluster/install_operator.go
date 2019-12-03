@@ -24,10 +24,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 var installCmd = &cobra.Command{
@@ -44,36 +42,6 @@ func init() {
 	installCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
 
 	ClusterCmd.AddCommand(installCmd)
-}
-
-func unmarshalYAML(res string, version string) runtime.Object {
-	content, err := getOperatorContent(res, version)
-	if err != nil {
-		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	decode := scheme.Codecs.UniversalDeserializer().Decode
-	obj, _, err := decode([]byte(content), nil, nil)
-	if err != nil {
-		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	return obj
-}
-
-func unmarshalOperatorContentYAMLToJSON(res string, version string) map[string]interface{} {
-	content, err := getOperatorContent(res, version)
-	jsonStruct, err := utils.UnmarshalYAMLToJSON([]byte(content))
-	if err != nil {
-		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	return jsonStruct
 }
 
 func clusterInstallF(command *cobra.Command, args []string) error {
@@ -156,9 +124,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	fmt.Println("RBAC Roles Successfully installed.")
 	fmt.Println("Installing Astarte Custom Resource Definitions...")
 
-	astarteCRD := unmarshalOperatorContentYAMLToJSON("deploy/crds/api_v1alpha1_astarte_crd.yaml", version)
-	_, err = kubernetesDynamicClient.Resource(crdResource).Create(&unstructured.Unstructured{Object: astarteCRD},
-		metav1.CreateOptions{})
+	astarteCRD := unmarshalYAML("deploy/crds/api_v1alpha1_astarte_crd.yaml", version)
+	_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(astarteCRD.(*apiextensionsv1beta1.CustomResourceDefinition))
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: Astarte CRD already exists in the cluster.")
@@ -169,9 +136,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	astarteVoyagerIngressCRD := unmarshalOperatorContentYAMLToJSON("deploy/crds/api_v1alpha1_astarte_voyager_ingress_crd.yaml", version)
-	_, err = kubernetesDynamicClient.Resource(crdResource).Create(&unstructured.Unstructured{Object: astarteVoyagerIngressCRD},
-		metav1.CreateOptions{})
+	astarteVoyagerIngressCRD := unmarshalYAML("deploy/crds/api_v1alpha1_astarte_voyager_ingress_crd.yaml", version)
+	_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(astarteVoyagerIngressCRD.(*apiextensionsv1beta1.CustomResourceDefinition))
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: AstarteVoyagerIngress CRD already exists in the cluster.")

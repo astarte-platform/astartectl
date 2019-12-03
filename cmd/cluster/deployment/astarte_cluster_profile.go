@@ -45,10 +45,10 @@ type AstarteProfileRequirements struct {
 
 // AstarteClusterProfile represents a deployment profile for an Astarte Cluster
 type AstarteClusterProfile struct {
-	Name               string `yaml:"name"`
-	Description        string `yaml:"description"`
-	Compatibility      AstarteProfileCompatibility
-	Requirements       AstarteProfileRequirements
+	Name               string                            `yaml:"name"`
+	Description        string                            `yaml:"description"`
+	Compatibility      AstarteProfileCompatibility       `yaml:"compatibility"`
+	Requirements       AstarteProfileRequirements        `yaml:"requirements"`
 	DefaultSpec        Astartev1alpha1DeploymentSpec     `yaml:"defaultSpec"`
 	CustomizableFields []AstarteProfileCustomizableField `yaml:"customizableFields"`
 }
