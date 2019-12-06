@@ -40,11 +40,25 @@ This returns the credentials_secret that can be use to obtain device credentials
 	RunE:    agentRegisterF,
 }
 
+var agentUnregisterCmd = &cobra.Command{
+	Use:   "unregister <device_id>",
+	Short: "Unregister a device",
+	Long: `Unregister a device, making it possible to register it again even after it has requested its credentials.
+
+All data belonging to the device will be kept as is in Astarte.`,
+	Example: `  astartectl pairing agent unregister 2TBn-jNESuuHamE2Zo1anA`,
+	Args:    cobra.ExactArgs(1),
+	RunE:    agentUnregisterF,
+}
+
 func init() {
+	agentUnregisterCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
+
 	PairingCmd.AddCommand(agentCmd)
 
 	agentCmd.AddCommand(
 		agentRegisterCmd,
+		agentUnregisterCmd,
 	)
 }
 
@@ -68,5 +82,38 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 	fmt.Println("Please don't share the Credentials Secret, and ensure it is transferred securely to your Device.")
 	fmt.Printf("Once the Device pairs for the first time, the Credentials Secret ")
 	fmt.Printf("will be associated permanently to the Device and it won't be changeable anymore.\n")
+	return nil
+}
+
+func agentUnregisterF(command *cobra.Command, args []string) error {
+	deviceID := args[0]
+	if !utils.IsValidAstarteDeviceID(deviceID) {
+		return errors.New("Invalid device id")
+	}
+
+	nonInteractive, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Will unregister device %s from realm %s.\n", deviceID, realm)
+	if !nonInteractive {
+		confirmation, err := utils.AskForConfirmation("Do you want to continue?")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		if !confirmation {
+			return nil
+		}
+	}
+
+	err = astarteAPIClient.Pairing.UnregisterDevice(realm, deviceID, pairingJwt)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println("ok")
 	return nil
 }
