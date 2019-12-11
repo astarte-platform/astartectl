@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.10.4] - Unreleased
+## [0.10.4] - 2019-12-11
 ### Added
 - Added the new cluster command, to manage remote, Kubernetes-based, clusters
 - pairing: add unregister subcommand, allowing to register again a device that already requested its
