@@ -23,9 +23,12 @@ import (
 	"sort"
 	"strings"
 
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/Masterminds/semver/v3"
+	"github.com/astarte-platform/astartectl/cmd/cluster/deployment"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/google/go-github/v28/github"
+	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -223,4 +226,139 @@ func getBaseVersionFromUnstable(version string) (string, error) {
 	baseVersion += ".0"
 
 	return baseVersion, nil
+}
+
+func promptForProfile(command *cobra.Command, astarteVersion *semver.Version) (string, deployment.AstarteClusterProfile, error) {
+	nodes, allocatableCPU, allocatableMemory, err := getClusterAllocatableResources()
+	if err != nil {
+		return "", deployment.AstarteClusterProfile{}, err
+	}
+
+	fmt.Printf("Cluster has %v nodes\n", nodes)
+	fmt.Printf("Allocatable CPU is %vm\n", allocatableCPU)
+	fmt.Printf("Allocatable Memory is %v\n", bytefmt.ByteSize(uint64(allocatableMemory)))
+	fmt.Println()
+
+	clusterRequirements := deployment.AstarteProfileRequirements{
+		CPUAllocation:    allocatableCPU,
+		MemoryAllocation: allocatableMemory,
+		MinNodes:         nodes,
+		MaxNodes:         nodes,
+	}
+	availableProfiles := deployment.GetProfilesForVersionAndRequirements(astarteVersion, clusterRequirements)
+
+	if len(availableProfiles) == 0 {
+		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("Unfortunately, your cluster allocatable resources do not allow for any profile to be deployed")
+	}
+
+	fmt.Println("You can safely deploy the following Profiles on this cluster:")
+	for _, v := range availableProfiles {
+		fmt.Printf("%s: %s\n", v.Name, v.Description)
+	}
+
+	fmt.Println()
+	profile := getStringFlagFromPromptOrDie(command, "profile", "Which profile would you like to deploy?", "", false)
+
+	return profile, availableProfiles[profile], nil
+}
+
+func getValueFromSpec(spec map[string]interface{}, field string) interface{} {
+	fieldTokens := strings.Split(field, ".")
+	aMap := spec
+
+	for i, f := range fieldTokens {
+		if _, ok := aMap[f]; ok {
+			switch v := aMap[f].(type) {
+			case map[string]interface{}:
+				aMap = v
+			case string:
+				if i == len(fieldTokens)-1 {
+					return v
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func getStringFromSpecOrFlag(spec map[string]interface{}, field string, command *cobra.Command, flagName string) string {
+	ret := getValueFromSpec(spec, field)
+	if ret != nil {
+		return ret.(string)
+	}
+
+	flag := command.Flags().Lookup(flagName)
+	if flag == nil {
+		// If the flag isn't defined, assume it's not a big deal.
+		return ""
+	}
+
+	fl, err := command.Flags().GetString(flagName)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return fl
+}
+
+func getFromSpecOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, question string, defaultValue string, allowEmpty bool) string {
+	ret := getValueFromSpec(spec, field)
+	if ret != nil {
+		return ret.(string)
+	}
+
+	return getFromPromptOrDie(command, question, defaultValue, allowEmpty)
+}
+
+func getStringFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, flagName string, question string, defaultValue string, allowEmpty bool) string {
+	ret := getValueFromSpec(spec, field)
+	if ret != nil {
+		return ret.(string)
+	}
+
+	return getStringFlagFromPromptOrDie(command, flagName, question, defaultValue, allowEmpty)
+}
+
+func getStringFlagFromPromptOrDie(command *cobra.Command, flagName string, question string, defaultValue string, allowEmpty bool) string {
+	ret := ""
+	flag := command.Flags().Lookup(flagName)
+	if flag != nil {
+		var err error
+		ret, err = command.Flags().GetString(flagName)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}
+	if ret == "" {
+		ret = getFromPromptOrDie(command, question, defaultValue, allowEmpty)
+	}
+	return ret
+}
+
+func getFromPromptOrDie(command *cobra.Command, question string, defaultValue string, allowEmpty bool) string {
+	ret, err := utils.PromptChoice(question, defaultValue, allowEmpty)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return ret
+}
+
+func setInMapRecursively(aMap map[string]interface{}, tokens []string, customFieldValue interface{}) map[string]interface{} {
+	if len(tokens) == 1 {
+		aMap[tokens[0]] = customFieldValue
+	} else {
+		// Pop first element
+		var token string
+		token, tokens = tokens[0], tokens[1:]
+		if _, ok := aMap[token]; ok {
+			aMap[token] = setInMapRecursively(aMap[token].(map[string]interface{}), tokens, customFieldValue)
+		} else {
+			aMap[token] = setInMapRecursively(make(map[string]interface{}), tokens, customFieldValue)
+		}
+	}
+	return aMap
 }

@@ -16,14 +16,9 @@ package cluster
 
 import (
 	"fmt"
-	"go/types"
 	"os"
-	"strconv"
-	"strings"
 
-	"code.cloudfoundry.org/bytefmt"
 	"github.com/Masterminds/semver/v3"
-	"github.com/astarte-platform/astartectl/cmd/cluster/deployment"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -63,17 +58,6 @@ func init() {
 }
 
 func clusterDeployF(command *cobra.Command, args []string) error {
-	nodes, allocatableCPU, allocatableMemory, err := getClusterAllocatableResources()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Cluster has %v nodes\n", nodes)
-	fmt.Printf("Allocatable CPU is %vm\n", allocatableCPU)
-	fmt.Printf("Allocatable Memory is %v\n", bytefmt.ByteSize(uint64(allocatableMemory)))
-	fmt.Println()
-
 	version, err := command.Flags().GetString("version")
 	if err != nil {
 		return err
@@ -92,125 +76,16 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	clusterRequirements := deployment.AstarteProfileRequirements{
-		CPUAllocation:    allocatableCPU,
-		MemoryAllocation: allocatableMemory,
-		MinNodes:         nodes,
-		MaxNodes:         nodes,
-	}
-	availableProfiles := deployment.GetProfilesForVersionAndRequirements(astarteVersion, clusterRequirements)
-
-	if len(availableProfiles) == 0 {
-		fmt.Println("Unfortunately, your cluster allocatable resources do not allow for any profile to be deployed.")
-		os.Exit(1)
-	}
-
-	fmt.Println("You can safely deploy the following Profiles on this cluster:")
-	for _, v := range availableProfiles {
-		fmt.Printf("%s: %s\n", v.Name, v.Description)
-	}
-
-	fmt.Println()
-	profile := getStringFlagFromPromptOrDie(command, "profile", "Which profile would you like to deploy?", "", false)
-
-	astarteDeployment := availableProfiles[profile]
-
-	// Let's go
-	resourceName := getStringFlagFromPromptOrDie(command, "name", "Please enter the name for this Astarte instance:", "astarte", false)
-	resourceNamespace := getStringFlagFromPromptOrDie(command, "namespace", "Please enter the namespace where the Astarte instance will be deployed:", "astarte", false)
-	astarteDeployment.DefaultSpec.Version = astarteVersion.String()
-	astarteDeployment.DefaultSpec.API.Host = getStringFlagFromPromptOrDie(command, "api-host", "Please enter the API Host for this Deployment:", "", false)
-	astarteDeployment.DefaultSpec.Vernemq.Host = getStringFlagFromPromptOrDie(command, "broker-host", "Please enter the MQTT Broker Host for this Deployment:", "", false)
-	storageClassName, err := command.Flags().GetString("storage-class-name")
+	profile, astarteDeployment, err := promptForProfile(command, astarteVersion)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if storageClassName != "" {
-		astarteDeployment.DefaultSpec.StorageClassName = storageClassName
-	}
 
-	// Ensure Storage and dependencies for all components.
-	if astarteDeployment.DefaultSpec.Cassandra.Deploy {
-		astarteDeployment.DefaultSpec.Cassandra.Storage.Size = getStringFlagFromPromptOrDie(command, "cassandra-volume-size", "Please enter the Cassandra Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Cassandra.Storage.Size, false)
-	} else {
-		// Ask for nodes
-		astarteDeployment.DefaultSpec.Cassandra.Nodes = getStringFlagFromPromptOrDie(command, "cassandra-nodes", "Please enter a comma separated list of Cassandra Nodes the cluster will connect to:",
-			astarteDeployment.DefaultSpec.Cassandra.Nodes, false)
-	}
-	if astarteDeployment.DefaultSpec.Rabbitmq.Deploy {
-		astarteDeployment.DefaultSpec.Rabbitmq.Storage.Size = getStringFlagFromPromptOrDie(command, "rabbitmq-volume-size", "Please enter the RabbitMQ Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Rabbitmq.Storage.Size, false)
-	}
-	if astarteDeployment.DefaultSpec.Vernemq.Deploy {
-		astarteDeployment.DefaultSpec.Vernemq.Storage.Size = getStringFlagFromPromptOrDie(command, "vernemq-volume-size", "Please enter the VerneMQ Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Vernemq.Storage.Size, false)
-	}
-	if astarteDeployment.DefaultSpec.Cfssl.Deploy {
-		astarteDeployment.DefaultSpec.Cfssl.Storage.Size = getStringFlagFromPromptOrDie(command, "cfssl-volume-size", "Please enter the CFSSL Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Cfssl.Storage.Size, false)
-		cfsslDBDriver := getStringFlagFromPromptOrDie(command, "cfssl-db-driver", "Please enter the CFSSL DB Driver for this deployment.\nPlease note that leaving this empty will default to using SQLite, which is strongly discouraged in production.\nCFSSL DB Connection String:",
-			"", true)
-		if cfsslDBDriver != "" {
-			astarteDeployment.DefaultSpec.Cfssl.DbConfig.Driver = cfsslDBDriver
-			astarteDeployment.DefaultSpec.Cfssl.DbConfig.DataSource = getStringFlagFromPromptOrDie(command, "cfssl-db-datasource", "Please enter the CFSSL DB Datasource for this Deployment:",
-				"", false)
-		}
-	}
-
-	customFields := map[string]interface{}{}
-	// Now we go with the custom fields
-	for _, customizableField := range astarteDeployment.CustomizableFields {
-		stringValue := getFromPromptOrDie(command, customizableField.Question,
-			fmt.Sprintf("%v", customizableField.Default), customizableField.AllowEmpty)
-		switch customizableField.Type {
-		case types.Int:
-			i, err := strconv.Atoi(stringValue)
-			if err != nil {
-				fmt.Printf("%v is not a valid value for %v.\n", stringValue, customizableField.Field)
-				os.Exit(1)
-			}
-			customFields[customizableField.Field] = i
-		case types.Bool:
-			b, err := strconv.ParseBool(stringValue)
-			if err != nil {
-				fmt.Printf("%v is not a valid value for %v.\n", stringValue, customizableField.Field)
-				os.Exit(1)
-			}
-			customFields[customizableField.Field] = b
-		default:
-			customFields[customizableField.Field] = stringValue
-		}
-	}
-
-	// Assemble the Astarte resource
-	astarteK8sDeployment := deployment.GetBaseAstartev1alpha1Deployment()
-	astarteK8sDeployment.Metadata.Name = resourceName
-	astarteK8sDeployment.Metadata.Namespace = resourceNamespace
-	astartectlAnnotations := map[string]string{
-		"astarte-platform.org/deployment-manager": "astartectl",
-		"astarte-platform.org/deployment-profile": profile,
-	}
-	astarteK8sDeployment.Metadata.Annotations = astartectlAnnotations
-	astarteK8sDeployment.Spec = astarteDeployment.DefaultSpec
-
-	astarteDeploymentYaml, err := yaml.Marshal(astarteK8sDeployment)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	astarteDeploymentResource, err := utils.UnmarshalYAMLToJSON(astarteDeploymentYaml)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	// Go with the custom fields
-	for customField, customFieldValue := range customFields {
-		fieldTokens := strings.Split(customField, ".")
-		astarteDeploymentResource["spec"] = setInMapRecursively(astarteDeploymentResource["spec"].(map[string]interface{}),
-			fieldTokens, customFieldValue)
-	}
+	// Create the Astarte Resource
+	astarteDeploymentResource := createAstarteResourceOrDie(command, astarteVersion, profile, astarteDeployment)
+	resourceName := astarteDeploymentResource["metadata"].(map[string]interface{})["name"].(string)
+	resourceNamespace := astarteDeploymentResource["metadata"].(map[string]interface{})["namespace"].(string)
 
 	//
 	fmt.Println()
@@ -265,41 +140,4 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 
 	fmt.Println("Your Astarte instance has been successfully deployed. Please allow a few minutes for the Cluster to start. You can monitor the progress with astartectl cluster show.")
 	return nil
-}
-
-func getStringFlagFromPromptOrDie(command *cobra.Command, flagName string, question string, defaultValue string, allowEmpty bool) string {
-	ret, err := command.Flags().GetString(flagName)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	if ret == "" {
-		ret = getFromPromptOrDie(command, question, defaultValue, allowEmpty)
-	}
-	return ret
-}
-
-func getFromPromptOrDie(command *cobra.Command, question string, defaultValue string, allowEmpty bool) string {
-	ret, err := utils.PromptChoice(question, defaultValue, allowEmpty)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	return ret
-}
-
-func setInMapRecursively(aMap map[string]interface{}, tokens []string, customFieldValue interface{}) map[string]interface{} {
-	if len(tokens) == 1 {
-		aMap[tokens[0]] = customFieldValue
-	} else {
-		// Pop first element
-		var token string
-		token, tokens = tokens[0], tokens[1:]
-		if _, ok := aMap[token]; ok {
-			aMap[token] = setInMapRecursively(aMap[token].(map[string]interface{}), tokens, customFieldValue)
-		} else {
-			aMap[token] = setInMapRecursively(make(map[string]interface{}), tokens, customFieldValue)
-		}
-	}
-	return aMap
 }
