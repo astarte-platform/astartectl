@@ -228,7 +228,7 @@ func getBaseVersionFromUnstable(version string) (string, error) {
 	return baseVersion, nil
 }
 
-func promptForProfile(command *cobra.Command, astarteVersion *semver.Version) (string, deployment.AstarteClusterProfile, error) {
+func promptForProfileExcluding(command *cobra.Command, astarteVersion *semver.Version, excluding []string) (string, deployment.AstarteClusterProfile, error) {
 	nodes, allocatableCPU, allocatableMemory, err := getClusterAllocatableResources()
 	if err != nil {
 		return "", deployment.AstarteClusterProfile{}, err
@@ -251,15 +251,45 @@ func promptForProfile(command *cobra.Command, astarteVersion *semver.Version) (s
 		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("Unfortunately, your cluster allocatable resources do not allow for any profile to be deployed")
 	}
 
+	unexcludedAvailableProfiles := map[string]deployment.AstarteClusterProfile{}
+	// Handle exclusion list
+	for k, v := range availableProfiles {
+		exclude := false
+		for _, s := range excluding {
+			if s == k {
+				exclude = true
+				break
+			}
+		}
+		if exclude {
+			continue
+		}
+
+		unexcludedAvailableProfiles[k] = v
+	}
+
+	if len(unexcludedAvailableProfiles) == 0 {
+		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("There are no other profiles which can be deployed on this cluster besides %s", excluding)
+	}
+
 	fmt.Println("You can safely deploy the following Profiles on this cluster:")
-	for _, v := range availableProfiles {
+	for _, v := range unexcludedAvailableProfiles {
 		fmt.Printf("%s: %s\n", v.Name, v.Description)
 	}
 
 	fmt.Println()
 	profile := getStringFlagFromPromptOrDie(command, "profile", "Which profile would you like to deploy?", "", false)
 
+	if _, ok := unexcludedAvailableProfiles[profile]; !ok {
+		fmt.Printf("Profile %s does not exist! Aborting.\n", profile)
+		os.Exit(1)
+	}
+
 	return profile, availableProfiles[profile], nil
+}
+
+func promptForProfile(command *cobra.Command, astarteVersion *semver.Version) (string, deployment.AstarteClusterProfile, error) {
+	return promptForProfileExcluding(command, astarteVersion, []string{})
 }
 
 func getValueFromSpec(spec map[string]interface{}, field string) interface{} {
