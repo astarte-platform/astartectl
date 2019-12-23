@@ -30,6 +30,7 @@ import (
 	"github.com/google/go-github/v28/github"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -163,12 +164,13 @@ func getClusterAllocatableResources() (int, int64, int64, error) {
 	var allocatableCPU int64 = 0
 	var allocatableMemory int64 = 0
 	for _, node := range list.Items {
-		nodeAllocatableCPU, ok := node.Status.Allocatable.Cpu().AsDec().Unscaled()
-		if !ok {
+		nodeAllocatableCPU := node.Status.Allocatable.Cpu().ScaledValue(resource.Milli)
+		if nodeAllocatableCPU <= 0 {
 			return 0, 0, 0, fmt.Errorf("Could not retrieve allocatable CPU for node %s", node.GetName())
 		}
 		allocatableCPU += nodeAllocatableCPU
-		nodeAllocatableMemory, ok := node.Status.Allocatable.Memory().AsDec().Unscaled()
+		// Get Int64 directly, as the value is always returned in bytes.
+		nodeAllocatableMemory, ok := node.Status.Allocatable.Memory().AsInt64()
 		if !ok {
 			return 0, 0, 0, fmt.Errorf("Could not retrieve allocatable Memory for node %s", node.GetName())
 		}
