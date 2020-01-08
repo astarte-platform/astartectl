@@ -127,6 +127,9 @@ func getLastReleaseForAstarteRepo(repo string) (string, error) {
 		if err != nil {
 			continue
 		}
+		if ver.Prerelease() != "" {
+			continue
+		}
 
 		collection = append(collection, ver)
 	}

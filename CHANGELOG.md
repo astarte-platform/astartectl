@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Fixed
 - Fixed Cluster Resource parsing in some corner case situations
+- Do not take into account prereleases when looking for latest versions
 
 ## [0.10.4] - 2019-12-11
 ### Added
