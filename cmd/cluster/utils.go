@@ -22,10 +22,8 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/araddon/dateparse"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/google/go-github/v28/github"
 	appsv1 "k8s.io/api/apps/v1"
@@ -183,14 +181,17 @@ func getClusterAllocatableResources() (int, int64, int64, error) {
 	return len(list.Items), allocatableCPU, allocatableMemory, nil
 }
 
-func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, time.Time, string, string) {
+func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, string, string) {
 	var operatorStatus string = "Initializing"
-	var lastTransition time.Time
 	var deploymentManager string = ""
 	var deploymentProfile string = ""
 	if status, ok := res.Object["status"]; ok {
-		operatorStatus = status.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["type"].(string)
-		lastTransition, _ = dateparse.ParseAny(status.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["lastTransitionTime"].(string))
+		statusMap := status.(map[string]interface{})
+		if oldOperatorStatus, ok := statusMap["conditions"]; ok {
+			operatorStatus = oldOperatorStatus.([]interface{})[0].(map[string]interface{})["type"].(string)
+		} else {
+			operatorStatus = statusMap["phase"].(string)
+		}
 	}
 	if annotations, ok := res.Object["metadata"].(map[string]interface{})["annotations"]; ok {
 		if dM, ok := annotations.(map[string]interface{})["astarte-platform.org/deployment-manager"]; ok {
@@ -201,7 +202,7 @@ func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, tim
 		}
 	}
 
-	return operatorStatus, lastTransition, deploymentManager, deploymentProfile
+	return operatorStatus, deploymentManager, deploymentProfile
 }
 
 func isUnstableVersion(version string) bool {

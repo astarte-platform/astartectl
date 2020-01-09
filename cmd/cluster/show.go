@@ -57,16 +57,16 @@ func clusterShowF(command *cobra.Command, args []string) error {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleLight)
-	t.AppendHeader(table.Row{"Name", "Namespace", "Version", "Deployment Profile", "Operator Status", "Last Transition"})
+	t.AppendHeader(table.Row{"Name", "Namespace", "Version", "Deployment Profile", "Operator Status"})
 
 	for _, v := range astartes {
 		for _, res := range v.Items {
-			operatorStatus, lastTransition, _, deploymentProfile := getManagedAstarteResourceStatus(res)
+			operatorStatus, _, deploymentProfile := getManagedAstarteResourceStatus(res)
 
 			t.AppendRow(table.Row{res.Object["metadata"].(map[string]interface{})["name"],
 				res.Object["metadata"].(map[string]interface{})["namespace"],
 				res.Object["spec"].(map[string]interface{})["version"],
-				deploymentProfile, operatorStatus, lastTransition,
+				deploymentProfile, operatorStatus,
 			})
 		}
 	}
