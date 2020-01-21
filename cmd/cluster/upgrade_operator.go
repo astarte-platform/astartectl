@@ -99,6 +99,9 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 		}
 		fmt.Printf("Your cluster is currently running on an unstable snapshot - which, by the way, is a bad idea. I'm happy to reconcile you to something more stable, and I'm assuming you're upgrading from %s.\n", currentAstarteOperatorVersion)
 	}
+	if isUnstableVersion(upgradeVersion.Original()) {
+		fmt.Println("You're trying to update your cluster to an unstable snapshot - this is usually is a bad idea. Make sure you know what you're doing.")
+	}
 	fmt.Printf("Will upgrade Astarte Operator to version %s.\n", version)
 
 	if !nonInteractive {
@@ -161,19 +164,31 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 
 	// This is where it gets tricky. For all supported CRDs, we need to either update or install them. When we update,
 	// we need to ensure that the resourceVersion is increased compared to the existing resource.
-
-	err = upgradeCRD("deploy/crds/api_v1alpha1_astarte_crd.yaml", version, currentAstarteOperatorVersion.Original())
-	if err != nil {
-		err = upgradeCRD("deploy/crds/api_v1alpha1_astarte_voyager_ingress_crd.yaml", version, currentAstarteOperatorVersion.Original())
+	astarteCRD := "api.astarte-platform.org_astartes_crd.yaml"
+	aviCRD := "api.astarte-platform.org_astartevoyageringresses_crd.yaml"
+	originalAstarteCRD := "api.astarte-platform.org_astartes_crd.yaml"
+	originalAviCRD := "api.astarte-platform.org_astartevoyageringresses_crd.yaml"
+	c, _ := semver.NewConstraint("< 0.10.99")
+	if c.Check(upgradeVersion) {
+		// Use old CRD filenames
+		astarteCRD = "api_v1alpha1_astarte_crd.yaml"
+		aviCRD = "api_v1alpha1_astarte_voyager_ingress_crd.yaml"
 	}
-	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
-			fmt.Println("WARNING: AstarteVoyagerIngress CRD already exists in the cluster.")
-		} else {
+	if c.Check(currentAstarteOperatorVersion) {
+		originalAstarteCRD = "api_v1alpha1_astarte_crd.yaml"
+		originalAviCRD = "api_v1alpha1_astarte_voyager_ingress_crd.yaml"
+	}
+
+	if err = upgradeCRD("deploy/crds/"+astarteCRD, version, "deploy/crds/"+originalAstarteCRD, currentAstarteOperatorVersion.Original()); err == nil {
+		if err = upgradeCRD("deploy/crds/"+aviCRD, version, "deploy/crds/"+originalAviCRD, currentAstarteOperatorVersion.Original()); err != nil {
 			fmt.Println("Error while deploying AstarteVoyagerIngress CRD. Your deployment might be incomplete.")
 			fmt.Println(err)
 			os.Exit(1)
 		}
+	} else {
+		fmt.Println("Error while deploying Astarte CRD. Your deployment might be incomplete.")
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	fmt.Println("Astarte Custom Resource Definitions successfully upgraded.")
@@ -219,7 +234,7 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func upgradeCRD(path, version, originalVersion string) error {
+func upgradeCRD(path, version, originalPath, originalVersion string) error {
 	// TODO: Handle v1, when we start planning on supporting it.
 	crd := unmarshalYAML(path, version)
 	currentCRD, err := kubernetesDynamicClient.Resource(crdResource).Get(
@@ -233,7 +248,7 @@ func upgradeCRD(path, version, originalVersion string) error {
 		}
 	} else {
 		// Move to a 3-way JSON Merge patch
-		originalCRD := unmarshalYAML(path, originalVersion)
+		originalCRD := unmarshalYAML(originalPath, originalVersion)
 		crdJSON, err := runtimeObjectToJSON(crd)
 		currentCRDJSON, err := runtimeObjectToJSON(currentCRD)
 		originalCRDJSON, err := runtimeObjectToJSON(originalCRD)
