@@ -148,8 +148,14 @@ func getContentFromAstarteRepo(repo string, path string, tag string) (string, er
 	ctx := context.Background()
 	client := github.NewClient(nil)
 
+	ref := "v" + tag
+	if strings.Contains(tag, "-snapshot") {
+		// In this case, we want to fetch from the latest release branch.
+		ref = "release-" + strings.Replace(tag, "-snapshot", "", -1)
+	}
+
 	content, _, _, err := client.Repositories.GetContents(ctx, "astarte-platform", repo,
-		path, &github.RepositoryContentGetOptions{Ref: "v" + tag})
+		path, &github.RepositoryContentGetOptions{Ref: ref})
 
 	if err != nil {
 		return "", nil
