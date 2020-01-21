@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Fixed Cluster Resource parsing in some corner case situations
 - Do not take into account prereleases when looking for latest versions
+- Added "cluster instance upgrade", to upgrade Astarte instances
+- Added "cluster instance change-profile", to change an existing Astarte instance's deployment profile
 
 ## [0.10.4] - 2019-12-11
 ### Added
