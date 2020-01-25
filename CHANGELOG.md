@@ -4,12 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.10.5] - Unreleased
+## [0.10.5] - 2020-01-25
+### Added
+- Added "cluster instance upgrade", to upgrade Astarte instances
+- Added "cluster instance change-profile", to change an existing Astarte instance's deployment profile
+
 ### Fixed
 - Fixed Cluster Resource parsing in some corner case situations
 - Do not take into account prereleases when looking for latest versions
-- Added "cluster instance upgrade", to upgrade Astarte instances
-- Added "cluster instance change-profile", to change an existing Astarte instance's deployment profile
 
 ## [0.10.4] - 2019-12-11
 ### Added
