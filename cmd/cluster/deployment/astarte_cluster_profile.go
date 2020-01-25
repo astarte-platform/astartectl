@@ -53,6 +53,17 @@ type AstarteClusterProfile struct {
 	CustomizableFields []AstarteProfileCustomizableField `yaml:"customizableFields"`
 }
 
+// IsValid returns whether the AstarteClusterProfile is valid or not.
+func (p *AstarteClusterProfile) IsValid() bool {
+	for _, s := range GetAllBuiltinAstarteClusterProfiles() {
+		if s.Name == p.Name {
+			return true
+		}
+	}
+
+	return false
+}
+
 // GetProfilesForVersionAndRequirements gets all profiles compatible with given version and requirements
 func GetProfilesForVersionAndRequirements(version *semver.Version, requirements AstarteProfileRequirements) map[string]AstarteClusterProfile {
 	ret := map[string]AstarteClusterProfile{}
@@ -83,4 +94,28 @@ func GetProfilesForVersionAndRequirements(version *semver.Version, requirements 
 	}
 
 	return ret
+}
+
+// GetMatchingProfile returns a profile which matches name and version requirements, or an invalid profile.
+func GetMatchingProfile(name string, version *semver.Version) AstarteClusterProfile {
+	for _, profile := range GetAllBuiltinAstarteClusterProfiles() {
+		if profile.Name == name {
+			// Check version constraints
+			if profile.Compatibility.MinAstarteVersion != nil {
+				if profile.Compatibility.MinAstarteVersion.GreaterThan(version) {
+					continue
+				}
+			}
+			if profile.Compatibility.MaxAstarteVersion != nil {
+				if profile.Compatibility.MaxAstarteVersion.LessThan(version) {
+					continue
+				}
+			}
+
+			// It's a match!
+			return profile
+		}
+	}
+
+	return AstarteClusterProfile{}
 }

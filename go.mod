@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190819182555-854d396b647c
-	github.com/Masterminds/semver/v3 v3.0.1
+	github.com/Masterminds/semver/v3 v3.0.3
 	github.com/araddon/dateparse v0.0.0-20190622164848-0fb0a474d195
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-openapi/strfmt v0.19.3 // indirect
@@ -25,7 +25,7 @@ require (
 	github.com/spf13/viper v1.4.0
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
 	golang.org/x/text v0.3.2 // indirect
-	gopkg.in/yaml.v2 v2.2.5
+	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/api v0.0.0-20191114100237-2cd11237263f
 	k8s.io/apiextensions-apiserver v0.0.0-20191114105316-e8706470940d
 	k8s.io/apimachinery v0.0.0-20191004115701-31ade1b30762

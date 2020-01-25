@@ -1,0 +1,145 @@
+name: astartectl CI
+on:
+  # Run on mainline branches
+  push:
+    branches:
+      - 'master'
+      - 'release-*'
+  # Run on branch/tag creation
+  create:
+  # Run on Pull Requests
+  pull_request:
+
+jobs:
+  build:
+    name: Build and Test
+    strategy:
+      matrix:
+        go: [1.12.x, 1.13.x]
+        os: [ubuntu-18.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Set up Go ${{ matrix.go }}
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
+      id: go
+    
+    - name: Install gox
+      run: go get github.com/mitchellh/gox && go install github.com/mitchellh/gox
+      # Releases are always on Go 1.13 and cross-compiled on Ubuntu (this is the tested configuration)
+      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.13.x'
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
+    - name: Get dependencies
+      run: go get -v
+
+    - name: Check gofmt
+      run: diff -u <(echo -n) <(gofmt -d .)
+      if: matrix.os != 'windows-latest'
+    
+    - name: Run go vet
+      run: go vet $(go list ./... | grep -v /vendor/)
+
+    - name: Build
+      run: go build -v .
+
+    - name: Test
+      run: go test -v -race ./...
+    
+    - name: Run gox
+      run: mkdir bin && $HOME/go/bin/gox -os="darwin linux windows" -arch="amd64 386" -output="bin/astartectl_$TRAVIS_BRANCH_{{.OS}}_{{.Arch}}" -ldflags "-X main.Rev=`git rev-parse --short HEAD`" -verbose ./...
+      # Releases are always on Go 1.13 and cross-compiled on Ubuntu (this is the tested configuration)
+      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.13.x'
+    
+    - name: Upload Binaries
+      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.13.x'
+      uses: actions/upload-artifact@v1
+      with:
+        name: binaries
+        path: bin/
+
+  release:
+    name: Release
+    # Ensure we do this only for tags matching a version number
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'create'
+    needs: build
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Craft release name
+      id: release_name_replace
+      uses: frabert/replace-string-action@v1.1
+      with:
+        pattern: 'refs/tags/v(\w+)'
+        string: ${{ github.ref }}
+        replace-with: '$1'
+    - name: Download built binaries
+      uses: actions/download-artifact@v1
+      with:
+        name: binaries
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: "astartectl ${{ steps.release_name_replace.outputs.replaced }}"
+        # When the new action version is released, use this to plug in the changelog.
+        #body: |
+    - name: Upload Windows32 Release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./binaries/astartectl_windows_386.exe
+        asset_name: astartectl_windows_386.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
+    - name: Upload Windows64 Release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./binaries/astartectl_windows_amd64.exe
+        asset_name: astartectl_windows_amd64.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
+    - name: Upload Linux32 Release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./binaries/astartectl_linux_386
+        asset_name: astartectl_linux_386
+        asset_content_type: application/octet-stream
+    - name: Upload Linux64 Release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./binaries/astartectl_linux_amd64
+        asset_name: astartectl_linux_amd64
+        asset_content_type: application/octet-stream
+    - name: Upload Darwin32 Release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./binaries/astartectl_darwin_386
+        asset_name: astartectl_darwin_386
+        asset_content_type: application/octet-stream
+    - name: Upload Darwin64 Release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./binaries/astartectl_darwin_amd64
+        asset_name: astartectl_darwin_amd64
+        asset_content_type: application/octet-stream

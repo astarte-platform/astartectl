@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
@@ -66,6 +67,16 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+	}
+
+	semVersion, err := semver.NewVersion(version)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if isUnstableVersion(version) {
+		fmt.Println("You're trying install in your cluster an unstable snapshot - this is usually is a bad idea. Make sure you know what you're doing.")
 	}
 
 	fmt.Printf("Will install Astarte Operator version %s in the Cluster.\n", version)
@@ -124,7 +135,16 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	fmt.Println("RBAC Roles Successfully installed.")
 	fmt.Println("Installing Astarte Custom Resource Definitions...")
 
-	astarteCRD := unmarshalYAML("deploy/crds/api_v1alpha1_astarte_crd.yaml", version)
+	astarteCRDName := "api.astarte-platform.org_astartes_crd.yaml"
+	aviCRDName := "api.astarte-platform.org_astartevoyageringresses_crd.yaml"
+	c, _ := semver.NewConstraint("< 0.10.99")
+	if c.Check(semVersion) {
+		// Use old CRD filenames
+		astarteCRDName = "api_v1alpha1_astarte_crd.yaml"
+		aviCRDName = "api_v1alpha1_astarte_voyager_ingress_crd.yaml"
+	}
+
+	astarteCRD := unmarshalYAML("deploy/crds/"+astarteCRDName, version)
 	_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(astarteCRD.(*apiextensionsv1beta1.CustomResourceDefinition))
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
@@ -136,7 +156,7 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	astarteVoyagerIngressCRD := unmarshalYAML("deploy/crds/api_v1alpha1_astarte_voyager_ingress_crd.yaml", version)
+	astarteVoyagerIngressCRD := unmarshalYAML("deploy/crds/"+aviCRDName, version)
 	_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(astarteVoyagerIngressCRD.(*apiextensionsv1beta1.CustomResourceDefinition))
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {

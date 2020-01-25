@@ -11,9 +11,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add support for interfaces stats in device describe subcommand
 - Add appengine stats subcommand
 
-## [0.10.4] - Unreleased
+## [0.10.5] - 2020-01-25
+### Added
+- Added "cluster instance upgrade", to upgrade Astarte instances
+- Added "cluster instance change-profile", to change an existing Astarte instance's deployment profile
+
+### Fixed
+- Fixed Cluster Resource parsing in some corner case situations
+- Do not take into account prereleases when looking for latest versions
+
+## [0.10.4] - 2019-12-11
 ### Added
 - Added the new cluster command, to manage remote, Kubernetes-based, clusters
+- pairing: add unregister subcommand, allowing to register again a device that already requested its
+  credentials
 
 ### Fixed
 - Avoid flaky parsing when "value" is a path token (#48)

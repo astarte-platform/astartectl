@@ -54,3 +54,17 @@ func (s *PairingService) RegisterDevice(realm string, deviceID string, token str
 
 	return responseBody.Data.CredentialsSecret, nil
 }
+
+// UnregisterDevice resets the registration state of a device. This makes it possible to register it again.
+// All data belonging to the device will be left as is in Astarte.
+func (s *PairingService) UnregisterDevice(realm string, deviceID string, token string) error {
+	callURL, _ := url.Parse(s.pairingURL.String())
+	callURL.Path = path.Join(callURL.Path, fmt.Sprintf("/v1/%s/agent/devices/%s", realm, deviceID))
+
+	err := s.client.genericJSONDataAPIDelete(callURL.String(), token, 204)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

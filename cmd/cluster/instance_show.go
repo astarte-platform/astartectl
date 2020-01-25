@@ -71,14 +71,13 @@ func instanceShowF(command *cobra.Command, args []string) error {
 	}
 
 	astarteSpec := astarteObject.Object["spec"].(map[string]interface{})
-	operatorStatus, lastTransition, deploymentManager, deploymentProfile := getManagedAstarteResourceStatus(*astarteObject)
+	operatorStatus, deploymentManager, deploymentProfile := getManagedAstarteResourceStatus(*astarteObject)
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
 	fmt.Fprintf(w, "Astarte Instance Name:\t%v\n", resourceName)
 	fmt.Fprintf(w, "Kubernetes Namespace:\t%v\n", resourceNamespace)
 	fmt.Fprintf(w, "Astarte Version:\t%v\n", astarteSpec["version"])
 	fmt.Fprintf(w, "Operator Status:\t%v\n", operatorStatus)
-	fmt.Fprintf(w, "Last Operator Transition:\t%v\n", lastTransition)
 	fmt.Fprintf(w, "Managed by astartectl:\t%v\n", deploymentManager == "astartectl")
 	fmt.Fprintf(w, "Deployment Profile:\t%v\n", deploymentProfile)
 	w.Flush()

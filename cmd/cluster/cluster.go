@@ -42,6 +42,7 @@ by installing, upgrading and managing Astarte through its Operator.`,
 	PersistentPreRunE: clusterPersistentPreRunE,
 }
 
+// InstancesCmd represents the instance command
 var InstancesCmd = &cobra.Command{
 	Use:   "instances",
 	Short: "Interact with an Astarte Instance on a remote Astarte Cluster",
