@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.10.6] - Unreleased
+### Added
+- Added "cluster instance fetch-housekeeping-key", to fetch the Housekeeping Private key from a Cluster
+
 ## [0.10.5] - 2020-01-25
 ### Added
 - Added "cluster instance upgrade", to upgrade Astarte instances
