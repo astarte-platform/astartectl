@@ -134,7 +134,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	tokenString, err := utils.GenerateAstarteJWTFromKeyFile(privateKey, astarteService, accessClaims, expiryOffset)
+	tokenString, err := utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{astarteService: accessClaims}, expiryOffset)
 	if err != nil {
 		return err
 	}

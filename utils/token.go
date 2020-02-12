@@ -8,43 +8,46 @@ import (
 )
 
 // GenerateAstarteJWTFromKeyFile generates an Astarte Token for a specific API out of a Private Key File
-func GenerateAstarteJWTFromKeyFile(privateKeyFile string, astarteService AstarteService,
-	authorizationClaims []string, ttlSeconds int64) (jwtString string, err error) {
+func GenerateAstarteJWTFromKeyFile(privateKeyFile string, servicesAndClaims map[AstarteService][]string,
+	ttlSeconds int64) (jwtString string, err error) {
 	keyPEM, err := ioutil.ReadFile(privateKeyFile)
 	if err != nil {
 		return "", err
 	}
 
-	return GenerateAstarteJWTFromPEMKey(keyPEM, astarteService, authorizationClaims, ttlSeconds)
+	return GenerateAstarteJWTFromPEMKey(keyPEM, servicesAndClaims, ttlSeconds)
 }
 
 // GenerateAstarteJWTFromPEMKey generates an Astarte Token for a specific API out of a Private Key PEM bytearray
-func GenerateAstarteJWTFromPEMKey(privateKeyPEM []byte, astarteService AstarteService,
-	authorizationClaims []string, ttlSeconds int64) (jwtString string, err error) {
+func GenerateAstarteJWTFromPEMKey(privateKeyPEM []byte, servicesAndClaims map[AstarteService][]string,
+	ttlSeconds int64) (jwtString string, err error) {
 	key, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
 	if err != nil {
 		return "", err
 	}
 
-	accessClaimKey := astarteService.JwtClaim()
-
-	if len(authorizationClaims) == 0 {
-		switch astarteService {
-		case Channels:
-			authorizationClaims = []string{"JOIN::.*", "WATCH::.*"}
-		default:
-			authorizationClaims = []string{"^.*$::^.*$"}
-		}
-	}
-
 	now := time.Now().UTC().Unix()
 	mapClaims := jwt.MapClaims{
-		accessClaimKey: authorizationClaims,
-		"iat":          now,
+		"iat": now,
 	}
 	if ttlSeconds > 0 {
 		exp := now + ttlSeconds
 		mapClaims["exp"] = exp
+	}
+
+	for svc, claims := range servicesAndClaims {
+		accessClaimKey := svc.JwtClaim()
+
+		if len(claims) == 0 {
+			switch svc {
+			case Channels:
+				mapClaims[accessClaimKey] = []string{"JOIN::.*", "WATCH::.*"}
+			default:
+				mapClaims[accessClaimKey] = []string{"^.*$::^.*$"}
+			}
+		} else {
+			mapClaims[accessClaimKey] = claims
+		}
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, mapClaims)
