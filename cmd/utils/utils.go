@@ -57,11 +57,36 @@ var jwtTypesToClaim = map[string]string{
 var jwtTypes = []string{"housekeeping", "realm-management", "pairing", "appengine", "channels"}
 
 var genJwtCmd = &cobra.Command{
-	Use:       "gen-jwt <type>",
-	Short:     "Generate a JWT",
-	Long:      `Generate a JWT to access one of astarte APIs.`,
+	Use:   "gen-jwt <type> [type]...",
+	Short: "Generate a JWT token",
+	Long: `Generate a signed JWT to access Astarte APIs.
+
+The token will be signed with the key provided through the -k parameter, and will be valid for the API
+sets specified as arguments to gen-jwt. Supported API sets are:
+
+appengine - Would generate a token valid for AppEngine API. Requires a Realm key for signing.
+channels - Would generate a token valid for Astarte Channels. Requires a Realm key for signing.
+realm-management - Would generate a token valid for Realm Management API. Requires a Realm key for signing.
+pairing - Would generate a token valid for Pairing API (and, potentially, Device registration). Requires a Realm key for signing.
+housekeeping - Would generate a token valid for Housekeeping API. Requires the Housekeeping key for signing.
+
+It is possible to specify more than one API set at a time. If API sets bear incompatible keys (e.g. appengine and housekeeping),
+generation will fail. For example, to generate a token which supports both appengine and channels, you would do:
+
+	astartectl utils gen-jwt appengine channels -k test-realm.key
+
+The "all-realm-apis" metatype is provided for convenience: this would generate a token for appengine, realm-management,
+channels and pairing. When specified, it should not be combined with anything else.
+
+Claims can also be specified on a per-API set basis when requesting multiple API sets. Prefix a claim with "<api set>:" to apply
+the specified claim only to the requested API set. For example:
+
+	astartectl utils gen-jwt all-realm-apis -k test-realm.key -c appengine:GET::* -c pairing:POST::*
+
+Would generate a token with only the desired claims for appengine and pairing.
+	`,
 	Example:   `  astartectl utils gen-jwt realm-management -k test-realm.key`,
-	Args:      cobra.ExactArgs(1),
+	Args:      cobra.MinimumNArgs(1),
 	ValidArgs: jwtTypes,
 	RunE:      genJwtF,
 }
@@ -111,12 +136,65 @@ func validJwtType(t string) bool {
 }
 
 func genJwtF(command *cobra.Command, args []string) error {
-	jwtType := args[0]
-	astarteService, err := utils.AstarteServiceFromString(jwtType)
-	if err != nil {
-		errorString := fmt.Sprintf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
+	servicesAndClaims := map[utils.AstarteService][]string{}
 
-		return errors.New(errorString)
+	for _, t := range args {
+		// Metatype
+		if t == "all-realm-apis" {
+			if len(args) != 1 {
+				return errors.New("When specifying all-realm-apis, no other types can be specified")
+			}
+
+			// Add all types
+			servicesAndClaims = map[utils.AstarteService][]string{
+				utils.AppEngine:       []string{},
+				utils.Channels:        []string{},
+				utils.Pairing:         []string{},
+				utils.RealmManagement: []string{},
+			}
+
+			break
+		}
+
+		astarteService, err := utils.AstarteServiceFromString(t)
+		if err != nil {
+			return fmt.Errorf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
+		}
+
+		if astarteService == utils.Housekeeping && len(args) != 1 {
+			return errors.New("Conflicting API types specified. Specify only API sets which require the same key type for signing")
+		}
+
+		servicesAndClaims[astarteService] = []string{}
+	}
+
+	// Compute claims
+	accessClaims, err := command.Flags().GetStringSlice("claims")
+	if err != nil {
+		return err
+	}
+	for _, claim := range accessClaims {
+		// Does it specify an API set-specific claim?
+		apiSetSpecific := false
+		for _, svc := range jwtTypes {
+			if strings.HasPrefix(claim, svc+":") {
+				apiSetSpecific = true
+				break
+			}
+		}
+
+		if apiSetSpecific {
+			tokens := strings.SplitN(claim, ":", 2)
+			astarteService, err := utils.AstarteServiceFromString(tokens[0])
+			if err != nil {
+				return fmt.Errorf("Invalid type specified in claim. Valid types are: %s", strings.Join(jwtTypes, ", "))
+			}
+			servicesAndClaims[astarteService] = append(servicesAndClaims[astarteService], tokens[1])
+		} else {
+			for k := range servicesAndClaims {
+				servicesAndClaims[k] = append(servicesAndClaims[k], claim)
+			}
+		}
 	}
 
 	privateKey, err := command.Flags().GetString("private-key")
@@ -129,12 +207,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	accessClaims, err := command.Flags().GetStringSlice("claims")
-	if err != nil {
-		return err
-	}
-
-	tokenString, err := utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{astarteService: accessClaims}, expiryOffset)
+	tokenString, err := utils.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
 	if err != nil {
 		return err
 	}
