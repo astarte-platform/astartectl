@@ -43,7 +43,7 @@ func GenerateAstarteJWTFromPEMKey(privateKeyPEM []byte, servicesAndClaims map[As
 			case Channels:
 				mapClaims[accessClaimKey] = []string{"JOIN::.*", "WATCH::.*"}
 			default:
-				mapClaims[accessClaimKey] = []string{"^.*$::^.*$"}
+				mapClaims[accessClaimKey] = []string{".*::.*"}
 			}
 		} else {
 			mapClaims[accessClaimKey] = claims
