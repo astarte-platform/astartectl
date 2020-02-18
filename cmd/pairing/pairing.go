@@ -93,5 +93,5 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 }
 
 func generatePairingJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, utils.Pairing, nil, 300)
+	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.Pairing: []string{}}, 300)
 }

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add support for interfaces stats in device describe subcommand
 - Add appengine stats subcommand
 
+## [0.10.6] - Unreleased
+### Added
+- Added "cluster instance fetch-housekeeping-key", to fetch the Housekeeping Private key from a Cluster
+- Added multiple API set support in utils gen-jwt
+
+### Changed
+- Removed explicit delimiters in default token regex: they were redundant
+
 ## [0.10.5] - 2020-01-25
 ### Added
 - Added "cluster instance upgrade", to upgrade Astarte instances
