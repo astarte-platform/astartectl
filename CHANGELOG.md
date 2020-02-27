@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add support for credentials inhibition
 - Add support for interfaces stats in device describe subcommand
 - Add appengine stats subcommand
+- Add support to database retention policy and database retention TTL
 
 ## [0.10.6] - 2020-02-27
 ### Added
