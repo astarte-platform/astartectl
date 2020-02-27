@@ -241,17 +241,60 @@ func (s *AstarteMappingRetention) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// AstarteMappingDatabaseRetentionPolicy represents database retention policy for a single mapping
+type AstarteMappingDatabaseRetentionPolicy int
+
+const (
+	// NoTTL means that there is no expiry (TTL)
+	NoTTL AstarteMappingDatabaseRetentionPolicy = iota
+	// UseTTL means that database retention TTL is used
+	UseTTL
+)
+
+func (s AstarteMappingDatabaseRetentionPolicy) String() string {
+	return astarteMappingDatabaseRetentionPolicyToString[s]
+}
+
+var astarteMappingDatabaseRetentionPolicyToString = map[AstarteMappingDatabaseRetentionPolicy]string{
+	NoTTL:  "no_ttl",
+	UseTTL: "use_ttl",
+}
+
+var astarteMappingDatabaseRetentionPolicyToID = map[string]AstarteMappingDatabaseRetentionPolicy{
+	"no_ttl":  NoTTL,
+	"use_ttl": UseTTL,
+}
+
+// MarshalJSON marshals the enum as a quoted json string
+func (s AstarteMappingDatabaseRetentionPolicy) MarshalJSON() ([]byte, error) {
+	return json.Marshal(astarteMappingDatabaseRetentionPolicyToString[s])
+}
+
+// UnmarshalJSON unmashals a quoted json string to the enum value
+func (s *AstarteMappingDatabaseRetentionPolicy) UnmarshalJSON(b []byte) error {
+	var j string
+	err := json.Unmarshal(b, &j)
+	if err != nil {
+		return err
+	}
+	// Note that if the string cannot be found then it will be set to the zero value, 'NoTTL' in this case.
+	*s = astarteMappingDatabaseRetentionPolicyToID[j]
+	return nil
+}
+
 // AstarteInterfaceMapping represents an individual Mapping in an Astarte Interface
 type AstarteInterfaceMapping struct {
-	Endpoint          string                    `json:"endpoint"`
-	Type              string                    `json:"type"`
-	Reliability       AstarteMappingReliability `json:"reliability,omitempty"`
-	Retention         AstarteMappingRetention   `json:"retention,omitempty"`
-	Expiry            int                       `json:"expiry,omitempty"`
-	ExplicitTimestamp bool                      `json:"explicit_timestamp,omitempty"`
-	AllowUnset        bool                      `json:"allow_unset,omitempty"`
-	Description       string                    `json:"description,omitempty"`
-	Documentation     string                    `json:"doc,omitempty"`
+	Endpoint                string                                `json:"endpoint"`
+	Type                    string                                `json:"type"`
+	Reliability             AstarteMappingReliability             `json:"reliability,omitempty"`
+	Retention               AstarteMappingRetention               `json:"retention,omitempty"`
+	DatabaseRetentionPolicy AstarteMappingDatabaseRetentionPolicy `json:"database_retention_policy,omitempty"`
+	DatabaseRetentionTTL    int                                   `json:"database_retention_ttl,omitempty"`
+	Expiry                  int                                   `json:"expiry,omitempty"`
+	ExplicitTimestamp       bool                                  `json:"explicit_timestamp,omitempty"`
+	AllowUnset              bool                                  `json:"allow_unset,omitempty"`
+	Description             string                                `json:"description,omitempty"`
+	Documentation           string                                `json:"doc,omitempty"`
 }
 
 // AstarteInterface represents an Astarte Interface
