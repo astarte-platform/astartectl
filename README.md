@@ -18,6 +18,8 @@ brew install astartectl
 
 You can download latest `astartectl` binaries for all platforms from [GitHub Releases](https://github.com/astarte-platform/astartectl/releases).
 
+Move the binaries to your `$PATH` folder or set your `$PATH` to the folder where `astartectl` is run from.
+
 ### Using go get
 
 Assuming you have you go installation and [GOPATH set up](https://github.com/golang/go/wiki/SettingGOPATH),
