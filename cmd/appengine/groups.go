@@ -19,7 +19,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/astarte-platform/astartectl/client"
+	"github.com/astarte-platform/astarte-go/client"
 	"github.com/spf13/cobra"
 )
 

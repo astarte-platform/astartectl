@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/astarte-platform/astartectl/utils"
+	"github.com/astarte-platform/astarte-go/misc"
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -114,7 +114,7 @@ func init() {
 
 func validateDeviceIDF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if utils.IsValidAstarteDeviceID(deviceID) {
+	if misc.IsValidAstarteDeviceID(deviceID) {
 		fmt.Println("Valid")
 		return nil
 	}
@@ -125,7 +125,7 @@ func validateDeviceIDF(command *cobra.Command, args []string) error {
 }
 
 func generateRandomDeviceIDF(command *cobra.Command, args []string) error {
-	deviceID, err := utils.GenerateRandomAstarteDeviceID()
+	deviceID, err := misc.GenerateRandomAstarteDeviceID()
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func generateRandomDeviceIDF(command *cobra.Command, args []string) error {
 func computeDeviceIDFromStringF(command *cobra.Command, args []string) error {
 	namespaceUUID := args[0]
 	stringData := args[1]
-	deviceID, err := utils.GetNamespacedAstarteDeviceID(namespaceUUID, []byte(stringData))
+	deviceID, err := misc.GetNamespacedAstarteDeviceID(namespaceUUID, []byte(stringData))
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func computeDeviceIDFromBytesF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	deviceID, err := utils.GetNamespacedAstarteDeviceID(namespaceUUID, actualBytes)
+	deviceID, err := misc.GetNamespacedAstarteDeviceID(namespaceUUID, actualBytes)
 	if err != nil {
 		return err
 	}
@@ -165,12 +165,12 @@ func computeDeviceIDFromBytesF(command *cobra.Command, args []string) error {
 
 func toUUIDDeviceIDF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !utils.IsValidAstarteDeviceID(deviceID) {
+	if !misc.IsValidAstarteDeviceID(deviceID) {
 		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
 		os.Exit(1)
 	}
 
-	deviceUUID, err := utils.DeviceIDToUUID(deviceID)
+	deviceUUID, err := misc.DeviceIDToUUID(deviceID)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func fromUUIDDeviceIDF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	deviceID, err := utils.UUIDToDeviceID(deviceUUID)
+	deviceID, err := misc.UUIDToDeviceID(deviceUUID)
 	if err != nil {
 		return err
 	}

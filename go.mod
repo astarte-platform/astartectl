@@ -6,11 +6,10 @@ require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190819182555-854d396b647c
 	github.com/Masterminds/semver/v3 v3.0.3
 	github.com/araddon/dateparse v0.0.0-20190622164848-0fb0a474d195
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/astarte-platform/astarte-go v0.0.0-20200302194507-bf791b6f7da7
 	github.com/go-openapi/strfmt v0.19.3 // indirect
 	github.com/google/go-github/v28 v28.1.1
 	github.com/google/uuid v1.1.1
-	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect

@@ -18,9 +18,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/astarte-platform/astartectl/client"
+	"github.com/astarte-platform/astarte-go/client"
+	"github.com/astarte-platform/astarte-go/misc"
 
-	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -105,11 +105,11 @@ func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 }
 
 func generateAppEngineJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.AppEngine: []string{}}, 300)
+	return misc.GenerateAstarteJWTFromKeyFile(privateKey, map[misc.AstarteService][]string{misc.AppEngine: []string{}}, 300)
 }
 
 func generateRealmManagementJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.RealmManagement: []string{}}, 300)
+	return misc.GenerateAstarteJWTFromKeyFile(privateKey, map[misc.AstarteService][]string{misc.RealmManagement: []string{}}, 300)
 }
 
 func deviceIdentifierTypeFromFlags(deviceIdentifier string, forceDeviceIdentifier string) (client.DeviceIdentifierType, error) {
@@ -117,7 +117,7 @@ func deviceIdentifierTypeFromFlags(deviceIdentifier string, forceDeviceIdentifie
 	case "":
 		return client.AutodiscoverDeviceIdentifier, nil
 	case "device-id":
-		if !utils.IsValidAstarteDeviceID(deviceIdentifier) {
+		if !misc.IsValidAstarteDeviceID(deviceIdentifier) {
 			return 0, fmt.Errorf("Required to evaluate the Device Identifier as an Astarte Device ID, but %v isn't a valid one", deviceIdentifier)
 		}
 		return client.AstarteDeviceID, nil

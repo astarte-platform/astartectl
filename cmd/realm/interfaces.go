@@ -21,7 +21,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/astarte-platform/astartectl/common"
+	"github.com/astarte-platform/astarte-go/interfaces"
 	"github.com/spf13/cobra"
 )
 
@@ -156,7 +156,7 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var interfaceBody common.AstarteInterface
+	var interfaceBody interfaces.AstarteInterface
 	err = json.Unmarshal(interfaceFile, &interfaceBody)
 	if err != nil {
 		return err
@@ -192,7 +192,7 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var astarteInterface common.AstarteInterface
+	var astarteInterface interfaces.AstarteInterface
 	err = json.Unmarshal(interfaceFile, &astarteInterface)
 	if err != nil {
 		return err

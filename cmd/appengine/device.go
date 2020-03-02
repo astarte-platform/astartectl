@@ -23,9 +23,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/bytefmt"
-	"github.com/astarte-platform/astartectl/client"
-	"github.com/astarte-platform/astartectl/common"
-	"github.com/astarte-platform/astartectl/utils"
+	"github.com/astarte-platform/astarte-go/client"
+	"github.com/astarte-platform/astarte-go/interfaces"
 	"github.com/jedib0t/go-pretty/table"
 
 	"github.com/araddon/dateparse"
@@ -276,31 +275,31 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 	jsonOutput := make(map[string]interface{})
 
 	if snapshotInterface != "" {
-		var interfaceType common.AstarteInterfaceType
-		var interfaceAggregation common.AstarteInterfaceAggregation
+		var interfaceType interfaces.AstarteInterfaceType
+		var interfaceAggregation interfaces.AstarteInterfaceAggregation
 		isParametricInterface := false
 
 		if skipRealmManagementChecks {
 			switch interfaceTypeString {
 			case "properties":
-				interfaceType = common.PropertiesType
-				interfaceAggregation = common.IndividualAggregation
+				interfaceType = interfaces.PropertiesType
+				interfaceAggregation = interfaces.IndividualAggregation
 				isParametricInterface = false
 			case "individual-datastream":
-				interfaceType = common.DatastreamType
-				interfaceAggregation = common.IndividualAggregation
+				interfaceType = interfaces.DatastreamType
+				interfaceAggregation = interfaces.IndividualAggregation
 				isParametricInterface = false
 			case "aggregate-datastream":
-				interfaceType = common.DatastreamType
-				interfaceAggregation = common.ObjectAggregation
+				interfaceType = interfaces.DatastreamType
+				interfaceAggregation = interfaces.ObjectAggregation
 				isParametricInterface = false
 			case "individual-parametric-datastream":
-				interfaceType = common.DatastreamType
-				interfaceAggregation = common.IndividualAggregation
+				interfaceType = interfaces.DatastreamType
+				interfaceAggregation = interfaces.IndividualAggregation
 				isParametricInterface = true
 			case "aggregate-parametric-datastream":
-				interfaceType = common.DatastreamType
-				interfaceAggregation = common.ObjectAggregation
+				interfaceType = interfaces.DatastreamType
+				interfaceAggregation = interfaces.ObjectAggregation
 				isParametricInterface = true
 			default:
 				return fmt.Errorf("%s is not a valid Interface Type. Valid interface types are: properties, individual-datastream, aggregate-datastream, individual-parametric-datastream, aggregate-parametric-datastream", interfaceTypeString)
@@ -312,7 +311,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				return err
 			}
 
-			var interfaceDescription common.AstarteInterface
+			var interfaceDescription interfaces.AstarteInterface
 			interfaceFound := false
 			for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
 				if astarteInterface != snapshotInterface {
@@ -341,9 +340,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		}
 
 		switch interfaceType {
-		case common.DatastreamType:
+		case interfaces.DatastreamType:
 			t.AppendHeader(table.Row{"Interface", "Path", "Value", "Timestamp"})
-			if interfaceAggregation == common.ObjectAggregation {
+			if interfaceAggregation == interfaces.ObjectAggregation {
 				if isParametricInterface {
 					val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface, appEngineJwt)
 					if err != nil {
@@ -385,7 +384,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				}
 				jsonOutput[snapshotInterface] = jsonRepresentation
 			}
-		case common.PropertiesType:
+		case interfaces.PropertiesType:
 			t.AppendHeader(table.Row{"Interface", "Path", "Value"})
 			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, snapshotInterface, appEngineJwt)
 			if err != nil {
@@ -414,8 +413,8 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			}
 
 			switch interfaceDescription.Type {
-			case common.DatastreamType:
-				if interfaceDescription.Aggregation == common.ObjectAggregation {
+			case interfaces.DatastreamType:
+				if interfaceDescription.Aggregation == interfaces.ObjectAggregation {
 					if interfaceDescription.IsParametric() {
 						val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
 						if err != nil {
@@ -460,7 +459,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					}
 					jsonOutput[astarteInterface] = jsonRepresentation
 				}
-			case common.PropertiesType:
+			case interfaces.PropertiesType:
 				val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
 				if err != nil {
 					return err
@@ -563,21 +562,21 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				return err
 			}
 
-			if interfaceDescription.Type != common.DatastreamType {
+			if interfaceDescription.Type != interfaces.DatastreamType {
 				fmt.Printf("%s is not a Datastream interface. get-samples works only on Datastream interfaces\n", interfaceName)
 				os.Exit(1)
 			}
 
 			// TODO: Check paths when we have a better parsing for interfaces
 			interfaceFound = true
-			err = utils.ValidateInterfacePath(interfaceDescription, interfacePath)
+			err = interfaces.ValidateInterfacePath(interfaceDescription, interfacePath)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
 			interfacePathTokens := strings.Split(interfacePath, "/")
 			validationEndpointTokens := strings.Split(interfaceDescription.Mappings[0].Endpoint, "/")
-			isAggregate = interfaceDescription.Aggregation == common.ObjectAggregation
+			isAggregate = interfaceDescription.Aggregation == interfaces.ObjectAggregation
 			// Special case
 			if len(interfacePathTokens) == len(validationEndpointTokens) && interfacePath != "/" {
 				isAggregate = false

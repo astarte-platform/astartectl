@@ -19,7 +19,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/astarte-platform/astartectl/utils"
+	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/spf13/cobra"
 )
 
@@ -72,7 +72,7 @@ func init() {
 
 func aliasesListF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !utils.IsValidAstarteDeviceID(deviceID) {
+	if !misc.IsValidAstarteDeviceID(deviceID) {
 		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
 		os.Exit(1)
 	}
@@ -88,7 +88,7 @@ func aliasesListF(command *cobra.Command, args []string) error {
 
 func aliasesAddF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !utils.IsValidAstarteDeviceID(deviceID) {
+	if !misc.IsValidAstarteDeviceID(deviceID) {
 		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
 		os.Exit(1)
 	}
@@ -111,7 +111,7 @@ func aliasesAddF(command *cobra.Command, args []string) error {
 
 func aliasesRemoveF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !utils.IsValidAstarteDeviceID(deviceID) {
+	if !misc.IsValidAstarteDeviceID(deviceID) {
 		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
 		os.Exit(1)
 	}
