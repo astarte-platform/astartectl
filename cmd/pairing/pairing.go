@@ -17,8 +17,8 @@ package pairing
 import (
 	"errors"
 
-	"github.com/astarte-platform/astartectl/client"
-	"github.com/astarte-platform/astartectl/utils"
+	"github.com/astarte-platform/astarte-go/client"
+	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -93,5 +93,5 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 }
 
 func generatePairingJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.Pairing: []string{}}, 300)
+	return misc.GenerateAstarteJWTFromKeyFile(privateKey, map[misc.AstarteService][]string{misc.Pairing: []string{}}, 300)
 }

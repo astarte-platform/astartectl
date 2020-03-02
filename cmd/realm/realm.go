@@ -17,9 +17,9 @@ package realm
 import (
 	"errors"
 
-	"github.com/astarte-platform/astartectl/client"
+	"github.com/astarte-platform/astarte-go/client"
+	"github.com/astarte-platform/astarte-go/misc"
 
-	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -94,5 +94,5 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 }
 
 func generateRealmManagementJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.RealmManagement: []string{}}, 300)
+	return misc.GenerateAstarteJWTFromKeyFile(privateKey, map[misc.AstarteService][]string{misc.RealmManagement: []string{}}, 300)
 }

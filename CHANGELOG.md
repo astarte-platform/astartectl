@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.11.0-rc.1] - Unreleased
+### Changed
+- Moved the codebase to use astarte-go instead of the internal replicated tree
+
 ## [0.11.0-rc.0] - 2020-02-28
 ### Added
 - Add appengine group subcommand
