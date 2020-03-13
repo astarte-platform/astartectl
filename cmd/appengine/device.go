@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -77,18 +76,21 @@ this is automatically determined - however, you can tweak this behavior by using
 }
 
 var devicesGetSamplesCmd = &cobra.Command{
-	Use:   "get-samples <device_id_or_alias> <interface_name> <path>",
+	Use:   "get-samples <device_id_or_alias> <interface_name> [path]",
 	Short: "Retrieves samples for a given Datastream path",
 	Long: `Retrieves and prints samples for a given device. By default, the first 10000 samples
 are returned. You can tweak this behavior by using --count.
 By default, samples are returned in descending order (starting from most recent). You can use --ascending to
 change this behavior.
 
+When dealing with an aggregate, non parametric interface, path can be omitted. It is compulsory for
+all other cases.
+
 <device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
 this is automatically determined - however, you can tweak this behavior by using --force-device-id or
 --force-id-type={device-id,alias}.`,
 	Example: `  astartectl appengine devices get-samples 2TBn-jNESuuHamE2Zo1anA com.my.interface /my/path`,
-	Args:    cobra.ExactArgs(3),
+	Args:    cobra.RangeArgs(2, 3),
 	RunE:    devicesGetSamplesF,
 }
 
@@ -483,7 +485,10 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	interfaceName := args[1]
-	interfacePath := args[2]
+	var interfacePath string
+	if len(args) == 3 {
+		interfacePath = args[2]
+	}
 	forceIDType, err := command.Flags().GetString("force-id-type")
 	if err != nil {
 		return err
@@ -567,19 +572,21 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				os.Exit(1)
 			}
 
-			// TODO: Check paths when we have a better parsing for interfaces
 			interfaceFound = true
-			err = interfaces.ValidateInterfacePath(interfaceDescription, interfacePath)
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-			interfacePathTokens := strings.Split(interfacePath, "/")
-			validationEndpointTokens := strings.Split(interfaceDescription.Mappings[0].Endpoint, "/")
 			isAggregate = interfaceDescription.Aggregation == interfaces.ObjectAggregation
-			// Special case
-			if len(interfacePathTokens) == len(validationEndpointTokens) && interfacePath != "/" {
-				isAggregate = false
+
+			switch {
+			case isAggregate && interfaceDescription.IsParametric() && interfacePath == "":
+				fmt.Printf("%s is an aggregate parametric interface, a valid path should be specified\n", interfaceName)
+				os.Exit(1)
+			case !isAggregate && interfacePath == "":
+				fmt.Printf("You need to specify a valid path for interface %s\n", interfaceName)
+				os.Exit(1)
+			default:
+				if err := interfaces.ValidateQuery(interfaceDescription, interfacePath); err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
 			}
 		}
 
@@ -589,10 +596,6 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 		}
 	} else {
 		isAggregate = forceAggregate
-	}
-
-	if interfacePath == "/" {
-		interfacePath = ""
 	}
 
 	// We are good to go.
@@ -658,7 +661,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 					for _, path := range v.Values.Keys() {
 						value, _ := v.Values.Get(path)
 						if !headerPrinted {
-							headerRow = append(headerRow, fmt.Sprintf("%s/%s", interfacePath, path))
+							headerRow = append(headerRow, path)
 						}
 						line = append(line, value)
 					}

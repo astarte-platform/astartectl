@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0-rc.1] - Unreleased
 ### Changed
 - Moved the codebase to use astarte-go instead of the internal replicated tree
+- `appengine devices get-samples` now handles aggregates with an explicit invocation rather than guessing
+  it from the path
 
 ## [0.11.0-rc.0] - 2020-02-28
 ### Added
