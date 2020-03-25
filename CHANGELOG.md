@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0-rc.1] - Unreleased
 ### Fixed
 - appengine: Fix crash when retrieving nil values out of device interfaces
+- appengine: Fix panic when passing appengine-url without realmmanagement-url (#73)
 
 ### Changed
 - Moved the codebase to use astarte-go instead of the internal replicated tree
