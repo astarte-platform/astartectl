@@ -33,7 +33,7 @@ func APICommandSetup(individualURLVariables map[misc.AstarteService]string, keyV
 	for k, v := range individualURLVariables {
 		urlOverride := viper.GetString(v)
 		if urlOverride != "" {
-			individualURLVariables[k] = urlOverride
+			individualURLs[k] = urlOverride
 		}
 	}
 

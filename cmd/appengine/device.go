@@ -250,15 +250,16 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	skipRealmManagementChecks = skipRealmManagementChecks || astarteAPIClient.RealmManagement == nil
 	if skipRealmManagementChecks && snapshotInterface == "" {
-		return fmt.Errorf("When using --skip-realm-management-checks, an interface should always be specified")
+		return fmt.Errorf("When not using Realm Management checks, an interface should always be specified")
 	}
 	interfaceTypeString, err := command.Flags().GetString("interface-type")
 	if err != nil {
 		return err
 	}
 	if skipRealmManagementChecks && interfaceTypeString == "" {
-		return fmt.Errorf("When using --skip-realm-management-checks, --interface-type should always be specified")
+		return fmt.Errorf("When not using Realm Management checks, --interface-type should always be specified")
 	}
 
 	outputType, err := command.Flags().GetString("output")
@@ -537,6 +538,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	skipRealmManagementChecks = skipRealmManagementChecks || astarteAPIClient.RealmManagement == nil
 	forceAggregate, err := command.Flags().GetBool("aggregate")
 	if err != nil {
 		return err
