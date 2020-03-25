@@ -131,7 +131,7 @@ func init() {
 }
 
 func devicesListF(command *cobra.Command, args []string) error {
-	devices, err := astarteAPIClient.AppEngine.ListDevices(realm, appEngineJwt)
+	devices, err := astarteAPIClient.AppEngine.ListDevices(realm)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -205,7 +205,7 @@ func devicesShowF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
+	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -306,7 +306,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			}
 		} else {
 			// Get the device introspection
-			deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
+			deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
 			if err != nil {
 				return err
 			}
@@ -320,7 +320,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 
 				// Query Realm Management to get details on the interface
 				interfaceDescription, err = astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
-					interfaceIntrospection.Major, realmManagementJwt)
+					interfaceIntrospection.Major)
 				if err != nil {
 					fmt.Printf(err.Error())
 					os.Exit(1)
@@ -344,7 +344,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			t.AppendHeader(table.Row{"Interface", "Path", "Value", "Timestamp"})
 			if interfaceAggregation == interfaces.ObjectAggregation {
 				if isParametricInterface {
-					val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface, appEngineJwt)
+					val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface)
 					if err != nil {
 						return err
 					}
@@ -359,7 +359,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 						}
 					}
 				} else {
-					val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface, appEngineJwt)
+					val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface)
 					if err != nil {
 						return err
 					}
@@ -373,7 +373,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					}
 				}
 			} else {
-				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface, appEngineJwt)
+				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface)
 				if err != nil {
 					return err
 				}
@@ -386,7 +386,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			}
 		case interfaces.PropertiesType:
 			t.AppendHeader(table.Row{"Interface", "Path", "Value"})
-			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, snapshotInterface, appEngineJwt)
+			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, snapshotInterface)
 			if err != nil {
 				return err
 			}
@@ -399,7 +399,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		}
 	} else {
 		// Get the device introspection
-		deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
+		deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
 		if err != nil {
 			return err
 		}
@@ -407,7 +407,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
 			// Query Realm Management to get details on the interface
 			interfaceDescription, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
-				interfaceIntrospection.Major, realmManagementJwt)
+				interfaceIntrospection.Major)
 			if err != nil {
 				return err
 			}
@@ -416,7 +416,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			case interfaces.DatastreamType:
 				if interfaceDescription.Aggregation == interfaces.ObjectAggregation {
 					if interfaceDescription.IsParametric() {
-						val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
+						val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface)
 						if err != nil {
 							return err
 						}
@@ -432,7 +432,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 							}
 						}
 					} else {
-						val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
+						val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface)
 						if err != nil {
 							return err
 						}
@@ -447,7 +447,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 						}
 					}
 				} else {
-					val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
+					val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface)
 					if err != nil {
 						return err
 					}
@@ -460,7 +460,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					jsonOutput[astarteInterface] = jsonRepresentation
 				}
 			case interfaces.PropertiesType:
-				val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, astarteInterface, appEngineJwt)
+				val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, astarteInterface)
 				if err != nil {
 					return err
 				}
@@ -546,7 +546,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	if !skipRealmManagementChecks {
 		// Get the device introspection
 		interfaceFound := false
-		deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType, appEngineJwt)
+		deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
 		if err != nil {
 			return err
 		}
@@ -557,7 +557,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 
 			// Query Realm Management to get details on the interface
 			interfaceDescription, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
-				interfaceIntrospection.Major, realmManagementJwt)
+				interfaceIntrospection.Major)
 			if err != nil {
 				return err
 			}
@@ -602,8 +602,12 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 		t.AppendHeader(table.Row{"Timestamp", "Value"})
 		printedValues := 0
 		jsonOutput := []client.DatastreamValue{}
-		datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID,
-			deviceIdentifierType, interfaceName, interfacePath, sinceTime, toTime, resultSetOrder, appEngineJwt)
+		datastreamPaginator, err := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID,
+			deviceIdentifierType, interfaceName, interfacePath, sinceTime, toTime, resultSetOrder)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
 			page, err := datastreamPaginator.GetNextPage()
 			if err != nil {
@@ -631,8 +635,12 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 
 		jsonOutput := []client.DatastreamAggregateValue{}
 		printedValues := 0
-		datastreamPaginator := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath,
-			sinceTime, toTime, resultSetOrder, appEngineJwt)
+		datastreamPaginator, err := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath,
+			sinceTime, toTime, resultSetOrder)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
 			page, err := datastreamPaginator.GetNextAggregatePage()
 			if err != nil {

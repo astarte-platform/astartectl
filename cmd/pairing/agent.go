@@ -70,7 +70,7 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 		return errors.New("Invalid device id")
 	}
 
-	credentialsSecret, err := astarteAPIClient.Pairing.RegisterDevice(realm, deviceID, pairingJwt)
+	credentialsSecret, err := astarteAPIClient.Pairing.RegisterDevice(realm, deviceID)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -109,7 +109,7 @@ func agentUnregisterF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	err = astarteAPIClient.Pairing.UnregisterDevice(realm, deviceID, pairingJwt)
+	err = astarteAPIClient.Pairing.UnregisterDevice(realm, deviceID)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

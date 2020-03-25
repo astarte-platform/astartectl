@@ -110,7 +110,7 @@ func init() {
 }
 
 func groupsListF(command *cobra.Command, args []string) error {
-	groupsList, err := astarteAPIClient.AppEngine.ListGroups(realm, appEngineJwt)
+	groupsList, err := astarteAPIClient.AppEngine.ListGroups(realm)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -138,7 +138,7 @@ func groupsCreateF(command *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	err = astarteAPIClient.AppEngine.CreateGroup(realm, groupName, deviceIdentifiers, deviceIdentifiersType, appEngineJwt)
+	err = astarteAPIClient.AppEngine.CreateGroup(realm, groupName, deviceIdentifiers, deviceIdentifiersType)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -151,7 +151,7 @@ func groupsCreateF(command *cobra.Command, args []string) error {
 func groupsDevicesListF(command *cobra.Command, args []string) error {
 	groupName := args[0]
 
-	deviceList, err := astarteAPIClient.AppEngine.ListGroupDevices(realm, groupName, appEngineJwt)
+	deviceList, err := astarteAPIClient.AppEngine.ListGroupDevices(realm, groupName)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -175,7 +175,7 @@ func groupsDevicesAddF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = astarteAPIClient.AppEngine.AddDeviceToGroup(realm, groupName, deviceIdentifier, deviceIdentifierType, appEngineJwt)
+	err = astarteAPIClient.AppEngine.AddDeviceToGroup(realm, groupName, deviceIdentifier, deviceIdentifierType)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -199,7 +199,7 @@ func groupsDevicesRemoveF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = astarteAPIClient.AppEngine.RemoveDeviceFromGroup(realm, groupName, deviceIdentifier, deviceIdentifierType, appEngineJwt)
+	err = astarteAPIClient.AppEngine.RemoveDeviceFromGroup(realm, groupName, deviceIdentifier, deviceIdentifierType)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
