@@ -81,7 +81,7 @@ You can also specify the flag multiple times instead of separating it with a com
 }
 
 func realmsListF(command *cobra.Command, args []string) error {
-	realms, err := astarteAPIClient.Housekeeping.ListRealms(housekeepingJwt)
+	realms, err := astarteAPIClient.Housekeeping.ListRealms()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -94,7 +94,7 @@ func realmsListF(command *cobra.Command, args []string) error {
 func realmsShowF(command *cobra.Command, args []string) error {
 	realm := args[0]
 
-	realmDetails, err := astarteAPIClient.Housekeeping.GetRealm(realm, housekeepingJwt)
+	realmDetails, err := astarteAPIClient.Housekeeping.GetRealm(realm)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -131,7 +131,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	}
 
 	if replicationFactor > 0 {
-		err = astarteAPIClient.Housekeeping.CreateRealmWithReplicationFactor(realm, string(publicKeyContent), replicationFactor, housekeepingJwt)
+		err = astarteAPIClient.Housekeeping.CreateRealmWithReplicationFactor(realm, string(publicKeyContent), replicationFactor)
 	} else if len(datacenterReplications) > 0 {
 		datacenterReplicationFactors := make(map[string]int)
 		for _, datacenterString := range datacenterReplications {
@@ -149,9 +149,9 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 			datacenterReplicationFactors[datacenter] = datacenterReplicationFactor
 		}
 		err = astarteAPIClient.Housekeeping.CreateRealmWithDatacenterReplication(realm, string(publicKeyContent),
-			datacenterReplicationFactors, housekeepingJwt)
+			datacenterReplicationFactors)
 	} else {
-		err = astarteAPIClient.Housekeeping.CreateRealm(realm, string(publicKeyContent), housekeepingJwt)
+		err = astarteAPIClient.Housekeeping.CreateRealm(realm, string(publicKeyContent))
 	}
 
 	if err != nil {

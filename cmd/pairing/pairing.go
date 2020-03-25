@@ -19,6 +19,7 @@ import (
 
 	"github.com/astarte-platform/astarte-go/client"
 	"github.com/astarte-platform/astarte-go/misc"
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -32,7 +33,6 @@ var PairingCmd = &cobra.Command{
 }
 
 var realm string
-var pairingJwt string
 var astarteAPIClient *client.Client
 
 func init() {
@@ -47,30 +47,11 @@ func init() {
 }
 
 func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	pairingURLOverride := viper.GetString("pairing.url")
-	astarteURL := viper.GetString("url")
-	if pairingURLOverride != "" {
-		// Use explicit pairing-url
-		var err error
-		astarteAPIClient, err = client.NewClientWithIndividualURLs("", "", pairingURLOverride, "", nil)
-		if err != nil {
-			return err
-		}
-	} else if astarteURL != "" {
-		var err error
-		astarteAPIClient, err = client.NewClient(astarteURL, nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New("Either astarte-url or pairing-url have to be specified")
-	}
-
 	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
-	pairingKey := viper.GetString("realm.key")
-	explicitToken := viper.GetString("token")
-	if pairingKey == "" && explicitToken == "" {
-		return errors.New("realm-key or token is required")
+	var err error
+	astarteAPIClient, err = utils.APICommandSetup(map[misc.AstarteService]string{misc.Pairing: "pairing.url"}, "realm.key")
+	if err != nil {
+		return err
 	}
 
 	viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
@@ -79,19 +60,5 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("realm is required")
 	}
 
-	if explicitToken == "" {
-		var err error
-		pairingJwt, err = generatePairingJWT(pairingKey)
-		if err != nil {
-			return err
-		}
-	} else {
-		pairingJwt = explicitToken
-	}
-
 	return nil
-}
-
-func generatePairingJWT(privateKey string) (jwtString string, err error) {
-	return misc.GenerateAstarteJWTFromKeyFile(privateKey, map[misc.AstarteService][]string{misc.Pairing: []string{}}, 300)
 }

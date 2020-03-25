@@ -76,7 +76,7 @@ func aliasesListF(command *cobra.Command, args []string) error {
 		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
 		os.Exit(1)
 	}
-	aliases, err := astarteAPIClient.AppEngine.ListDeviceAliases(realm, deviceID, appEngineJwt)
+	aliases, err := astarteAPIClient.AppEngine.ListDeviceAliases(realm, deviceID)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -99,7 +99,7 @@ func aliasesAddF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	err := astarteAPIClient.AppEngine.AddDeviceAlias(realm, deviceID, s[0], s[1], appEngineJwt)
+	err := astarteAPIClient.AppEngine.AddDeviceAlias(realm, deviceID, s[0], s[1])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -117,7 +117,7 @@ func aliasesRemoveF(command *cobra.Command, args []string) error {
 	}
 	aliasTag := args[1]
 
-	err := astarteAPIClient.AppEngine.DeleteDeviceAlias(realm, deviceID, aliasTag, appEngineJwt)
+	err := astarteAPIClient.AppEngine.DeleteDeviceAlias(realm, deviceID, aliasTag)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

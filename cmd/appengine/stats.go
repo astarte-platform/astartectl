@@ -45,7 +45,7 @@ func init() {
 }
 
 func statsDevicesF(command *cobra.Command, args []string) error {
-	devicesStats, err := astarteAPIClient.AppEngine.GetDevicesStats(realm, appEngineJwt)
+	devicesStats, err := astarteAPIClient.AppEngine.GetDevicesStats(realm)
 	if err != nil {
 		return err
 	}
