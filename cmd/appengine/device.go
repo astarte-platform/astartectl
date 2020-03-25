@@ -356,6 +356,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 						} else {
 							for _, k := range aggregate.Values.Keys() {
 								v, _ := aggregate.Values.Get(k)
+								if v == nil {
+									v = "(null)"
+								}
 								t.AppendRow([]interface{}{snapshotInterface, fmt.Sprintf("%s/%s", path, k), v, timestampForOutput(aggregate.Timestamp, outputType)})
 							}
 						}
@@ -370,6 +373,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					} else {
 						for _, k := range val.Values.Keys() {
 							v, _ := val.Values.Get(k)
+							if v == nil {
+								v = "(null)"
+							}
 							t.AppendRow([]interface{}{snapshotInterface, fmt.Sprintf("/%s", k), v, timestampForOutput(val.Timestamp, outputType)})
 						}
 					}
@@ -382,6 +388,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				jsonRepresentation := make(map[string]interface{})
 				for k, v := range val {
 					jsonRepresentation[k] = v
+					if v.Value == nil {
+						v.Value = "(null)"
+					}
 					t.AppendRow([]interface{}{snapshotInterface, k, v.Value, timestampForOutput(v.Timestamp, outputType)})
 				}
 				jsonOutput[snapshotInterface] = jsonRepresentation
@@ -395,6 +404,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			jsonRepresentation := make(map[string]interface{})
 			for k, v := range val {
 				jsonRepresentation[k] = v
+				if v == nil {
+					v = "(null)"
+				}
 				t.AppendRow([]interface{}{snapshotInterface, k, v})
 			}
 			jsonOutput[snapshotInterface] = jsonRepresentation
@@ -428,6 +440,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 							} else {
 								for _, k := range aggregate.Values.Keys() {
 									v, _ := aggregate.Values.Get(k)
+									if v == nil {
+										v = "(null)"
+									}
 									t.AppendRow([]interface{}{astarteInterface, fmt.Sprintf("%s/%s", path, k), v, interfaceDescription.Ownership.String(),
 										timestampForOutput(aggregate.Timestamp, outputType)})
 								}
@@ -443,6 +458,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 						} else {
 							for _, k := range val.Values.Keys() {
 								v, _ := val.Values.Get(k)
+								if v == nil {
+									v = "(null)"
+								}
 								t.AppendRow([]interface{}{astarteInterface, fmt.Sprintf("/%s", k), v, interfaceDescription.Ownership.String(),
 									timestampForOutput(val.Timestamp, outputType)})
 							}
@@ -456,6 +474,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					jsonRepresentation := make(map[string]interface{})
 					for k, v := range val {
 						jsonRepresentation[k] = v
+						if v.Value == nil {
+							v.Value = "(null)"
+						}
 						t.AppendRow([]interface{}{astarteInterface, k, v.Value, interfaceDescription.Ownership.String(),
 							timestampForOutput(v.Timestamp, outputType)})
 					}
@@ -469,6 +490,9 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				jsonRepresentation := make(map[string]interface{})
 				for k, v := range val {
 					jsonRepresentation[k] = v
+					if v == nil {
+						v = "(null)"
+					}
 					t.AppendRow([]interface{}{astarteInterface, k, v, interfaceDescription.Ownership.String(), ""})
 				}
 				jsonOutput[astarteInterface] = jsonRepresentation
@@ -663,7 +687,11 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 						if !headerPrinted {
 							headerRow = append(headerRow, path)
 						}
-						line = append(line, value)
+						if value != nil {
+							line = append(line, value)
+						} else {
+							line = append(line, "(null)")
+						}
 					}
 					if !headerPrinted {
 						t.AppendHeader(headerRow)
