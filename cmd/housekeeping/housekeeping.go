@@ -15,11 +15,10 @@
 package housekeeping
 
 import (
-	"errors"
-
-	"github.com/astarte-platform/astartectl/client"
-
+	"github.com/astarte-platform/astarte-go/client"
+	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -32,7 +31,6 @@ var HousekeepingCmd = &cobra.Command{
 	PersistentPreRunE: housekeepingPersistentPreRunE,
 }
 
-var housekeepingJwt string
 var astarteAPIClient *client.Client
 
 func init() {
@@ -46,44 +44,8 @@ func init() {
 }
 
 func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	housekeepingURLOverride := viper.GetString("housekeeping.url")
-	astarteURL := viper.GetString("url")
-	if housekeepingURLOverride != "" {
-		// Use explicit housekeeping-url
-		var err error
-		astarteAPIClient, err = client.NewClientWithIndividualURLs("", housekeepingURLOverride, "", "", nil)
-		if err != nil {
-			return err
-		}
-	} else if astarteURL != "" {
-		var err error
-		astarteAPIClient, err = client.NewClient(astarteURL, nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New("Either astarte-url or housekeeping-url have to be specified")
-	}
+	var err error
+	astarteAPIClient, err = utils.APICommandSetup(map[misc.AstarteService]string{misc.Housekeeping: "housekeeping.url"}, "housekeeping.key")
 
-	housekeepingKey := viper.GetString("housekeeping.key")
-	explicitToken := viper.GetString("token")
-	if housekeepingKey == "" && explicitToken == "" {
-		return errors.New("housekeeping-key or token is required")
-	}
-
-	if explicitToken == "" {
-		var err error
-		housekeepingJwt, err = generateHousekeepingJWT(housekeepingKey)
-		if err != nil {
-			return err
-		}
-	} else {
-		housekeepingJwt = explicitToken
-	}
-
-	return nil
-}
-
-func generateHousekeepingJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.Housekeeping: []string{}}, 300)
+	return err
 }

@@ -17,9 +17,10 @@ package realm
 import (
 	"errors"
 
-	"github.com/astarte-platform/astartectl/client"
-
+	"github.com/astarte-platform/astarte-go/client"
+	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -33,7 +34,6 @@ var RealmManagementCmd = &cobra.Command{
 }
 
 var realm string
-var realmManagementJwt string
 var astarteAPIClient *client.Client
 
 func init() {
@@ -48,30 +48,12 @@ func init() {
 
 func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	viper.BindPFlag("realm-management.url", cmd.Flags().Lookup("realm-management-url"))
-	realmManagementURLOverride := viper.GetString("realm-management.url")
-	astarteURL := viper.GetString("url")
-	if realmManagementURLOverride != "" {
-		// Use explicit realm-management-url
-		var err error
-		astarteAPIClient, err = client.NewClientWithIndividualURLs("", "", "", realmManagementURLOverride, nil)
-		if err != nil {
-			return err
-		}
-	} else if astarteURL != "" {
-		var err error
-		astarteAPIClient, err = client.NewClient(astarteURL, nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New("Either astarte-url or realm-management-url have to be specified")
-	}
-
 	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
-	realmManagementKey := viper.GetString("realm.key")
-	explicitToken := viper.GetString("token")
-	if realmManagementKey == "" && explicitToken == "" {
-		return errors.New("either realm-key or token is required")
+	var err error
+	astarteAPIClient, err = utils.APICommandSetup(
+		map[misc.AstarteService]string{misc.RealmManagement: "realm-management.url"}, "realm.key")
+	if err != nil {
+		return err
 	}
 
 	viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
@@ -80,19 +62,5 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("realm is required")
 	}
 
-	if explicitToken == "" {
-		var err error
-		realmManagementJwt, err = generateRealmManagementJWT(realmManagementKey)
-		if err != nil {
-			return err
-		}
-	} else {
-		realmManagementJwt = explicitToken
-	}
-
 	return nil
-}
-
-func generateRealmManagementJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.RealmManagement: []string{}}, 300)
 }

@@ -15,7 +15,7 @@
 package utils
 
 import (
-	"github.com/astarte-platform/astartectl/utils"
+	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/spf13/cobra"
 
 	"crypto/rand"
@@ -136,7 +136,7 @@ func validJwtType(t string) bool {
 }
 
 func genJwtF(command *cobra.Command, args []string) error {
-	servicesAndClaims := map[utils.AstarteService][]string{}
+	servicesAndClaims := map[misc.AstarteService][]string{}
 
 	for _, t := range args {
 		// Metatype
@@ -146,22 +146,22 @@ func genJwtF(command *cobra.Command, args []string) error {
 			}
 
 			// Add all types
-			servicesAndClaims = map[utils.AstarteService][]string{
-				utils.AppEngine:       []string{},
-				utils.Channels:        []string{},
-				utils.Pairing:         []string{},
-				utils.RealmManagement: []string{},
+			servicesAndClaims = map[misc.AstarteService][]string{
+				misc.AppEngine:       []string{},
+				misc.Channels:        []string{},
+				misc.Pairing:         []string{},
+				misc.RealmManagement: []string{},
 			}
 
 			break
 		}
 
-		astarteService, err := utils.AstarteServiceFromString(t)
+		astarteService, err := misc.AstarteServiceFromString(t)
 		if err != nil {
 			return fmt.Errorf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
 		}
 
-		if astarteService == utils.Housekeeping && len(args) != 1 {
+		if astarteService == misc.Housekeeping && len(args) != 1 {
 			return errors.New("Conflicting API types specified. Specify only API sets which require the same key type for signing")
 		}
 
@@ -185,7 +185,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 
 		if apiSetSpecific {
 			tokens := strings.SplitN(claim, ":", 2)
-			astarteService, err := utils.AstarteServiceFromString(tokens[0])
+			astarteService, err := misc.AstarteServiceFromString(tokens[0])
 			if err != nil {
 				return fmt.Errorf("Invalid type specified in claim. Valid types are: %s", strings.Join(jwtTypes, ", "))
 			}
@@ -207,7 +207,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	tokenString, err := utils.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
+	tokenString, err := misc.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
 	if err != nil {
 		return err
 	}

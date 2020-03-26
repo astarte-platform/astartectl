@@ -21,7 +21,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/astarte-platform/astartectl/common"
+	"github.com/astarte-platform/astarte-go/interfaces"
 	"github.com/spf13/cobra"
 )
 
@@ -109,7 +109,7 @@ func init() {
 }
 
 func interfacesListF(command *cobra.Command, args []string) error {
-	realmInterfaces, err := astarteAPIClient.RealmManagement.ListInterfaces(realm, realmManagementJwt)
+	realmInterfaces, err := astarteAPIClient.RealmManagement.ListInterfaces(realm)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -121,7 +121,7 @@ func interfacesListF(command *cobra.Command, args []string) error {
 
 func interfacesVersionsF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
-	interfaceVersions, err := astarteAPIClient.RealmManagement.ListInterfaceMajorVersions(realm, interfaceName, realmManagementJwt)
+	interfaceVersions, err := astarteAPIClient.RealmManagement.ListInterfaceMajorVersions(realm, interfaceName)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -139,7 +139,7 @@ func interfacesShowF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	interfaceDefinition, err := astarteAPIClient.RealmManagement.GetInterface(realm, interfaceName, interfaceMajor, realmManagementJwt)
+	interfaceDefinition, err := astarteAPIClient.RealmManagement.GetInterface(realm, interfaceName, interfaceMajor)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -156,13 +156,13 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var interfaceBody common.AstarteInterface
+	var interfaceBody interfaces.AstarteInterface
 	err = json.Unmarshal(interfaceFile, &interfaceBody)
 	if err != nil {
 		return err
 	}
 
-	err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody, realmManagementJwt)
+	err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -176,7 +176,7 @@ func interfacesDeleteF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
 	interfaceMajor := 0
 
-	err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor, realmManagementJwt)
+	err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -192,14 +192,14 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var astarteInterface common.AstarteInterface
+	var astarteInterface interfaces.AstarteInterface
 	err = json.Unmarshal(interfaceFile, &astarteInterface)
 	if err != nil {
 		return err
 	}
 
 	err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
-		astarteInterface, realmManagementJwt)
+		astarteInterface)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

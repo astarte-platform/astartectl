@@ -18,9 +18,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/astarte-platform/astartectl/client"
-
+	"github.com/astarte-platform/astarte-go/client"
+	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -34,8 +35,6 @@ var AppEngineCmd = &cobra.Command{
 }
 
 var realm string
-var appEngineJwt string
-var realmManagementJwt string
 var astarteAPIClient *client.Client
 
 func init() {
@@ -55,29 +54,21 @@ func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 	appEngineURLOverride := viper.GetString("appengine.url")
 	viper.BindPFlag("realm-management.url", cmd.Flags().Lookup("realm-management-url"))
 	realmManagementURLOverride := viper.GetString("realm-management.url")
-	astarteURL := viper.GetString("url")
-	if appEngineURLOverride != "" {
-		// Use explicit appengine-url
-		var err error
-		astarteAPIClient, err = client.NewClientWithIndividualURLs(appEngineURLOverride, "", "", realmManagementURLOverride, nil)
-		if err != nil {
-			return err
-		}
-	} else if astarteURL != "" {
-		var err error
-		astarteAPIClient, err = client.NewClient(astarteURL, nil)
-		if err != nil {
-			return err
-		}
-	} else {
+	// Handle a special failure case, if realm-management is provided but appengine isn't
+	if appEngineURLOverride == "" && realmManagementURLOverride != "" {
 		return errors.New("Either astarte-url or appengine-url have to be specified")
 	}
 
+	individualURLVariables := map[misc.AstarteService]string{
+		misc.AppEngine:       "appengine.url",
+		misc.RealmManagement: "realm-management.url",
+	}
+
 	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
-	appEngineKey := viper.GetString("realm.key")
-	explicitToken := viper.GetString("token")
-	if appEngineKey == "" && explicitToken == "" {
-		return errors.New("realm-key or token is required")
+	var err error
+	astarteAPIClient, err = utils.APICommandSetup(individualURLVariables, "realm.key")
+	if err != nil {
+		return err
 	}
 
 	viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
@@ -86,30 +77,7 @@ func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("realm is required")
 	}
 
-	if explicitToken == "" {
-		var err error
-		appEngineJwt, err = generateAppEngineJWT(appEngineKey)
-		if err != nil {
-			return err
-		}
-		realmManagementJwt, err = generateRealmManagementJWT(appEngineKey)
-		if err != nil {
-			return err
-		}
-	} else {
-		appEngineJwt = explicitToken
-		realmManagementJwt = explicitToken
-	}
-
 	return nil
-}
-
-func generateAppEngineJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.AppEngine: []string{}}, 300)
-}
-
-func generateRealmManagementJWT(privateKey string) (jwtString string, err error) {
-	return utils.GenerateAstarteJWTFromKeyFile(privateKey, map[utils.AstarteService][]string{utils.RealmManagement: []string{}}, 300)
 }
 
 func deviceIdentifierTypeFromFlags(deviceIdentifier string, forceDeviceIdentifier string) (client.DeviceIdentifierType, error) {
@@ -117,7 +85,7 @@ func deviceIdentifierTypeFromFlags(deviceIdentifier string, forceDeviceIdentifie
 	case "":
 		return client.AutodiscoverDeviceIdentifier, nil
 	case "device-id":
-		if !utils.IsValidAstarteDeviceID(deviceIdentifier) {
+		if !misc.IsValidAstarteDeviceID(deviceIdentifier) {
 			return 0, fmt.Errorf("Required to evaluate the Device Identifier as an Astarte Device ID, but %v isn't a valid one", deviceIdentifier)
 		}
 		return client.AstarteDeviceID, nil
