@@ -17,6 +17,7 @@ package cluster
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/astarte-platform/astartectl/utils"
@@ -139,5 +140,19 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("Your Astarte instance has been successfully deployed. Please allow a few minutes for the Cluster to start. You can monitor the progress with astartectl cluster show.")
+	fmt.Println("Now waiting for Housekeeping setup to set up a context...")
+
+	// 1 minute timeout
+	for i := 0; i < 12; i++ {
+		// Try every 5 seconds
+		time.Sleep(5 * time.Second)
+		if _, err = getHousekeepingKey(resourceName, resourceNamespace, false); err == nil {
+			// Delegate this to the get-cluster-config implementation
+			return doGetClusterConfig(resourceName, resourceNamespace)
+		}
+	}
+
+	// We timed out. However, don't fail
+	fmt.Println("Could not fetch Housekeeping key! A context wasn't created, and you should check your deployment - something might be off")
 	return nil
 }

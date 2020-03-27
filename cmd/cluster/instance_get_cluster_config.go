@@ -52,6 +52,10 @@ func instancesGetClusterConfigF(command *cobra.Command, args []string) error {
 		resourceNamespace = "astarte"
 	}
 
+	return doGetClusterConfig(resourceName, resourceNamespace)
+}
+
+func doGetClusterConfig(resourceName, resourceNamespace string) error {
 	astarteObject, err := getAstarteInstance(resourceName, resourceNamespace)
 	if err != nil {
 		fmt.Printf("Error while looking for instance %s: %s.\n", resourceName, err.Error())
