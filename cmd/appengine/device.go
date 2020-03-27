@@ -270,43 +270,66 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		return fmt.Errorf("%v is not a supported output type. Supported output types are %v", outputType, supportedOutputTypes)
 	}
 
+	interfacesToFetch := []interfaces.AstarteInterface{}
+
 	// Go with the table header
 	t := tableWriterForOutputType(outputType)
+
+	// Distinguish here whether we're doing a full snapshot or just a single-interface snapshot, and act accordingly
 	if snapshotInterface == "" {
 		t.AppendHeader(table.Row{"Interface", "Path", "Value", "Ownership", "Timestamp (Datastream only)"})
-	}
-	jsonOutput := make(map[string]interface{})
 
-	if snapshotInterface != "" {
-		var interfaceType interfaces.AstarteInterfaceType
-		var interfaceAggregation interfaces.AstarteInterfaceAggregation
+		deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+
+		for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
+			// Query Realm Management to get details on the interface
+			interfaceDescription, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
+				interfaceIntrospection.Major)
+			if err != nil {
+				// If we're requesting a full snapshot, do not fail but just warn the user
+				fmt.Fprintf(os.Stderr, "warn: Could not fetch details for interface %s\n", astarteInterface)
+				continue
+			}
+			interfacesToFetch = append(interfacesToFetch, interfaceDescription)
+		}
+	} else {
+		interfaceType := interfaces.DatastreamType
+		interfaceAggregation := interfaces.IndividualAggregation
 		isParametricInterface := false
-
+		// Be slightly smarter - also, fail early if we cannot find the interface
 		if skipRealmManagementChecks {
 			switch interfaceTypeString {
 			case "properties":
 				interfaceType = interfaces.PropertiesType
-				interfaceAggregation = interfaces.IndividualAggregation
-				isParametricInterface = false
 			case "individual-datastream":
-				interfaceType = interfaces.DatastreamType
-				interfaceAggregation = interfaces.IndividualAggregation
-				isParametricInterface = false
 			case "aggregate-datastream":
-				interfaceType = interfaces.DatastreamType
 				interfaceAggregation = interfaces.ObjectAggregation
-				isParametricInterface = false
 			case "individual-parametric-datastream":
-				interfaceType = interfaces.DatastreamType
-				interfaceAggregation = interfaces.IndividualAggregation
 				isParametricInterface = true
 			case "aggregate-parametric-datastream":
-				interfaceType = interfaces.DatastreamType
 				interfaceAggregation = interfaces.ObjectAggregation
 				isParametricInterface = true
 			default:
 				return fmt.Errorf("%s is not a valid Interface Type. Valid interface types are: properties, individual-datastream, aggregate-datastream, individual-parametric-datastream, aggregate-parametric-datastream", interfaceTypeString)
 			}
+			fakeInterface := interfaces.AstarteInterface{
+				Name:        snapshotInterface,
+				Type:        interfaceType,
+				Aggregation: interfaceAggregation,
+			}
+			// Just a trick to trick the parser into doing the right thing.
+			if isParametricInterface {
+				fakeInterface.Mappings = []interfaces.AstarteInterfaceMapping{
+					interfaces.AstarteInterfaceMapping{
+						Endpoint: "/it/%{is}/parametric",
+					},
+				}
+			}
+			interfacesToFetch = []interfaces.AstarteInterface{fakeInterface}
 		} else {
 			// Get the device introspection
 			deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
@@ -314,75 +337,93 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				return err
 			}
 
-			var interfaceDescription interfaces.AstarteInterface
-			interfaceFound := false
 			for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
 				if astarteInterface != snapshotInterface {
 					continue
 				}
 
 				// Query Realm Management to get details on the interface
-				interfaceDescription, err = astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
+				interfaceDescription, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
 					interfaceIntrospection.Major)
 				if err != nil {
-					fmt.Printf(err.Error())
+					// Die here, given we really can't recover further
+					fmt.Println(err.Error())
 					os.Exit(1)
 				}
-				interfaceFound = true
+				interfaceType = interfaceDescription.Type
+				interfacesToFetch = []interfaces.AstarteInterface{interfaceDescription}
 				break
 			}
 
-			if !interfaceFound {
+			if len(interfacesToFetch) == 0 {
 				fmt.Printf("Interface %s does not exist in Device %s\n", snapshotInterface, deviceID)
 				os.Exit(1)
 			}
-
-			interfaceType = interfaceDescription.Type
-			interfaceAggregation = interfaceDescription.Aggregation
-			isParametricInterface = interfaceDescription.IsParametric()
 		}
 
+		// We're dealing with only one interface, so let's be as smart as possible.
 		switch interfaceType {
 		case interfaces.DatastreamType:
 			t.AppendHeader(table.Row{"Interface", "Path", "Value", "Timestamp"})
-			if interfaceAggregation == interfaces.ObjectAggregation {
-				if isParametricInterface {
-					val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface)
+		case interfaces.PropertiesType:
+			t.AppendHeader(table.Row{"Interface", "Path", "Value"})
+		}
+	}
+	jsonOutput := make(map[string]interface{})
+
+	for _, i := range interfacesToFetch {
+		switch i.Type {
+		case interfaces.DatastreamType:
+			if i.Aggregation == interfaces.ObjectAggregation {
+				if i.IsParametric() {
+					val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, i.Name)
 					if err != nil {
 						return err
 					}
 					for path, aggregate := range val {
 						if outputType == "json" {
-							jsonOutput[snapshotInterface] = val
+							jsonOutput[i.Name] = val
 						} else {
 							for _, k := range aggregate.Values.Keys() {
 								v, _ := aggregate.Values.Get(k)
 								if v == nil {
 									v = "(null)"
 								}
-								t.AppendRow([]interface{}{snapshotInterface, fmt.Sprintf("%s/%s", path, k), v, timestampForOutput(aggregate.Timestamp, outputType)})
+								if snapshotInterface == "" {
+									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership.String(),
+										timestampForOutput(aggregate.Timestamp, outputType)})
+								} else {
+									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v,
+										timestampForOutput(aggregate.Timestamp, outputType)})
+								}
 							}
 						}
 					}
 				} else {
-					val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface)
+					val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, i.Name)
 					if err != nil {
 						return err
 					}
 					if outputType == "json" {
-						jsonOutput[snapshotInterface] = val
+						jsonOutput[i.Name] = val
 					} else {
 						for _, k := range val.Values.Keys() {
 							v, _ := val.Values.Get(k)
 							if v == nil {
 								v = "(null)"
 							}
-							t.AppendRow([]interface{}{snapshotInterface, fmt.Sprintf("/%s", k), v, timestampForOutput(val.Timestamp, outputType)})
+							if snapshotInterface == "" {
+								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("/%s", k), v, i.Ownership.String(),
+									timestampForOutput(val.Timestamp, outputType)})
+							} else {
+								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("/%s", k), v,
+									timestampForOutput(val.Timestamp, outputType)})
+							}
 						}
 					}
 				}
 			} else {
-				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, snapshotInterface)
+				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, i.Name)
 				if err != nil {
 					return err
 				}
@@ -392,13 +433,18 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					if v.Value == nil {
 						v.Value = "(null)"
 					}
-					t.AppendRow([]interface{}{snapshotInterface, k, v.Value, timestampForOutput(v.Timestamp, outputType)})
+					if snapshotInterface == "" {
+						t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership.String(),
+							timestampForOutput(v.Timestamp, outputType)})
+					} else {
+						t.AppendRow([]interface{}{i.Name, k, v.Value,
+							timestampForOutput(v.Timestamp, outputType)})
+					}
 				}
-				jsonOutput[snapshotInterface] = jsonRepresentation
+				jsonOutput[i.Name] = jsonRepresentation
 			}
 		case interfaces.PropertiesType:
-			t.AppendHeader(table.Row{"Interface", "Path", "Value"})
-			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, snapshotInterface)
+			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, i.Name)
 			if err != nil {
 				return err
 			}
@@ -408,96 +454,13 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				if v == nil {
 					v = "(null)"
 				}
-				t.AppendRow([]interface{}{snapshotInterface, k, v})
-			}
-			jsonOutput[snapshotInterface] = jsonRepresentation
-		}
-	} else {
-		// Get the device introspection
-		deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
-		if err != nil {
-			return err
-		}
-
-		for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
-			// Query Realm Management to get details on the interface
-			interfaceDescription, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface,
-				interfaceIntrospection.Major)
-			if err != nil {
-				return err
-			}
-
-			switch interfaceDescription.Type {
-			case interfaces.DatastreamType:
-				if interfaceDescription.Aggregation == interfaces.ObjectAggregation {
-					if interfaceDescription.IsParametric() {
-						val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface)
-						if err != nil {
-							return err
-						}
-						for path, aggregate := range val {
-							if outputType == "json" {
-								jsonOutput[astarteInterface] = val
-							} else {
-								for _, k := range aggregate.Values.Keys() {
-									v, _ := aggregate.Values.Get(k)
-									if v == nil {
-										v = "(null)"
-									}
-									t.AppendRow([]interface{}{astarteInterface, fmt.Sprintf("%s/%s", path, k), v, interfaceDescription.Ownership.String(),
-										timestampForOutput(aggregate.Timestamp, outputType)})
-								}
-							}
-						}
-					} else {
-						val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface)
-						if err != nil {
-							return err
-						}
-						if outputType == "json" {
-							jsonOutput[astarteInterface] = val
-						} else {
-							for _, k := range val.Values.Keys() {
-								v, _ := val.Values.Get(k)
-								if v == nil {
-									v = "(null)"
-								}
-								t.AppendRow([]interface{}{astarteInterface, fmt.Sprintf("/%s", k), v, interfaceDescription.Ownership.String(),
-									timestampForOutput(val.Timestamp, outputType)})
-							}
-						}
-					}
+				if snapshotInterface == "" {
+					t.AppendRow([]interface{}{i.Name, k, v, i.Ownership.String(), ""})
 				} else {
-					val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, astarteInterface)
-					if err != nil {
-						return err
-					}
-					jsonRepresentation := make(map[string]interface{})
-					for k, v := range val {
-						jsonRepresentation[k] = v
-						if v.Value == nil {
-							v.Value = "(null)"
-						}
-						t.AppendRow([]interface{}{astarteInterface, k, v.Value, interfaceDescription.Ownership.String(),
-							timestampForOutput(v.Timestamp, outputType)})
-					}
-					jsonOutput[astarteInterface] = jsonRepresentation
+					t.AppendRow([]interface{}{i.Name, k, v})
 				}
-			case interfaces.PropertiesType:
-				val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, astarteInterface)
-				if err != nil {
-					return err
-				}
-				jsonRepresentation := make(map[string]interface{})
-				for k, v := range val {
-					jsonRepresentation[k] = v
-					if v == nil {
-						v = "(null)"
-					}
-					t.AppendRow([]interface{}{astarteInterface, k, v, interfaceDescription.Ownership.String(), ""})
-				}
-				jsonOutput[astarteInterface] = jsonRepresentation
 			}
+			jsonOutput[i.Name] = jsonRepresentation
 		}
 	}
 

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - appengine: Fix crash when retrieving nil values out of device interfaces
 - appengine: Fix panic when passing appengine-url without realmmanagement-url (#73)
+- appengine: data-snapshot should not fail entirely when an interface is not fetched from Realm Management
 
 ### Changed
 - Moved the codebase to use astarte-go instead of the internal replicated tree
