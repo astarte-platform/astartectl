@@ -43,7 +43,7 @@ func init() {
 	AppEngineCmd.MarkPersistentFlagFilename("realm-key")
 	AppEngineCmd.PersistentFlags().String("appengine-url", "",
 		"AppEngine API base URL. Defaults to <astarte-url>/appengine.")
-	viper.BindPFlag("appengine.url", AppEngineCmd.PersistentFlags().Lookup("appengine-url"))
+	viper.BindPFlag("individual-urls.appengine", AppEngineCmd.PersistentFlags().Lookup("appengine-url"))
 	AppEngineCmd.PersistentFlags().String("realm-management-url", "",
 		"Realm Management API base URL. Defaults to <astarte-url>/realmmanagement.")
 	AppEngineCmd.PersistentFlags().StringP("realm-name", "r", "",
@@ -51,22 +51,22 @@ func init() {
 }
 
 func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
-	appEngineURLOverride := viper.GetString("appengine.url")
-	viper.BindPFlag("realm-management.url", cmd.Flags().Lookup("realm-management-url"))
-	realmManagementURLOverride := viper.GetString("realm-management.url")
+	appEngineURLOverride := viper.GetString("individual-urls.appengine")
+	viper.BindPFlag("individual-urls.realm-management", cmd.Flags().Lookup("realm-management-url"))
+	realmManagementURLOverride := viper.GetString("individual-urls.realm-management")
 	// Handle a special failure case, if realm-management is provided but appengine isn't
 	if appEngineURLOverride == "" && realmManagementURLOverride != "" {
 		return errors.New("Either astarte-url or appengine-url have to be specified")
 	}
 
 	individualURLVariables := map[misc.AstarteService]string{
-		misc.AppEngine:       "appengine.url",
-		misc.RealmManagement: "realm-management.url",
+		misc.AppEngine:       "individual-urls.appengine",
+		misc.RealmManagement: "individual-urls.realm-management",
 	}
 
-	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
+	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
-	astarteAPIClient, err = utils.APICommandSetup(individualURLVariables, "realm.key")
+	astarteAPIClient, err = utils.APICommandSetup(individualURLVariables, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}

@@ -47,11 +47,11 @@ func init() {
 }
 
 func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	viper.BindPFlag("realm-management.url", cmd.Flags().Lookup("realm-management-url"))
-	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
+	viper.BindPFlag("individual-urls.realm-management", cmd.Flags().Lookup("realm-management-url"))
+	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
 	astarteAPIClient, err = utils.APICommandSetup(
-		map[misc.AstarteService]string{misc.RealmManagement: "realm-management.url"}, "realm.key")
+		map[misc.AstarteService]string{misc.RealmManagement: "individual-urls.realm-management."}, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}

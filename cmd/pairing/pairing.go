@@ -41,15 +41,16 @@ func init() {
 	PairingCmd.MarkPersistentFlagFilename("realm-key")
 	PairingCmd.PersistentFlags().String("pairing-url", "",
 		"Pairing API base URL. Defaults to <astarte-url>/pairing.")
-	viper.BindPFlag("pairing.url", PairingCmd.PersistentFlags().Lookup("pairing-url"))
+	viper.BindPFlag("individual-urls.pairing", PairingCmd.PersistentFlags().Lookup("pairing-url"))
 	PairingCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
 }
 
 func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	viper.BindPFlag("realm.key", cmd.Flags().Lookup("realm-key"))
+	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
-	astarteAPIClient, err = utils.APICommandSetup(map[misc.AstarteService]string{misc.Pairing: "pairing.url"}, "realm.key")
+	astarteAPIClient, err = utils.APICommandSetup(
+		map[misc.AstarteService]string{misc.Pairing: "individual-urls.pairing"}, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}

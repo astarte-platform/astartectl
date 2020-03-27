@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -26,7 +27,7 @@ import (
 
 // APICommandSetup is a helper for setting up a generic command using Astarte API.
 // individualURLs must contain the service->variable association.
-func APICommandSetup(individualURLVariables map[misc.AstarteService]string, keyVariable string) (*client.Client, error) {
+func APICommandSetup(individualURLVariables map[misc.AstarteService]string, keyVariable, keyFileVariable string) (*client.Client, error) {
 	var astarteAPIClient *client.Client
 	astarteURL := viper.GetString("url")
 	individualURLs := map[misc.AstarteService]string{}
@@ -51,10 +52,11 @@ func APICommandSetup(individualURLVariables map[misc.AstarteService]string, keyV
 		return nil, err
 	}
 
+	privateKeyFile := viper.GetString(keyFileVariable)
 	privateKey := viper.GetString(keyVariable)
 	explicitToken := viper.GetString("token")
-	if privateKey == "" && explicitToken == "" {
-		return nil, fmt.Errorf("%s or token is required", strings.Replace(keyVariable, ".", "-", -1))
+	if privateKey == "" && privateKeyFile == "" && explicitToken == "" {
+		return nil, fmt.Errorf("%s or token is required", strings.Replace(keyFileVariable, ".", "-", -1))
 	}
 
 	if explicitToken == "" {
@@ -63,8 +65,18 @@ func APICommandSetup(individualURLVariables map[misc.AstarteService]string, keyV
 			servicesAndClaims[k] = []string{}
 		}
 		// 1 minute TTL is more than enough for our purposes
-		if err := astarteAPIClient.SetTokenFromPrivateKeyWithClaims(privateKey, servicesAndClaims, 60); err != nil {
-			return nil, err
+		if privateKeyFile != "" {
+			if err := astarteAPIClient.SetTokenFromPrivateKeyFileWithClaims(privateKeyFile, servicesAndClaims, 60); err != nil {
+				return nil, err
+			}
+		} else {
+			decoded, err := base64.StdEncoding.DecodeString(privateKey)
+			if err != nil {
+				return nil, err
+			}
+			if err := astarteAPIClient.SetTokenFromPrivateKeyWithClaims(decoded, servicesAndClaims, 60); err != nil {
+				return nil, err
+			}
 		}
 	} else {
 		astarteAPIClient.SetToken(explicitToken)
