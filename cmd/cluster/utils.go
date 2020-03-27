@@ -33,6 +33,7 @@ import (
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -94,6 +95,38 @@ func listAstartes() (map[string]*unstructured.UnstructuredList, error) {
 	}
 
 	return ret, nil
+}
+
+func getAstarteInstance(name, namespace string) (*unstructured.Unstructured, error) {
+	astartes, err := listAstartes()
+	if err != nil || len(astartes) == 0 {
+		return nil, errors.New("no managed astarte installations found")
+	}
+
+	for _, v := range astartes {
+		for _, res := range v.Items {
+			if res.Object["metadata"].(map[string]interface{})["namespace"] == namespace && res.Object["metadata"].(map[string]interface{})["name"] == namespace {
+				return res.DeepCopy(), nil
+			}
+		}
+	}
+
+	return nil, errors.New("no such astarte instance found")
+}
+
+func getHousekeepingKey(name, namespace string, checkFirst bool) ([]byte, error) {
+	if checkFirst {
+		if _, err := getAstarteInstance(name, namespace); err != nil {
+			return nil, err
+		}
+	}
+
+	secret, err := kubernetesClient.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-housekeeping-private-key", name), v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return secret.Data["private-key"], nil
 }
 
 func getAstarte(astarteCRD dynamic.NamespaceableResourceInterface, name string, namespace string) (*unstructured.Unstructured, error) {

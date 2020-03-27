@@ -20,7 +20,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var instanceShowCmd = &cobra.Command{
@@ -39,12 +38,6 @@ func init() {
 }
 
 func instanceShowF(command *cobra.Command, args []string) error {
-	astartes, err := listAstartes()
-	if err != nil || len(astartes) == 0 {
-		fmt.Println("No Managed Astarte installations found.")
-		return nil
-	}
-
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
@@ -55,18 +48,9 @@ func instanceShowF(command *cobra.Command, args []string) error {
 		resourceNamespace = "astarte"
 	}
 
-	var astarteObject *unstructured.Unstructured = nil
-	for _, v := range astartes {
-		for _, res := range v.Items {
-			if res.Object["metadata"].(map[string]interface{})["namespace"] == resourceNamespace && res.Object["metadata"].(map[string]interface{})["name"] == resourceName {
-				astarteObject = res.DeepCopy()
-				break
-			}
-		}
-	}
-
-	if astarteObject == nil {
-		fmt.Printf("Could not find resource %s in namespace %s.\n", resourceName, resourceNamespace)
+	astarteObject, err := getAstarteInstance(resourceName, resourceNamespace)
+	if err != nil {
+		fmt.Printf("Error while looking for instance %s: %s.\n", resourceName, err.Error())
 		os.Exit(1)
 	}
 

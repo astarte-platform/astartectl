@@ -19,7 +19,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var fetchHKPrivateKeyCmd = &cobra.Command{
@@ -39,12 +38,6 @@ func init() {
 }
 
 func fetchHKPrivateKeyF(command *cobra.Command, args []string) error {
-	astartes, err := listAstartes()
-	if err != nil || len(astartes) == 0 {
-		fmt.Println("No Managed Astarte installations found.")
-		return nil
-	}
-
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
@@ -55,24 +48,8 @@ func fetchHKPrivateKeyF(command *cobra.Command, args []string) error {
 		resourceNamespace = "astarte"
 	}
 
-	found := false
-	for _, v := range astartes {
-		for _, res := range v.Items {
-			if res.Object["metadata"].(map[string]interface{})["namespace"] == resourceNamespace && res.Object["metadata"].(map[string]interface{})["name"] == resourceName {
-				found = true
-				break
-			}
-		}
-	}
-
-	if !found {
-		fmt.Printf("Could not find Astarte Instance %s in namespace %s.\n", resourceName, resourceNamespace)
-		os.Exit(1)
-	}
-
-	secret, err := kubernetesClient.CoreV1().Secrets(resourceNamespace).Get(fmt.Sprintf("%s-housekeeping-private-key", resourceName), v1.GetOptions{})
+	keyData, err := getHousekeepingKey(resourceName, resourceNamespace, true)
 	if err != nil {
-		fmt.Println("Could not get Private Key!")
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -83,7 +60,7 @@ func fetchHKPrivateKeyF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 	if outputFile == "" {
-		fmt.Print(string(secret.Data["private-key"]))
+		fmt.Print(string(keyData))
 	} else {
 		outFile, err := os.Create(outputFile)
 		if err != nil {
@@ -92,7 +69,7 @@ func fetchHKPrivateKeyF(command *cobra.Command, args []string) error {
 		}
 		defer outFile.Close()
 
-		if _, err := outFile.Write(secret.Data["private-key"]); err != nil {
+		if _, err := outFile.Write(keyData); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
