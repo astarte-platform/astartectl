@@ -28,14 +28,9 @@ import (
 // ConfigureViper sets up Viper to behave correctly with regards to both context and
 // configuration directory, taking into account all environment variables and parameters.
 // Order of precedence is: override, environment variables, defaults
-func ConfigureViper(configDirOverride, contextOverride string) error {
+func ConfigureViper(contextOverride string) error {
 	// Get configuration directory, first of all
-	configDir := GetDefaultConfigDir()
-	if configDirOverride != "" {
-		configDir = configDirOverride
-	} else if dirFromEnv, ok := os.LookupEnv("ASTARTE_CONFIG_DIR"); ok && dirFromEnv != "" {
-		configDir = dirFromEnv
-	}
+	configDir := GetConfigDir()
 	// Check if it exists
 	if _, err := os.Stat(configDir); err != nil {
 		return err
@@ -85,6 +80,17 @@ func ConfigureViper(configDirOverride, contextOverride string) error {
 	return nil
 }
 
+// GetConfigDir returns the Config Dir based on the current status
+func GetConfigDir() string {
+	configDir := GetDefaultConfigDir()
+	if configDirOverride := viper.GetString("config-dir"); configDirOverride != "" {
+		configDir = configDirOverride
+	} else if dirFromEnv, ok := os.LookupEnv("ASTARTE_CONFIG_DIR"); ok && dirFromEnv != "" {
+		configDir = dirFromEnv
+	}
+	return configDir
+}
+
 // GetDefaultConfigDir returns the default config directory
 func GetDefaultConfigDir() string {
 	// TODO: In the future, we might want to have proper system vs. local configuration, but
@@ -94,14 +100,14 @@ func GetDefaultConfigDir() string {
 
 func clustersDirFromConfigDir(configDir string) string {
 	if configDir == "" {
-		configDir = GetDefaultConfigDir()
+		configDir = GetConfigDir()
 	}
 	return path.Join(configDir, "clusters")
 }
 
 func contextsDirFromConfigDir(configDir string) string {
 	if configDir == "" {
-		configDir = GetDefaultConfigDir()
+		configDir = GetConfigDir()
 	}
 	return path.Join(configDir, "contexts")
 }
