@@ -37,15 +37,16 @@ func init() {
 	HousekeepingCmd.PersistentFlags().StringP("housekeeping-key", "k", "",
 		"Path to housekeeping private key to generate JWT for authentication")
 	HousekeepingCmd.MarkPersistentFlagFilename("housekeeping-key")
-	viper.BindPFlag("housekeeping.key", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-key"))
+	viper.BindPFlag("housekeeping.key-file", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-key"))
 	HousekeepingCmd.PersistentFlags().String("housekeeping-url", "",
 		"Housekeeping API base URL. Defaults to <astarte-url>/housekeeping.")
-	viper.BindPFlag("housekeeping.url", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-url"))
+	viper.BindPFlag("individual-urls.housekeeping", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-url"))
 }
 
 func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	var err error
-	astarteAPIClient, err = utils.APICommandSetup(map[misc.AstarteService]string{misc.Housekeeping: "housekeeping.url"}, "housekeeping.key")
+	astarteAPIClient, err = utils.APICommandSetup(map[misc.AstarteService]string{misc.Housekeeping: "individual-urls.housekeeping"},
+		"housekeeping.key", "housekeeping.key-file")
 
 	return err
 }

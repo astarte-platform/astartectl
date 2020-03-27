@@ -25,13 +25,13 @@ import (
 	"github.com/astarte-platform/astartectl/cmd/pairing"
 	"github.com/astarte-platform/astartectl/cmd/realm"
 	"github.com/astarte-platform/astartectl/cmd/utils"
+	"github.com/astarte-platform/astartectl/config"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var cfgDir, cfgContext string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -60,7 +60,8 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.astartectl.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgDir, "config-dir", "", fmt.Sprintf("config directory (default is %s)", config.GetDefaultConfigDir()))
+	rootCmd.PersistentFlags().StringVar(&cfgContext, "context", "", "Configuration context to use. When not specified, defaults to current context.")
 	rootCmd.PersistentFlags().StringP("astarte-url", "u", "", "Base url for your Astarte deployment (e.g. https://api.astarte.example.com)")
 	rootCmd.PersistentFlags().StringP("token", "t", "", "Token for authenticating against Astarte APIs. When set, it takes precedence over any private key setting. Claims in the token have to match the permissions needed for the individual command.")
 	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("astarte-url"))
@@ -76,37 +77,12 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	envCfgFile := os.Getenv("ASTARTECTL_CONFIG")
-
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else if envCfgFile != "" {
-		viper.SetConfigFile(envCfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		// Search config in home directory with name ".astartectl" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".astartectl")
+	if err := config.ConfigureViper(cfgDir, cfgContext); err != nil {
+		fmt.Fprintf(os.Stderr, "warn: Error while loading configuration: %s\n", err.Error())
 	}
 
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.SetEnvPrefix("astartectl")
 	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	err := viper.ReadInConfig()
-	if err == nil {
-		fmt.Fprintf(os.Stderr, "Using config file: %s\n", viper.ConfigFileUsed())
-	} else if envCfgFile != "" {
-		// If we explicitly provided a config, print a failure message
-		fmt.Printf("Cannot use %s for configuration: %s\n", viper.ConfigFileUsed(), err.Error())
-	}
 }
