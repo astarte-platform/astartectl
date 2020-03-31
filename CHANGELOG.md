@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [0.11.0-rc.1] - Unreleased
+### Added
+- Add `realm-management interfaces sync` subcommand
+
 ### Fixed
 - appengine: Fix crash when retrieving nil values out of device interfaces
 - appengine: Fix panic when passing appengine-url without realmmanagement-url (#73)
