@@ -145,7 +145,11 @@ func interfacesShowF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	respJSON, _ := json.MarshalIndent(interfaceDefinition, "", "  ")
+	respJSON, err := json.MarshalIndent(interfaceDefinition, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	fmt.Println(string(respJSON))
 	return nil
 }
@@ -157,13 +161,11 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 	}
 
 	var interfaceBody interfaces.AstarteInterface
-	err = json.Unmarshal(interfaceFile, &interfaceBody)
-	if err != nil {
+	if err = json.Unmarshal(interfaceFile, &interfaceBody); err != nil {
 		return err
 	}
 
-	err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody)
-	if err != nil {
+	if err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -176,8 +178,7 @@ func interfacesDeleteF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
 	interfaceMajor := 0
 
-	err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor)
-	if err != nil {
+	if err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -193,14 +194,12 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 	}
 
 	var astarteInterface interfaces.AstarteInterface
-	err = json.Unmarshal(interfaceFile, &astarteInterface)
-	if err != nil {
+	if err = json.Unmarshal(interfaceFile, &astarteInterface); err != nil {
 		return err
 	}
 
-	err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
-		astarteInterface)
-	if err != nil {
+	if err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
+		astarteInterface); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
