@@ -15,7 +15,7 @@ jobs:
     name: Build and Test
     strategy:
       matrix:
-        go: [1.12.x, 1.13.x]
+        go: [1.12.x, 1.13.x, 1.14.x]
         os: [ubuntu-18.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -27,8 +27,8 @@ jobs:
     
     - name: Install gox
       run: go get github.com/mitchellh/gox && go install github.com/mitchellh/gox
-      # Releases are always on Go 1.13 and cross-compiled on Ubuntu (this is the tested configuration)
-      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.13.x'
+      # Releases are always on Go 1.14 and cross-compiled on Ubuntu (this is the tested configuration)
+      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.14.x'
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
@@ -51,11 +51,11 @@ jobs:
     
     - name: Run gox
       run: mkdir bin && $HOME/go/bin/gox -os="darwin linux windows" -arch="amd64 386" -output="bin/astartectl_$TRAVIS_BRANCH_{{.OS}}_{{.Arch}}" -ldflags "-X main.Rev=`git rev-parse --short HEAD`" -verbose ./...
-      # Releases are always on Go 1.13 and cross-compiled on Ubuntu (this is the tested configuration)
-      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.13.x'
+      # Releases are always on Go 1.14 and cross-compiled on Ubuntu (this is the tested configuration)
+      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.14.x'
     
     - name: Upload Binaries
-      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.13.x'
+      if: matrix.os == 'ubuntu-18.04' && matrix.go == '1.14.x'
       uses: actions/upload-artifact@v1
       with:
         name: binaries
