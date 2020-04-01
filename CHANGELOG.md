@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0-rc.1] - Unreleased
 ### Added
 - Add `realm-management interfaces sync` subcommand
+- Add `appengine devices send-data` subcommand
 
 ### Fixed
 - appengine: Fix crash when retrieving nil values out of device interfaces
