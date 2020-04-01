@@ -390,7 +390,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 									v = "(null)"
 								}
 								if snapshotInterface == "" {
-									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership.String(),
+									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership,
 										timestampForOutput(aggregate.Timestamp, outputType)})
 								} else {
 									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v,
@@ -413,7 +413,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 								v = "(null)"
 							}
 							if snapshotInterface == "" {
-								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("/%s", k), v, i.Ownership.String(),
+								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("/%s", k), v, i.Ownership,
 									timestampForOutput(val.Timestamp, outputType)})
 							} else {
 								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("/%s", k), v,
@@ -434,7 +434,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 						v.Value = "(null)"
 					}
 					if snapshotInterface == "" {
-						t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership.String(),
+						t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership,
 							timestampForOutput(v.Timestamp, outputType)})
 					} else {
 						t.AppendRow([]interface{}{i.Name, k, v.Value,
@@ -455,7 +455,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					v = "(null)"
 				}
 				if snapshotInterface == "" {
-					t.AppendRow([]interface{}{i.Name, k, v, i.Ownership.String(), ""})
+					t.AppendRow([]interface{}{i.Name, k, v, i.Ownership, ""})
 				} else {
 					t.AppendRow([]interface{}{i.Name, k, v})
 				}

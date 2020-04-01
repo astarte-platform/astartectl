@@ -63,7 +63,7 @@ func APICommandSetup(individualURLVariables map[misc.AstarteService]string, keyV
 			servicesAndClaims[k] = []string{}
 		}
 		// 1 minute TTL is more than enough for our purposes
-		if err := astarteAPIClient.SetTokenFromPrivateKeyWithClaims(privateKey, servicesAndClaims, 60); err != nil {
+		if err := astarteAPIClient.SetTokenFromPrivateKeyFileWithClaims(privateKey, servicesAndClaims, 60); err != nil {
 			return nil, err
 		}
 	} else {
