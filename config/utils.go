@@ -57,9 +57,13 @@ func ConfigureViper(contextOverride string) error {
 	}
 
 	// Load the current context
-	viper.SetConfigName(currentContext)
-	viper.AddConfigPath(contextsDirFromConfigDir(configDir))
-	if err := viper.ReadInConfig(); err != nil {
+	contextViper := viper.New()
+	contextViper.SetConfigName(currentContext)
+	contextViper.AddConfigPath(contextsDirFromConfigDir(configDir))
+	if err := contextViper.ReadInConfig(); err != nil {
+		return err
+	}
+	if err := viper.MergeConfigMap(contextViper.AllSettings()); err != nil {
 		return err
 	}
 
@@ -70,14 +74,15 @@ func ConfigureViper(contextOverride string) error {
 	}
 
 	// Load the corresponding cluster
-	viper.SetConfigName(cluster)
-	viper.AddConfigPath(clustersDirFromConfigDir(configDir))
-	if err := viper.ReadInConfig(); err != nil {
+	clusterViper := viper.New()
+	clusterViper.SetConfigName(cluster)
+	clusterViper.AddConfigPath(clustersDirFromConfigDir(configDir))
+	if err := clusterViper.ReadInConfig(); err != nil {
 		return err
 	}
 
 	// Done loading
-	return nil
+	return viper.MergeConfigMap(clusterViper.AllSettings())
 }
 
 // GetConfigDir returns the Config Dir based on the current status
