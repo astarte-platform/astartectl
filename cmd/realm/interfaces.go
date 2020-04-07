@@ -22,6 +22,7 @@ import (
 	"strconv"
 
 	"github.com/astarte-platform/astarte-go/interfaces"
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -95,6 +96,17 @@ The name and major version of the interface are read from the interface file.`,
 	RunE:    interfacesUpdateF,
 }
 
+var interfacesSyncCmd = &cobra.Command{
+	Use:   "sync <interface_files> [...]",
+	Short: "Synchronize interfaces",
+	Long: `Synchronize interfaces in the realm with the given files.
+All given files will be parsed, and interfaces will be either updated or installed in the
+realm, depending on the realm's state.`,
+	Example: `  astartectl realm-management interfaces sync interfaces/*.json`,
+	Args:    cobra.MinimumNArgs(1),
+	RunE:    interfacesSyncF,
+}
+
 func init() {
 	RealmManagementCmd.AddCommand(interfacesCmd)
 
@@ -105,6 +117,7 @@ func init() {
 		interfacesInstallCmd,
 		interfacesDeleteCmd,
 		interfacesUpdateCmd,
+		interfacesSyncCmd,
 	)
 }
 
@@ -145,7 +158,11 @@ func interfacesShowF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	respJSON, _ := json.MarshalIndent(interfaceDefinition, "", "  ")
+	respJSON, err := json.MarshalIndent(interfaceDefinition, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	fmt.Println(string(respJSON))
 	return nil
 }
@@ -157,13 +174,11 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 	}
 
 	var interfaceBody interfaces.AstarteInterface
-	err = json.Unmarshal(interfaceFile, &interfaceBody)
-	if err != nil {
+	if err = json.Unmarshal(interfaceFile, &interfaceBody); err != nil {
 		return err
 	}
 
-	err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody)
-	if err != nil {
+	if err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -176,8 +191,7 @@ func interfacesDeleteF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
 	interfaceMajor := 0
 
-	err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor)
-	if err != nil {
+	if err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -193,18 +207,84 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 	}
 
 	var astarteInterface interfaces.AstarteInterface
-	err = json.Unmarshal(interfaceFile, &astarteInterface)
-	if err != nil {
+	if err = json.Unmarshal(interfaceFile, &astarteInterface); err != nil {
 		return err
 	}
 
-	err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
-		astarteInterface)
-	if err != nil {
+	if err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
+		astarteInterface); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	fmt.Println("ok")
+	return nil
+}
+
+func interfacesSyncF(command *cobra.Command, args []string) error {
+	interfacesToInstall := []interfaces.AstarteInterface{}
+	interfacesToUpdate := []interfaces.AstarteInterface{}
+
+	for _, f := range args {
+		interfaceFile, err := ioutil.ReadFile(f)
+		if err != nil {
+			return err
+		}
+
+		var astarteInterface interfaces.AstarteInterface
+		if err = json.Unmarshal(interfaceFile, &astarteInterface); err != nil {
+			return err
+		}
+
+		if interfaceDefinition, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion); err != nil {
+			// The interface does not exist
+			interfacesToInstall = append(interfacesToInstall, astarteInterface)
+		} else {
+			if interfaceDefinition.MinorVersion < astarteInterface.MinorVersion {
+				interfacesToUpdate = append(interfacesToUpdate, astarteInterface)
+			} else if interfaceDefinition.MinorVersion > astarteInterface.MinorVersion {
+				// Notify that the realm has a more recent revision
+				fmt.Fprintf(os.Stderr, "warn: Interface %s has version %d.%d in the realm and %d.%d in the local file", interfaceDefinition.Name,
+					interfaceDefinition.MajorVersion, interfaceDefinition.MinorVersion, astarteInterface.MajorVersion, astarteInterface.MinorVersion)
+			}
+		}
+	}
+
+	if len(interfacesToInstall) == 0 && len(interfacesToUpdate) == 0 {
+		// All good in the hood
+		fmt.Println("Your realm is in sync with the provided interface files")
+		return nil
+	}
+
+	// Notify the user about what we're about to do
+	fmt.Println("The following actions will be taken:")
+	fmt.Println()
+	for _, v := range interfacesToInstall {
+		fmt.Printf("Will install interface %s version %d.%d\n", v.Name, v.MajorVersion, v.MinorVersion)
+	}
+	for _, v := range interfacesToUpdate {
+		fmt.Printf("Will update interface %s to version %d.%d\n", v.Name, v.MajorVersion, v.MinorVersion)
+	}
+	fmt.Println()
+	if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
+		return nil
+	}
+
+	// Start syncing.
+	for _, v := range interfacesToInstall {
+		if err := astarteAPIClient.RealmManagement.InstallInterface(realm, v); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not install interface %s: %s\n", v.Name, err)
+		} else {
+			fmt.Printf("Interface %s installed successfully\n", v.Name)
+		}
+	}
+	for _, v := range interfacesToUpdate {
+		if err := astarteAPIClient.RealmManagement.UpdateInterface(realm, v.Name, v.MajorVersion, v); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not update interface %s: %s\n", v.Name, err)
+		} else {
+			fmt.Printf("Interface %s updated successfully to version %d.%d\n", v.Name, v.MajorVersion, v.MinorVersion)
+		}
+	}
+
 	return nil
 }

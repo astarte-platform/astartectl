@@ -27,7 +27,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/astarte-platform/astartectl/cmd/cluster/deployment"
 	"github.com/astarte-platform/astartectl/utils"
-	"github.com/google/go-github/v28/github"
+	"github.com/google/go-github/v30/github"
 	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"

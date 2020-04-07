@@ -15,10 +15,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `housekeeping realms create` has completely different (and incompatible) semantics: it now allows supplying
   either a public, private or no key, and will create a new config context accordingly
 
-## [0.11.0-rc.1] - Unreleased
+## [0.11.0-rc.1] - 2020-04-01
+### Added
+- Add `realm-management interfaces sync` subcommand
+- Add `appengine devices send-data` subcommand
+
 ### Fixed
 - appengine: Fix crash when retrieving nil values out of device interfaces
 - appengine: Fix panic when passing appengine-url without realmmanagement-url (#73)
+- appengine: data-snapshot should not fail entirely when an interface is not fetched from Realm Management
 
 ### Changed
 - Moved the codebase to use astarte-go instead of the internal replicated tree
