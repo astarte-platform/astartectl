@@ -24,7 +24,6 @@ import (
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/jsonmergepatch"
 	"k8s.io/apimachinery/pkg/util/mergepatch"
@@ -48,12 +47,6 @@ func init() {
 }
 
 func instanceUpgradeF(command *cobra.Command, args []string) error {
-	astartes, err := listAstartes()
-	if err != nil || len(astartes) == 0 {
-		fmt.Println("No Managed Astarte installations found.")
-		return nil
-	}
-
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
@@ -64,17 +57,8 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 		resourceNamespace = "astarte"
 	}
 
-	var astarteObject *unstructured.Unstructured = nil
-	for _, v := range astartes {
-		for _, res := range v.Items {
-			if res.Object["metadata"].(map[string]interface{})["namespace"] == resourceNamespace && res.Object["metadata"].(map[string]interface{})["name"] == resourceName {
-				astarteObject = res.DeepCopy()
-				break
-			}
-		}
-	}
-
-	if astarteObject == nil {
+	astarteObject, err := getAstarteInstance(resourceName, resourceNamespace)
+	if err != nil {
 		fmt.Printf("Could not find resource %s in namespace %s.\n", resourceName, resourceNamespace)
 		os.Exit(1)
 	}

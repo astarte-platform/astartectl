@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- `cluster instance get-cluster-config` allows getting a cluster configuration out of the
+  current cluster
+
+### Changed
+- astartectl configuration now works through a context system, kubectl-style
+- `cluster instance deploy` now creates a new cluster config context upon successful cluster creation
+- `housekeeping realms create` has completely different (and incompatible) semantics: it now allows supplying
+  either a public, private or no key, and will create a new config context accordingly
+
 ## [0.11.0-rc.1] - Unreleased
 ### Fixed
 - appengine: Fix crash when retrieving nil values out of device interfaces

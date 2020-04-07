@@ -28,14 +28,9 @@ import (
 // ConfigureViper sets up Viper to behave correctly with regards to both context and
 // configuration directory, taking into account all environment variables and parameters.
 // Order of precedence is: override, environment variables, defaults
-func ConfigureViper(configDirOverride, contextOverride string) error {
+func ConfigureViper(contextOverride string) error {
 	// Get configuration directory, first of all
-	configDir := GetDefaultConfigDir()
-	if configDirOverride != "" {
-		configDir = configDirOverride
-	} else if dirFromEnv, ok := os.LookupEnv("ASTARTE_CONFIG_DIR"); ok && dirFromEnv != "" {
-		configDir = dirFromEnv
-	}
+	configDir := GetConfigDir()
 	// Check if it exists
 	if _, err := os.Stat(configDir); err != nil {
 		return err
@@ -62,9 +57,13 @@ func ConfigureViper(configDirOverride, contextOverride string) error {
 	}
 
 	// Load the current context
-	viper.SetConfigName(currentContext)
-	viper.AddConfigPath(contextsDirFromConfigDir(configDir))
-	if err := viper.ReadInConfig(); err != nil {
+	contextViper := viper.New()
+	contextViper.SetConfigName(currentContext)
+	contextViper.AddConfigPath(contextsDirFromConfigDir(configDir))
+	if err := contextViper.ReadInConfig(); err != nil {
+		return err
+	}
+	if err := viper.MergeConfigMap(contextViper.AllSettings()); err != nil {
 		return err
 	}
 
@@ -75,14 +74,26 @@ func ConfigureViper(configDirOverride, contextOverride string) error {
 	}
 
 	// Load the corresponding cluster
-	viper.SetConfigName(cluster)
-	viper.AddConfigPath(clustersDirFromConfigDir(configDir))
-	if err := viper.ReadInConfig(); err != nil {
+	clusterViper := viper.New()
+	clusterViper.SetConfigName(cluster)
+	clusterViper.AddConfigPath(clustersDirFromConfigDir(configDir))
+	if err := clusterViper.ReadInConfig(); err != nil {
 		return err
 	}
 
 	// Done loading
-	return nil
+	return viper.MergeConfigMap(clusterViper.AllSettings())
+}
+
+// GetConfigDir returns the Config Dir based on the current status
+func GetConfigDir() string {
+	configDir := GetDefaultConfigDir()
+	if configDirOverride := viper.GetString("config-dir"); configDirOverride != "" {
+		configDir = configDirOverride
+	} else if dirFromEnv, ok := os.LookupEnv("ASTARTE_CONFIG_DIR"); ok && dirFromEnv != "" {
+		configDir = dirFromEnv
+	}
+	return configDir
 }
 
 // GetDefaultConfigDir returns the default config directory
@@ -94,14 +105,14 @@ func GetDefaultConfigDir() string {
 
 func clustersDirFromConfigDir(configDir string) string {
 	if configDir == "" {
-		configDir = GetDefaultConfigDir()
+		configDir = GetConfigDir()
 	}
 	return path.Join(configDir, "clusters")
 }
 
 func contextsDirFromConfigDir(configDir string) string {
 	if configDir == "" {
-		configDir = GetDefaultConfigDir()
+		configDir = GetConfigDir()
 	}
 	return path.Join(configDir, "contexts")
 }
@@ -137,9 +148,9 @@ func listYamlNames(dirName string) ([]string, error) {
 
 func loadYamlFile(dirName, fileName string) ([]byte, error) {
 	yamlFileName := ""
-	if _, err := os.Stat(path.Join(dirName, fileName+".yaml")); err != nil {
+	if _, err := os.Stat(path.Join(dirName, fileName+".yaml")); err == nil {
 		yamlFileName = path.Join(dirName, fileName+".yaml")
-	} else if _, err := os.Stat(path.Join(dirName, fileName+".yml")); err != nil {
+	} else if _, err := os.Stat(path.Join(dirName, fileName+".yml")); err == nil {
 		yamlFileName = path.Join(dirName, fileName+".yml")
 	} else {
 		return nil, os.ErrNotExist
