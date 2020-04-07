@@ -15,6 +15,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -95,7 +96,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 
 	// Service Account
 	serviceAccount := unmarshalYAML("deploy/service_account.yaml", version)
-	_, err = kubernetesClient.CoreV1().ServiceAccounts("kube-system").Create(serviceAccount.(*corev1.ServiceAccount))
+	_, err = kubernetesClient.CoreV1().ServiceAccounts("kube-system").Create(
+		context.TODO(), serviceAccount.(*corev1.ServiceAccount), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: Service Account already exists in the cluster.")
@@ -108,7 +110,7 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 
 	// Cluster Role
 	role := unmarshalYAML("deploy/role.yaml", version)
-	_, err = kubernetesClient.RbacV1().ClusterRoles().Create(role.(*rbacv1.ClusterRole))
+	_, err = kubernetesClient.RbacV1().ClusterRoles().Create(context.TODO(), role.(*rbacv1.ClusterRole), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: Cluster Role already exists in the cluster.")
@@ -121,7 +123,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 
 	// Cluster Role Binding
 	roleBinding := unmarshalYAML("deploy/role_binding.yaml", version)
-	_, err = kubernetesClient.RbacV1().ClusterRoleBindings().Create(roleBinding.(*rbacv1.ClusterRoleBinding))
+	_, err = kubernetesClient.RbacV1().ClusterRoleBindings().Create(
+		context.TODO(), roleBinding.(*rbacv1.ClusterRoleBinding), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: Cluster Role Binding already exists in the cluster.")
@@ -145,7 +148,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	}
 
 	astarteCRD := unmarshalYAML("deploy/crds/"+astarteCRDName, version)
-	_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(astarteCRD.(*apiextensionsv1beta1.CustomResourceDefinition))
+	_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(
+		context.TODO(), astarteCRD.(*apiextensionsv1beta1.CustomResourceDefinition), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: Astarte CRD already exists in the cluster.")
@@ -157,7 +161,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	}
 
 	astarteVoyagerIngressCRD := unmarshalYAML("deploy/crds/"+aviCRDName, version)
-	_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(astarteVoyagerIngressCRD.(*apiextensionsv1beta1.CustomResourceDefinition))
+	_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(
+		context.TODO(), astarteVoyagerIngressCRD.(*apiextensionsv1beta1.CustomResourceDefinition), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: AstarteVoyagerIngress CRD already exists in the cluster.")
@@ -173,7 +178,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 
 	// Astarte Operator Deployment
 	astarteOperator := unmarshalYAML("deploy/operator.yaml", version)
-	astarteOperatorDeployment, err := kubernetesClient.AppsV1().Deployments("kube-system").Create(astarteOperator.(*appsv1.Deployment))
+	astarteOperatorDeployment, err := kubernetesClient.AppsV1().Deployments("kube-system").Create(
+		context.TODO(), astarteOperator.(*appsv1.Deployment), metav1.CreateOptions{})
 	if err != nil {
 		fmt.Println("Error while deploying Astarte Operator Deployment. Your deployment might be incomplete.")
 		fmt.Println(err)
@@ -183,7 +189,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	fmt.Println("Astarte Operator successfully installed. Waiting until it is ready...")
 
 	var timeoutSeconds int64 = 60
-	watcher, err := kubernetesClient.AppsV1().Deployments("kube-system").Watch(metav1.ListOptions{TimeoutSeconds: &timeoutSeconds})
+	watcher, err := kubernetesClient.AppsV1().Deployments("kube-system").Watch(
+		context.TODO(), metav1.ListOptions{TimeoutSeconds: &timeoutSeconds})
 	if err != nil {
 		fmt.Println("Could not watch the Deployment state. However, deployment might be complete. Check with astartectl cluster show in a while.")
 		fmt.Println(err)

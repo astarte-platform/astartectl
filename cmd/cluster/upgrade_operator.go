@@ -15,6 +15,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -122,7 +123,8 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 
 	// Service Account
 	serviceAccount := unmarshalYAML("deploy/service_account.yaml", version)
-	_, err = kubernetesClient.CoreV1().ServiceAccounts("kube-system").Update(serviceAccount.(*corev1.ServiceAccount))
+	_, err = kubernetesClient.CoreV1().ServiceAccounts("kube-system").Update(
+		context.TODO(), serviceAccount.(*corev1.ServiceAccount), metav1.UpdateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: Service Account already exists in the cluster.")
@@ -135,7 +137,8 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 
 	// Cluster Role
 	role := unmarshalYAML("deploy/role.yaml", version)
-	_, err = kubernetesClient.RbacV1().ClusterRoles().Update(role.(*rbacv1.ClusterRole))
+	_, err = kubernetesClient.RbacV1().ClusterRoles().Update(
+		context.TODO(), role.(*rbacv1.ClusterRole), metav1.UpdateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: Cluster Role already exists in the cluster.")
@@ -148,7 +151,8 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 
 	// Cluster Role Binding
 	roleBinding := unmarshalYAML("deploy/role_binding.yaml", version)
-	_, err = kubernetesClient.RbacV1().ClusterRoleBindings().Update(roleBinding.(*rbacv1.ClusterRoleBinding))
+	_, err = kubernetesClient.RbacV1().ClusterRoleBindings().Update(
+		context.TODO(), roleBinding.(*rbacv1.ClusterRoleBinding), metav1.UpdateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			fmt.Println("WARNING: Cluster Role Binding already exists in the cluster.")
@@ -196,7 +200,8 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 
 	// Astarte Operator Deployment
 	astarteOperator := unmarshalYAML("deploy/operator.yaml", version)
-	astarteOperatorDeployment, err := kubernetesClient.AppsV1().Deployments("kube-system").Update(astarteOperator.(*appsv1.Deployment))
+	astarteOperatorDeployment, err := kubernetesClient.AppsV1().Deployments("kube-system").Update(
+		context.TODO(), astarteOperator.(*appsv1.Deployment), metav1.UpdateOptions{})
 	if err != nil {
 		fmt.Println("Error while deploying Astarte Operator Deployment. Your deployment might be incomplete.")
 		fmt.Println(err)
@@ -206,7 +211,7 @@ func clusterUpgradeOperatorF(command *cobra.Command, args []string) error {
 	fmt.Println("Astarte Operator successfully upgraded. Waiting until it is ready...")
 
 	var timeoutSeconds int64 = 60
-	watcher, err := kubernetesClient.AppsV1().Deployments("kube-system").Watch(metav1.ListOptions{TimeoutSeconds: &timeoutSeconds})
+	watcher, err := kubernetesClient.AppsV1().Deployments("kube-system").Watch(context.TODO(), metav1.ListOptions{TimeoutSeconds: &timeoutSeconds})
 	if err != nil {
 		fmt.Println("Could not watch the Deployment state. However, deployment might be complete. Check with astartectl cluster show in a while.")
 		fmt.Println(err)
@@ -238,11 +243,11 @@ func upgradeCRD(path, version, originalPath, originalVersion string) error {
 	// TODO: Handle v1, when we start planning on supporting it.
 	crd := unmarshalYAML(path, version)
 	currentCRD, err := kubernetesDynamicClient.Resource(crdResource).Get(
-		crd.(*apiextensionsv1beta1.CustomResourceDefinition).Name, metav1.GetOptions{})
+		context.TODO(), crd.(*apiextensionsv1beta1.CustomResourceDefinition).Name, metav1.GetOptions{})
 	if err != nil || currentCRD == nil {
 		// It does not exist - go ahead and install it.
 		_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(
-			crd.(*apiextensionsv1beta1.CustomResourceDefinition))
+			context.TODO(), crd.(*apiextensionsv1beta1.CustomResourceDefinition), metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -259,7 +264,7 @@ func upgradeCRD(path, version, originalPath, originalVersion string) error {
 			preconditions...)
 
 		_, err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Patch(
-			crd.(*apiextensionsv1beta1.CustomResourceDefinition).Name, types.MergePatchType, patch)
+			context.TODO(), crd.(*apiextensionsv1beta1.CustomResourceDefinition).Name, types.MergePatchType, patch, metav1.PatchOptions{})
 		if err != nil {
 			return err
 		}

@@ -15,6 +15,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -73,7 +74,7 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 
 	fmt.Println("Destroying Astarte instance...")
 	// Kill it.
-	err = kubernetesDynamicClient.Resource(astarteV1Alpha1).Namespace(resourceNamespace).Delete(resourceName, &metav1.DeleteOptions{})
+	err = kubernetesDynamicClient.Resource(astarteV1Alpha1).Namespace(resourceNamespace).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 	if err != nil {
 		fmt.Println("Error while destroying Astarte Resource.")
 		fmt.Println(err)
@@ -84,7 +85,7 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 
 	if deleteVolumes {
 		fmt.Println("Deleting all Volumes...")
-		pvcList, err := kubernetesClient.CoreV1().PersistentVolumeClaims(resourceNamespace).List(metav1.ListOptions{})
+		pvcList, err := kubernetesClient.CoreV1().PersistentVolumeClaims(resourceNamespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			fmt.Println("Could not list PVCs. You might need to delete Volumes manually.")
 			os.Exit(1)
@@ -94,7 +95,7 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 			// Check for all services which spawn a PVC, and delete it in case.
 			for _, svc := range []string{"cfssl", "cassandra", "rabbitmq", "vernemq"} {
 				if strings.HasPrefix(pvc.Name, resourceName+"-"+svc+"-data") {
-					err = kubernetesClient.CoreV1().PersistentVolumeClaims(resourceNamespace).Delete(pvc.Name, &metav1.DeleteOptions{})
+					err = kubernetesClient.CoreV1().PersistentVolumeClaims(resourceNamespace).Delete(context.TODO(), pvc.Name, metav1.DeleteOptions{})
 					if err != nil {
 						fmt.Printf("WARNING: Persistent Volume Claim %s could not be deleted.\n", pvc.Name)
 					}
