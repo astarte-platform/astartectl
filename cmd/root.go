@@ -21,6 +21,7 @@ import (
 
 	"github.com/astarte-platform/astartectl/cmd/appengine"
 	"github.com/astarte-platform/astartectl/cmd/cluster"
+	configcmd "github.com/astarte-platform/astartectl/cmd/config"
 	"github.com/astarte-platform/astartectl/cmd/housekeeping"
 	"github.com/astarte-platform/astartectl/cmd/pairing"
 	"github.com/astarte-platform/astartectl/cmd/realm"
@@ -77,6 +78,7 @@ func init() {
 	rootCmd.AddCommand(utils.UtilsCmd)
 	rootCmd.AddCommand(appengine.AppEngineCmd)
 	rootCmd.AddCommand(cluster.ClusterCmd)
+	rootCmd.AddCommand(configcmd.ConfigCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
