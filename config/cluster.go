@@ -16,6 +16,7 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 	"path"
 
 	"gopkg.in/yaml.v2"
@@ -73,7 +74,16 @@ func LoadClusterConfiguration(configDir, clusterName string) (ClusterFile, error
 }
 
 // SaveClusterConfiguration saves a cluster configuration in the config directory
-func SaveClusterConfiguration(configDir, clusterName string, configuration ClusterFile) error {
+func SaveClusterConfiguration(configDir, clusterName string, configuration ClusterFile, overwrite bool) error {
+	configPath := path.Join(clustersDirFromConfigDir(configDir), clusterName+".yaml")
+
+	if !overwrite {
+		if _, err := os.Stat(configPath); err == nil {
+			// Don't overwrite, don't fail
+			return nil
+		}
+	}
+
 	if err := ensureConfigDirectoryStructure(configDir); err != nil {
 		return err
 	}
@@ -82,5 +92,16 @@ func SaveClusterConfiguration(configDir, clusterName string, configuration Clust
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path.Join(clustersDirFromConfigDir(configDir), clusterName+".yaml"), contents, 0644)
+	return ioutil.WriteFile(configPath, contents, 0644)
+}
+
+// DeleteClusterConfiguration deletes a cluster configuration in the config directory. It will return
+// an error if the cluster does not exist. The operation cannot be reverted
+func DeleteClusterConfiguration(configDir, clusterName string) error {
+	fileName, err := getYamlFilename(clustersDirFromConfigDir(configDir), clusterName)
+	if err != nil {
+		return err
+	}
+
+	return os.Remove(fileName)
 }

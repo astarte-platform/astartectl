@@ -16,6 +16,7 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 	"path"
 
 	"gopkg.in/yaml.v2"
@@ -56,7 +57,16 @@ func LoadContextConfiguration(configDir, contextName string) (ContextFile, error
 }
 
 // SaveContextConfiguration saves a context configuration in the config directory
-func SaveContextConfiguration(configDir, contextName string, configuration ContextFile) error {
+func SaveContextConfiguration(configDir, contextName string, configuration ContextFile, overwrite bool) error {
+	configPath := path.Join(contextsDirFromConfigDir(configDir), contextName+".yaml")
+
+	if !overwrite {
+		if _, err := os.Stat(configPath); err == nil {
+			// Don't overwrite, don't fail
+			return nil
+		}
+	}
+
 	if err := ensureConfigDirectoryStructure(configDir); err != nil {
 		return err
 	}
@@ -65,5 +75,16 @@ func SaveContextConfiguration(configDir, contextName string, configuration Conte
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path.Join(contextsDirFromConfigDir(configDir), contextName+".yaml"), contents, 0644)
+	return ioutil.WriteFile(configPath, contents, 0644)
+}
+
+// DeleteContextConfiguration deletes a context configuration in the config directory. It will return
+// an error if the context does not exist. The operation cannot be reverted
+func DeleteContextConfiguration(configDir, contextName string) error {
+	fileName, err := getYamlFilename(contextsDirFromConfigDir(configDir), contextName)
+	if err != nil {
+		return err
+	}
+
+	return os.Remove(fileName)
 }

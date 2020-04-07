@@ -146,14 +146,19 @@ func listYamlNames(dirName string) ([]string, error) {
 	return names, nil
 }
 
-func loadYamlFile(dirName, fileName string) ([]byte, error) {
-	yamlFileName := ""
+func getYamlFilename(dirName, fileName string) (string, error) {
 	if _, err := os.Stat(path.Join(dirName, fileName+".yaml")); err == nil {
-		yamlFileName = path.Join(dirName, fileName+".yaml")
+		return path.Join(dirName, fileName+".yaml"), nil
 	} else if _, err := os.Stat(path.Join(dirName, fileName+".yml")); err == nil {
-		yamlFileName = path.Join(dirName, fileName+".yml")
-	} else {
-		return nil, os.ErrNotExist
+		return path.Join(dirName, fileName+".yml"), nil
+	}
+	return "", os.ErrNotExist
+}
+
+func loadYamlFile(dirName, fileName string) ([]byte, error) {
+	yamlFileName, err := getYamlFilename(dirName, fileName)
+	if err != nil {
+		return nil, err
 	}
 
 	// Read file contents and return it

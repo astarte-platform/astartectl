@@ -87,7 +87,7 @@ func doGetClusterConfig(resourceName, resourceNamespace string) error {
 
 	configDir := config.GetConfigDir()
 
-	if err := config.SaveClusterConfiguration(configDir, clusterName, clusterConfig); err != nil {
+	if err := config.SaveClusterConfiguration(configDir, clusterName, clusterConfig, true); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -98,7 +98,7 @@ func doGetClusterConfig(resourceName, resourceNamespace string) error {
 	contextConfig := config.ContextFile{
 		Cluster: clusterName,
 	}
-	if err := config.SaveContextConfiguration(configDir, contextName, contextConfig); err != nil {
+	if err := config.SaveContextConfiguration(configDir, contextName, contextConfig, true); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
