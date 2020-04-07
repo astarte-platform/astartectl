@@ -15,6 +15,7 @@
 package cluster
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -147,7 +148,7 @@ func instanceChangeProfileF(command *cobra.Command, args []string) error {
 	fmt.Println("Ok. Hold on a second while I change your Astarte profile...")
 
 	_, err = kubernetesDynamicClient.Resource(astarteV1Alpha1).Namespace(resourceNamespace).Patch(
-		resourceName, types.MergePatchType, patch, v1.PatchOptions{})
+		context.TODO(), resourceName, types.MergePatchType, patch, v1.PatchOptions{})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

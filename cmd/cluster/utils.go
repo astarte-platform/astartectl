@@ -85,7 +85,7 @@ func unmarshalOperatorContentYAMLToJSON(res string, version string) map[string]i
 func listAstartes() (map[string]*unstructured.UnstructuredList, error) {
 	ret := make(map[string]*unstructured.UnstructuredList)
 	for k, v := range astarteResourceClients {
-		list, err := v.List(metav1.ListOptions{})
+		list, err := v.List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +121,8 @@ func getHousekeepingKey(name, namespace string, checkFirst bool) ([]byte, error)
 		}
 	}
 
-	secret, err := kubernetesClient.CoreV1().Secrets(namespace).Get(fmt.Sprintf("%s-housekeeping-private-key", name), v1.GetOptions{})
+	secret, err := kubernetesClient.CoreV1().Secrets(namespace).Get(
+		context.TODO(), fmt.Sprintf("%s-housekeeping-private-key", name), v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -130,11 +131,11 @@ func getHousekeepingKey(name, namespace string, checkFirst bool) ([]byte, error)
 }
 
 func getAstarte(astarteCRD dynamic.NamespaceableResourceInterface, name string, namespace string) (*unstructured.Unstructured, error) {
-	return astarteCRD.Namespace(namespace).Get(name, metav1.GetOptions{})
+	return astarteCRD.Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func getAstarteOperator() (*appsv1.Deployment, error) {
-	return kubernetesClient.AppsV1().Deployments("kube-system").Get("astarte-operator", metav1.GetOptions{})
+	return kubernetesClient.AppsV1().Deployments("kube-system").Get(context.TODO(), "astarte-operator", metav1.GetOptions{})
 }
 
 func getLastOperatorRelease() (string, error) {
@@ -199,7 +200,7 @@ func getContentFromAstarteRepo(repo string, path string, tag string) (string, er
 
 func getClusterAllocatableResources() (int, int64, int64, error) {
 	// List Nodes
-	list, err := kubernetesClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	list, err := kubernetesClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return 0, 0, 0, nil
 	}
