@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `housekeeping realms create` has completely different (and incompatible) semantics: it now allows supplying
   either a public, private or no key, and will create a new config context accordingly
 
+## [0.11.0] - Unreleased
+### Fixed
+- `appengine devices send-data` now parses integer values correctly for server-owned datastream aggregate
+  interfaces
+
 ## [0.11.0-rc.1] - 2020-04-01
 ### Added
 - Add `realm-management interfaces sync` subcommand
