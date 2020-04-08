@@ -25,7 +25,9 @@ type Bundle struct {
 }
 
 // CreateBundleFromDirectory returns a bundle out of a config directory
-func CreateBundleFromDirectory(configDir string) (Bundle, error) {
+// Clusters and Contexts, when specified, are a list of clusters and contexts to save.
+// An empty list means "all"
+func CreateBundleFromDirectory(configDir string, clusters, contexts []string) (Bundle, error) {
 	bundle := Bundle{
 		BaseConfig: BaseConfigFile{},
 		Clusters:   map[string]ClusterFile{},
@@ -45,6 +47,12 @@ func CreateBundleFromDirectory(configDir string) (Bundle, error) {
 	}
 
 	for _, cluster := range clustersList {
+		if len(clusters) > 0 {
+			if !existsInStringSlice(cluster, clusters) {
+				// skip
+				continue
+			}
+		}
 		clusterConfiguration, err := LoadClusterConfiguration(configDir, cluster)
 		if err != nil {
 			return bundle, err
@@ -59,6 +67,12 @@ func CreateBundleFromDirectory(configDir string) (Bundle, error) {
 	}
 
 	for _, context := range contextsList {
+		if len(contexts) > 0 {
+			if !existsInStringSlice(context, contexts) {
+				// skip
+				continue
+			}
+		}
 		contextConfiguration, err := LoadContextConfiguration(configDir, context)
 		if err != nil {
 			return bundle, err
@@ -70,22 +84,45 @@ func CreateBundleFromDirectory(configDir string) (Bundle, error) {
 }
 
 // LoadBundleToDirectory loads a bundle into a config directory, overwriting matching files, overwriting any
-// overlapping entry. When failing, it might have partially loaded some of the entries in the file
-func LoadBundleToDirectory(bundle Bundle, configDir string) error {
+// overlapping entry. When failing, it might have partially loaded some of the entries in the file.
+// Clusters and Contexts, when specified, are a list of clusters and contexts to load.
+// An empty list means "all"
+func LoadBundleToDirectory(bundle Bundle, configDir string, clusters, contexts []string, overwrite bool) error {
 	// Load clusters first
 	for name, configuration := range bundle.Clusters {
-		if err := SaveClusterConfiguration(configDir, name, configuration); err != nil {
+		if len(clusters) > 0 {
+			if !existsInStringSlice(name, clusters) {
+				// skip
+				continue
+			}
+		}
+		if err := SaveClusterConfiguration(configDir, name, configuration, overwrite); err != nil {
 			return err
 		}
 	}
 
 	// Then contexts
 	for name, configuration := range bundle.Contexts {
-		if err := SaveContextConfiguration(configDir, name, configuration); err != nil {
+		if len(contexts) > 0 {
+			if !existsInStringSlice(name, contexts) {
+				// skip
+				continue
+			}
+		}
+		if err := SaveContextConfiguration(configDir, name, configuration, overwrite); err != nil {
 			return err
 		}
 	}
 
 	// Then main conf
 	return SaveBaseConfiguration(configDir, bundle.BaseConfig)
+}
+
+func existsInStringSlice(match string, list []string) bool {
+	for _, v := range list {
+		if v == match {
+			return true
+		}
+	}
+	return false
 }

@@ -308,7 +308,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	}
 
 	configDir := config.GetConfigDir()
-	if err := config.SaveContextConfiguration(configDir, contextName, configContext); err != nil {
+	if err := config.SaveContextConfiguration(configDir, contextName, configContext, true); err != nil {
 		fmt.Printf("Could not save cluster configuration: %s\n", err)
 		if privateKey == "" {
 			// Dump the private key
