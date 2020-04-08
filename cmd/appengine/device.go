@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -729,6 +730,19 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 		if err := json.Unmarshal([]byte(payloadData), &aggrPayload); err != nil {
 			return err
 		}
+
+		// The json module parses all numbers into float64. To ensure Astarte will validate our payloads
+		// correctly, we should convert to int every payload for which an integer conversion does not lose
+		// in precision
+		for k, v := range aggrPayload {
+			switch val := v.(type) {
+			case float64:
+				if val == math.Trunc(val) {
+					aggrPayload[k] = int(val)
+				}
+			}
+		}
+
 		parsedPayloadData = aggrPayload
 	}
 
