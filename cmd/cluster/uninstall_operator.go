@@ -46,7 +46,7 @@ func clusterUninstallF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	astartes, err := listAstartes()
+	astartes, err := listAstartes("")
 	if err == nil && len(astartes) > 0 {
 		fmt.Println("Your cluster has at least one active Astarte instance managed by the Operator. You can uninstall the operator only if no instances are deployed.")
 		os.Exit(1)

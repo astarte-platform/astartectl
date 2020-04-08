@@ -36,7 +36,6 @@ kubectl mentions. Please be aware of the fact that when an Astarte instance is d
 }
 
 func init() {
-	destroyCmd.PersistentFlags().String("namespace", "", "Namespace in which to look for the Astarte resource will be destroyed.")
 	destroyCmd.PersistentFlags().Bool("delete-volumes", false, "When set, all the Persistent Volume Claims will be destroyed. All data will be lost with no means of recovery.")
 	destroyCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
 

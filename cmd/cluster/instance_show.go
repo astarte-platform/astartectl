@@ -32,8 +32,6 @@ var instanceShowCmd = &cobra.Command{
 }
 
 func init() {
-	instanceShowCmd.PersistentFlags().String("namespace", "astarte", "Namespace in which to look for the Astarte resource.")
-
 	InstancesCmd.AddCommand(instanceShowCmd)
 }
 

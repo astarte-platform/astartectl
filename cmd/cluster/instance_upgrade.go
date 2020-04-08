@@ -40,7 +40,6 @@ var instanceUpgradeCmd = &cobra.Command{
 }
 
 func init() {
-	instanceUpgradeCmd.PersistentFlags().String("namespace", "astarte", "Namespace in which to look for the Astarte resource.")
 	instanceUpgradeCmd.PersistentFlags().String("profile", "", "Astarte Deployment Profile. Ignored if the existing Astarte instance is already associated to a Profile. If not specified and not associated yet, it will be prompted when deploying.")
 	instanceUpgradeCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
 

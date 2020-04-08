@@ -82,10 +82,16 @@ func unmarshalOperatorContentYAMLToJSON(res string, version string) map[string]i
 	return jsonStruct
 }
 
-func listAstartes() (map[string]*unstructured.UnstructuredList, error) {
+func listAstartes(namespace string) (map[string]*unstructured.UnstructuredList, error) {
 	ret := make(map[string]*unstructured.UnstructuredList)
 	for k, v := range astarteResourceClients {
-		list, err := v.List(context.TODO(), metav1.ListOptions{})
+		var list *unstructured.UnstructuredList
+		var err error
+		if namespace != "" {
+			list, err = v.Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+		} else {
+			list, err = v.List(context.TODO(), metav1.ListOptions{})
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -98,14 +104,14 @@ func listAstartes() (map[string]*unstructured.UnstructuredList, error) {
 }
 
 func getAstarteInstance(name, namespace string) (*unstructured.Unstructured, error) {
-	astartes, err := listAstartes()
+	astartes, err := listAstartes(namespace)
 	if err != nil || len(astartes) == 0 {
 		return nil, errors.New("no managed astarte installations found")
 	}
 
 	for _, v := range astartes {
 		for _, res := range v.Items {
-			if res.Object["metadata"].(map[string]interface{})["namespace"] == namespace && res.Object["metadata"].(map[string]interface{})["name"] == namespace {
+			if res.Object["metadata"].(map[string]interface{})["name"] == name {
 				return res.DeepCopy(), nil
 			}
 		}

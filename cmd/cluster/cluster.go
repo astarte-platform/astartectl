@@ -91,6 +91,9 @@ func init() {
 		"(optional) absolute path to the kubeconfig file")
 	viper.BindPFlag("kubeconfig", ClusterCmd.PersistentFlags().Lookup("kubeconfig"))
 
+	// Add flags which are common to all instances commands
+	InstancesCmd.PersistentFlags().StringP("namespace", "n", "astarte", "Namespace of the Astarte resource. Defaults to 'astarte'")
+
 	ClusterCmd.AddCommand(InstancesCmd)
 }
 
