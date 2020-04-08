@@ -36,8 +36,6 @@ will be created, together with a new context matching the cluster, without an as
 }
 
 func init() {
-	getClusterConfigCmd.PersistentFlags().String("namespace", "astarte", "Namespace in which to look for the Astarte resource.")
-
 	InstancesCmd.AddCommand(getClusterConfigCmd)
 }
 

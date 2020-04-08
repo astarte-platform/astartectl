@@ -31,7 +31,6 @@ var fetchHKPrivateKeyCmd = &cobra.Command{
 }
 
 func init() {
-	fetchHKPrivateKeyCmd.PersistentFlags().String("namespace", "astarte", "Namespace in which to look for the Astarte resource.")
 	fetchHKPrivateKeyCmd.PersistentFlags().StringP("output", "o", "", "When specified, saves the key to the specified file rather than printing it in stdout.")
 
 	InstancesCmd.AddCommand(fetchHKPrivateKeyCmd)

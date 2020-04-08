@@ -40,7 +40,6 @@ kubectl mentions. If no versions are specified, the last stable version is deplo
 
 func init() {
 	deployCmd.PersistentFlags().String("name", "", "Name of the deployed Astarte resource.")
-	deployCmd.PersistentFlags().String("namespace", "", "Namespace in which the Astarte resource will be deployed.")
 	deployCmd.PersistentFlags().String("version", "", "Version of Astarte to deploy. If not specified, last stable version will be deployed.")
 	deployCmd.PersistentFlags().String("profile", "", "Astarte Deployment Profile. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("api-host", "", "The API host for this Astarte deployment. If not specified, it will be prompted when deploying.")
