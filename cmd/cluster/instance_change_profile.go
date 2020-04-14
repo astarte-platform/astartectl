@@ -41,7 +41,6 @@ astartectl will prompt the user with a set of available profiles which can be us
 }
 
 func init() {
-	instanceChangeProfileCmd.PersistentFlags().StringP("namespace", "n", "astarte", "Namespace in which to look for the Astarte resource.")
 	instanceChangeProfileCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
 
 	InstancesCmd.AddCommand(instanceChangeProfileCmd)
