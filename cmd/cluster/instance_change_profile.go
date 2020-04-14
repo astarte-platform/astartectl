@@ -50,7 +50,7 @@ func instanceChangeProfileF(command *cobra.Command, args []string) error {
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if resourceNamespace == "" {
@@ -59,7 +59,7 @@ func instanceChangeProfileF(command *cobra.Command, args []string) error {
 
 	astarteObject, err := getAstarteInstance(resourceName, resourceNamespace)
 	if err != nil {
-		fmt.Printf("Could not find resource %s in namespace %s.\n", resourceName, resourceNamespace)
+		fmt.Fprintf(os.Stderr, "Could not find resource %s in namespace %s.\n", resourceName, resourceNamespace)
 		os.Exit(1)
 	}
 
@@ -67,12 +67,12 @@ func instanceChangeProfileF(command *cobra.Command, args []string) error {
 	_, deploymentManager, deploymentProfile := getManagedAstarteResourceStatus(*astarteObject)
 	oldAstarteVersion, err := semver.NewVersion(astarteSpec["version"].(string))
 	if err != nil {
-		fmt.Printf("Installed version %s is not a valid Astarte version. Please ensure your Astarte installation is manageable by astartectl.", astarteSpec["version"].(string))
+		fmt.Fprintf(os.Stderr, "Installed version %s is not a valid Astarte version. Please ensure your Astarte installation is manageable by astartectl.", astarteSpec["version"].(string))
 		os.Exit(1)
 	}
 
 	if deploymentManager != "astartectl" {
-		fmt.Println("WARNING: It looks like this Astarte deployment isn't managed by astartectl. On paper, everything should still work, but have extra care in reviewing changes once done.")
+		fmt.Fprintf(os.Stderr, "WARNING: It looks like this Astarte deployment isn't managed by astartectl. On paper, everything should still work, but have extra care in reviewing changes once done.")
 	}
 
 	newProfile := ""
@@ -94,7 +94,7 @@ func instanceChangeProfileF(command *cobra.Command, args []string) error {
 		// Get the profile
 		newProfile, astarteDeployment, err = promptForProfileExcluding(command, oldAstarteVersion, []string{deploymentProfile})
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	} else {
@@ -111,7 +111,7 @@ func instanceChangeProfileF(command *cobra.Command, args []string) error {
 			newProfile, astarteDeployment, astarteSpec)
 	} else {
 		// Fail.
-		fmt.Printf("I found no matching '%s' profile for Astarte %s. Maybe you spelled the profile wrong, or you should upgrade astartectl first?\n", newProfile, oldAstarteVersion)
+		fmt.Fprintf(os.Stderr, "I found no matching '%s' profile for Astarte %s. Maybe you spelled the profile wrong, or you should upgrade astartectl first?\n", newProfile, oldAstarteVersion)
 		os.Exit(1)
 	}
 
@@ -149,7 +149,7 @@ func instanceChangeProfileF(command *cobra.Command, args []string) error {
 	_, err = kubernetesDynamicClient.Resource(astarteV1Alpha1).Namespace(resourceNamespace).Patch(
 		context.TODO(), resourceName, types.MergePatchType, patch, v1.PatchOptions{})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

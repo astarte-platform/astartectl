@@ -39,7 +39,7 @@ func instanceShowF(command *cobra.Command, args []string) error {
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if resourceNamespace == "" {
@@ -48,7 +48,7 @@ func instanceShowF(command *cobra.Command, args []string) error {
 
 	astarteObject, err := getAstarteInstance(resourceName, resourceNamespace)
 	if err != nil {
-		fmt.Printf("Error while looking for instance %s: %s.\n", resourceName, err.Error())
+		fmt.Fprintf(os.Stderr, "Error while looking for instance %s: %s.\n", resourceName, err.Error())
 		os.Exit(1)
 	}
 

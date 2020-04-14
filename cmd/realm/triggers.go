@@ -83,7 +83,7 @@ func init() {
 func triggersListF(command *cobra.Command, args []string) error {
 	realmTriggers, err := astarteAPIClient.RealmManagement.ListTriggers(realm)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -96,7 +96,7 @@ func triggersShowF(command *cobra.Command, args []string) error {
 
 	triggerDefinition, err := astarteAPIClient.RealmManagement.GetTrigger(realm, triggerName)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -119,7 +119,7 @@ func triggersInstallF(command *cobra.Command, args []string) error {
 
 	err = astarteAPIClient.RealmManagement.InstallTrigger(realm, triggerBody)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -131,7 +131,7 @@ func triggersDeleteF(command *cobra.Command, args []string) error {
 	triggerName := args[0]
 	err := astarteAPIClient.RealmManagement.DeleteTrigger(realm, triggerName)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

@@ -43,7 +43,7 @@ func instancesGetClusterConfigF(command *cobra.Command, args []string) error {
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if resourceNamespace == "" {
@@ -56,7 +56,7 @@ func instancesGetClusterConfigF(command *cobra.Command, args []string) error {
 func doGetClusterConfig(resourceName, resourceNamespace string) error {
 	astarteObject, err := getAstarteInstance(resourceName, resourceNamespace)
 	if err != nil {
-		fmt.Printf("Error while looking for instance %s: %s.\n", resourceName, err.Error())
+		fmt.Fprintf(os.Stderr, "Error while looking for instance %s: %s.\n", resourceName, err.Error())
 		os.Exit(1)
 	}
 	astarteSpec := astarteObject.Object["spec"].(map[string]interface{})
@@ -72,7 +72,7 @@ func doGetClusterConfig(resourceName, resourceNamespace string) error {
 	// Fetch key
 	keyData, err := getHousekeepingKey(resourceName, resourceNamespace, false)
 	if err != nil {
-		fmt.Printf("Error while fetching Housekeeping Key for instance %s: %s.\n", resourceName, err.Error())
+		fmt.Fprintf(os.Stderr, "Error while fetching Housekeeping Key for instance %s: %s.\n", resourceName, err.Error())
 		os.Exit(1)
 	}
 
@@ -86,7 +86,7 @@ func doGetClusterConfig(resourceName, resourceNamespace string) error {
 	configDir := config.GetConfigDir()
 
 	if err := config.SaveClusterConfiguration(configDir, clusterName, clusterConfig, true); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	fmt.Printf("Created new Cluster configuration %s\n", clusterName)
@@ -97,7 +97,7 @@ func doGetClusterConfig(resourceName, resourceNamespace string) error {
 		Cluster: clusterName,
 	}
 	if err := config.SaveContextConfiguration(configDir, contextName, contextConfig, true); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	fmt.Printf("Created new Context %s\n", contextName)
@@ -112,7 +112,7 @@ func doGetClusterConfig(resourceName, resourceNamespace string) error {
 
 	baseConfig.CurrentContext = contextName
 	if err := config.SaveBaseConfiguration(configDir, baseConfig); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	fmt.Printf("Context switched to %s\n", contextName)

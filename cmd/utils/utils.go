@@ -253,7 +253,7 @@ func savePublicPEMKey(fileName string, pubkey rsa.PublicKey) {
 
 func checkError(err error) {
 	if err != nil {
-		fmt.Println("Fatal error ", err.Error())
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

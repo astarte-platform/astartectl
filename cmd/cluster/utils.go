@@ -48,16 +48,16 @@ func init() {
 func unmarshalYAML(res string, version string) runtime.Object {
 	content, err := getOperatorContent(res, version)
 	if err != nil {
-		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	decode := scheme.Codecs.UniversalDeserializer().Decode
 	obj, _, err := decode([]byte(content), nil, nil)
 	if err != nil {
-		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -75,8 +75,8 @@ func unmarshalOperatorContentYAMLToJSON(res string, version string) map[string]i
 	content, err := getOperatorContent(res, version)
 	jsonStruct, err := utils.UnmarshalYAMLToJSON([]byte(content))
 	if err != nil {
-		fmt.Println("Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	return jsonStruct
@@ -327,7 +327,7 @@ func promptForProfileExcluding(command *cobra.Command, astarteVersion *semver.Ve
 	profile := getStringFlagFromPromptOrDie(command, "profile", "Which profile would you like to deploy?", "", false)
 
 	if _, ok := unexcludedAvailableProfiles[profile]; !ok {
-		fmt.Printf("Profile %s does not exist! Aborting.\n", profile)
+		fmt.Fprintf(os.Stderr, "Profile %s does not exist! Aborting.\n", profile)
 		os.Exit(1)
 	}
 
@@ -372,7 +372,7 @@ func getStringFromSpecOrFlag(spec map[string]interface{}, field string, command 
 
 	fl, err := command.Flags().GetString(flagName)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -404,7 +404,7 @@ func getStringFlagFromPromptOrDie(command *cobra.Command, flagName string, quest
 		var err error
 		ret, err = command.Flags().GetString(flagName)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -417,7 +417,7 @@ func getStringFlagFromPromptOrDie(command *cobra.Command, flagName string, quest
 func getFromPromptOrDie(command *cobra.Command, question string, defaultValue string, allowEmpty bool) string {
 	ret, err := utils.PromptChoice(question, defaultValue, allowEmpty)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	return ret

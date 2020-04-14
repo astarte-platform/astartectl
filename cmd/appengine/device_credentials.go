@@ -73,7 +73,7 @@ func devicesCredentialsInhibitF(command *cobra.Command, args []string) error {
 
 	err = astarteAPIClient.AppEngine.InhibitDevice(realm, deviceID, deviceIdentifierType, inhibit)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

@@ -119,7 +119,7 @@ func validateDeviceIDF(command *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
+	fmt.Fprintf(os.Stderr, "%s is not a valid Astarte Device ID\n", deviceID)
 	os.Exit(1)
 	return nil
 }
@@ -166,7 +166,7 @@ func computeDeviceIDFromBytesF(command *cobra.Command, args []string) error {
 func toUUIDDeviceIDF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	if !misc.IsValidAstarteDeviceID(deviceID) {
-		fmt.Printf("%s is not a valid Astarte Device ID\n", deviceID)
+		fmt.Fprintf(os.Stderr, "%s is not a valid Astarte Device ID\n", deviceID)
 		os.Exit(1)
 	}
 
@@ -183,7 +183,7 @@ func fromUUIDDeviceIDF(command *cobra.Command, args []string) error {
 	deviceUUID := args[0]
 	_, err := uuid.Parse(deviceUUID)
 	if err != nil {
-		fmt.Printf("%s is not a valid UUID\n", deviceUUID)
+		fmt.Fprintf(os.Stderr, "%s is not a valid UUID\n", deviceUUID)
 		os.Exit(1)
 	}
 

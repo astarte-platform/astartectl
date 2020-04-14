@@ -40,7 +40,7 @@ func fetchHKPrivateKeyF(command *cobra.Command, args []string) error {
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if resourceNamespace == "" {
@@ -49,13 +49,13 @@ func fetchHKPrivateKeyF(command *cobra.Command, args []string) error {
 
 	keyData, err := getHousekeepingKey(resourceName, resourceNamespace, true)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	outputFile, err := command.Flags().GetString("output")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if outputFile == "" {
@@ -63,13 +63,13 @@ func fetchHKPrivateKeyF(command *cobra.Command, args []string) error {
 	} else {
 		outFile, err := os.Create(outputFile)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		defer outFile.Close()
 
 		if _, err := outFile.Write(keyData); err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}

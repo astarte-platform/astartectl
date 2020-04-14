@@ -72,7 +72,7 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 
 	credentialsSecret, err := astarteAPIClient.Pairing.RegisterDevice(realm, deviceID)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -101,7 +101,7 @@ func agentUnregisterF(command *cobra.Command, args []string) error {
 	if !nonInteractive {
 		confirmation, err := utils.AskForConfirmation("Do you want to continue?")
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		if !confirmation {
@@ -111,7 +111,7 @@ func agentUnregisterF(command *cobra.Command, args []string) error {
 
 	err = astarteAPIClient.Pairing.UnregisterDevice(realm, deviceID)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
