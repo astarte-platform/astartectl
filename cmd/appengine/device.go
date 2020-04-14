@@ -349,7 +349,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				if i.IsParametric() {
 					val, err := astarteAPIClient.AppEngine.GetAggregateParametricDatastreamSnapshot(realm, deviceID, deviceIdentifierType, i.Name)
 					if err != nil {
-						return err
+						warnOrFail(snapshotInterface, i.Name, err)
 					}
 					for path, aggregate := range val {
 						if outputType == "json" {
@@ -373,7 +373,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				} else {
 					val, err := astarteAPIClient.AppEngine.GetAggregateDatastreamSnapshot(realm, deviceID, deviceIdentifierType, i.Name)
 					if err != nil {
-						return err
+						warnOrFail(snapshotInterface, i.Name, err)
 					}
 					if outputType == "json" {
 						jsonOutput[i.Name] = val
@@ -396,7 +396,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			} else {
 				val, err := astarteAPIClient.AppEngine.GetDatastreamSnapshot(realm, deviceID, deviceIdentifierType, i.Name)
 				if err != nil {
-					return err
+					warnOrFail(snapshotInterface, i.Name, err)
 				}
 				jsonRepresentation := make(map[string]interface{})
 				for k, v := range val {
@@ -417,7 +417,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		case interfaces.PropertiesType:
 			val, err := astarteAPIClient.AppEngine.GetProperties(realm, deviceID, deviceIdentifierType, i.Name)
 			if err != nil {
-				return err
+				warnOrFail(snapshotInterface, i.Name, err)
 			}
 			jsonRepresentation := make(map[string]interface{})
 			for k, v := range val {
@@ -439,6 +439,17 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 	renderOutput(t, jsonOutput, outputType)
 
 	return nil
+}
+
+func warnOrFail(snapshotInterface, interfaceName string, err error) {
+	if snapshotInterface != "" {
+		// Fail only if we're parsing a single interface
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	// Just warn
+	fmt.Fprintf(os.Stderr, "warn: Could not parse results for interface %s: %s\n", interfaceName, err)
 }
 
 func devicesGetSamplesF(command *cobra.Command, args []string) error {
