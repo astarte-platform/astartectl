@@ -61,7 +61,7 @@ func clusterUninstallF(command *cobra.Command, args []string) error {
 	if !nonInteractive {
 		confirmation, err := utils.AskForConfirmation("Do you want to continue?")
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		if !confirmation {
@@ -73,48 +73,48 @@ func clusterUninstallF(command *cobra.Command, args []string) error {
 	err = kubernetesClient.AppsV1().Deployments("kube-system").Delete(
 		context.TODO(), "astarte-operator", metav1.DeleteOptions{})
 	if err != nil {
-		fmt.Println("WARNING: Could not delete Astarte Operator Deployment.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "WARNING: Could not delete Astarte Operator Deployment.")
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	// Delete Cluster Role Binding
 	err = kubernetesClient.RbacV1().ClusterRoleBindings().Delete(
 		context.TODO(), "astarte-operator", metav1.DeleteOptions{})
 	if err != nil {
-		fmt.Println("WARNING: Could not delete Cluster Role Binding.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "WARNING: Could not delete Cluster Role Binding.")
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	// Delete Cluster Role
 	err = kubernetesClient.RbacV1().ClusterRoles().Delete(
 		context.TODO(), "astarte-operator", metav1.DeleteOptions{})
 	if err != nil {
-		fmt.Println("WARNING: Could not delete Cluster Role.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "WARNING: Could not delete Cluster Role.")
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	// Delete Service Account
 	err = kubernetesClient.CoreV1().ServiceAccounts("kube-system").Delete(
 		context.TODO(), "astarte-operator", metav1.DeleteOptions{})
 	if err != nil {
-		fmt.Println("WARNING: Could not delete Service Account.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "WARNING: Could not delete Service Account.")
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	// Delete Astarte CRD
 	err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(
 		context.TODO(), "astartes.api.astarte-platform.org", metav1.DeleteOptions{})
 	if err != nil {
-		fmt.Println("WARNING: Could not delete Astarte CRD.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "WARNING: Could not delete Astarte CRD.")
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	// Delete AstarteVoyagerIngress CRD
 	err = kubernetesAPIExtensionsClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(
 		context.TODO(), "astartevoyageringresses.api.astarte-platform.org", metav1.DeleteOptions{})
 	if err != nil {
-		fmt.Println("WARNING: Could not delete Astarte CRD.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "WARNING: Could not delete Astarte CRD.")
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	fmt.Println("Astarte Operator has been successfully uninstalled from your cluster.")

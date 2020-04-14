@@ -124,7 +124,7 @@ func init() {
 func interfacesListF(command *cobra.Command, args []string) error {
 	realmInterfaces, err := astarteAPIClient.RealmManagement.ListInterfaces(realm)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -136,7 +136,7 @@ func interfacesVersionsF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
 	interfaceVersions, err := astarteAPIClient.RealmManagement.ListInterfaceMajorVersions(realm, interfaceName)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -154,13 +154,13 @@ func interfacesShowF(command *cobra.Command, args []string) error {
 
 	interfaceDefinition, err := astarteAPIClient.RealmManagement.GetInterface(realm, interfaceName, interfaceMajor)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	respJSON, err := json.MarshalIndent(interfaceDefinition, "", "  ")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	fmt.Println(string(respJSON))
@@ -179,7 +179,7 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 	}
 
 	if err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -192,7 +192,7 @@ func interfacesDeleteF(command *cobra.Command, args []string) error {
 	interfaceMajor := 0
 
 	if err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -213,7 +213,7 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 
 	if err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
 		astarteInterface); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

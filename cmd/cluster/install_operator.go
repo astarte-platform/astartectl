@@ -65,26 +65,26 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	if version == "" {
 		version, err = getLastOperatorRelease()
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
 
 	semVersion, err := semver.NewVersion(version)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	if isUnstableVersion(version) {
-		fmt.Println("You're trying install in your cluster an unstable snapshot - this is usually is a bad idea. Make sure you know what you're doing.")
+		fmt.Fprintln(os.Stderr, "You're trying install in your cluster an unstable snapshot - this is usually is a bad idea. Make sure you know what you're doing.")
 	}
 
 	fmt.Printf("Will install Astarte Operator version %s in the Cluster.\n", version)
 	if !nonInteractive {
 		confirmation, err := utils.AskForConfirmation("Do you want to continue?")
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		if !confirmation {
@@ -100,10 +100,10 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 		context.TODO(), serviceAccount.(*corev1.ServiceAccount), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			fmt.Println("WARNING: Service Account already exists in the cluster.")
+			fmt.Fprintln(os.Stderr, "WARNING: Service Account already exists in the cluster.")
 		} else {
-			fmt.Println("Error while deploying Service Account. Your deployment might be incomplete.")
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, "Error while deploying Service Account. Your deployment might be incomplete.")
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -113,10 +113,10 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	_, err = kubernetesClient.RbacV1().ClusterRoles().Create(context.TODO(), role.(*rbacv1.ClusterRole), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			fmt.Println("WARNING: Cluster Role already exists in the cluster.")
+			fmt.Fprintln(os.Stderr, "WARNING: Cluster Role already exists in the cluster.")
 		} else {
-			fmt.Println("Error while deploying Service Account. Your deployment might be incomplete.")
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, "Error while deploying Service Account. Your deployment might be incomplete.")
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -127,10 +127,10 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 		context.TODO(), roleBinding.(*rbacv1.ClusterRoleBinding), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			fmt.Println("WARNING: Cluster Role Binding already exists in the cluster.")
+			fmt.Fprintln(os.Stderr, "WARNING: Cluster Role Binding already exists in the cluster.")
 		} else {
-			fmt.Println("Error while deploying Service Account. Your deployment might be incomplete.")
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, "Error while deploying Service Account. Your deployment might be incomplete.")
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -152,10 +152,10 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 		context.TODO(), astarteCRD.(*apiextensionsv1beta1.CustomResourceDefinition), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			fmt.Println("WARNING: Astarte CRD already exists in the cluster.")
+			fmt.Fprintln(os.Stderr, "WARNING: Astarte CRD already exists in the cluster.")
 		} else {
-			fmt.Println("Error while deploying Astarte CRD. Your deployment might be incomplete.")
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, "Error while deploying Astarte CRD. Your deployment might be incomplete.")
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -165,10 +165,10 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 		context.TODO(), astarteVoyagerIngressCRD.(*apiextensionsv1beta1.CustomResourceDefinition), metav1.CreateOptions{})
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			fmt.Println("WARNING: AstarteVoyagerIngress CRD already exists in the cluster.")
+			fmt.Fprintln(os.Stderr, "WARNING: AstarteVoyagerIngress CRD already exists in the cluster.")
 		} else {
-			fmt.Println("Error while deploying AstarteVoyagerIngress CRD. Your deployment might be incomplete.")
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, "Error while deploying AstarteVoyagerIngress CRD. Your deployment might be incomplete.")
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -181,8 +181,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	astarteOperatorDeployment, err := kubernetesClient.AppsV1().Deployments("kube-system").Create(
 		context.TODO(), astarteOperator.(*appsv1.Deployment), metav1.CreateOptions{})
 	if err != nil {
-		fmt.Println("Error while deploying Astarte Operator Deployment. Your deployment might be incomplete.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "Error while deploying Astarte Operator Deployment. Your deployment might be incomplete.")
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -192,8 +192,8 @@ func clusterInstallF(command *cobra.Command, args []string) error {
 	watcher, err := kubernetesClient.AppsV1().Deployments("kube-system").Watch(
 		context.TODO(), metav1.ListOptions{TimeoutSeconds: &timeoutSeconds})
 	if err != nil {
-		fmt.Println("Could not watch the Deployment state. However, deployment might be complete. Check with astartectl cluster show in a while.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "Could not watch the Deployment state. However, deployment might be complete. Check with astartectl cluster show in a while.")
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	ch := watcher.ResultChan()

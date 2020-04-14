@@ -77,14 +77,14 @@ func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resource
 		case types.Int:
 			i, err := strconv.Atoi(stringValue)
 			if err != nil {
-				fmt.Printf("%v is not a valid value for %v.\n", stringValue, customizableField.Field)
+				fmt.Fprintf(os.Stderr, "%v is not a valid value for %v.\n", stringValue, customizableField.Field)
 				os.Exit(1)
 			}
 			customFields[customizableField.Field] = i
 		case types.Bool:
 			b, err := strconv.ParseBool(stringValue)
 			if err != nil {
-				fmt.Printf("%v is not a valid value for %v.\n", stringValue, customizableField.Field)
+				fmt.Fprintf(os.Stderr, "%v is not a valid value for %v.\n", stringValue, customizableField.Field)
 				os.Exit(1)
 			}
 			customFields[customizableField.Field] = b
@@ -106,12 +106,12 @@ func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resource
 
 	astarteDeploymentYaml, err := yaml.Marshal(astarteK8sDeployment)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	astarteDeploymentResource, err := utils.UnmarshalYAMLToJSON(astarteDeploymentYaml)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	// Go with the custom fields

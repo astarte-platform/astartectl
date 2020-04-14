@@ -102,7 +102,7 @@ You can also specify the flag multiple times instead of separating it with a com
 func realmsListF(command *cobra.Command, args []string) error {
 	realms, err := astarteAPIClient.Housekeeping.ListRealms()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -115,7 +115,7 @@ func realmsShowF(command *cobra.Command, args []string) error {
 
 	realmDetails, err := astarteAPIClient.Housekeeping.GetRealm(realm)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -184,7 +184,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	}
 	astarteURL, err := url.Parse(urlString)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	contextName := ""
@@ -235,23 +235,23 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	case publicKey != "":
 		publicKeyContent, err = ioutil.ReadFile(publicKey)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	case privateKey != "":
 		privateKeyContent, err = ioutil.ReadFile(privateKey)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		key, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyContent)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
 		if publicKeyContent, err = getPublicKeyPEMBytes(&key.PublicKey); err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	default:
@@ -263,12 +263,12 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		}
 
 		if privateKeyContent, err = getPrivateKeyPEMBytes(key); err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
 		if publicKeyContent, err = getPublicKeyPEMBytes(&key.PublicKey); err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -283,7 +283,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	}
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -309,10 +309,10 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 
 	configDir := config.GetConfigDir()
 	if err := config.SaveContextConfiguration(configDir, contextName, configContext, true); err != nil {
-		fmt.Printf("Could not save cluster configuration: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Could not save cluster configuration: %s\n", err)
 		if privateKey == "" {
 			// Dump the private key
-			fmt.Println("Dumping private key for reference")
+			fmt.Fprintln(os.Stderr, "Dumping private key for reference")
 			fmt.Println(string(privateKeyContent))
 		}
 	} else {

@@ -163,7 +163,7 @@ func init() {
 func devicesListF(command *cobra.Command, args []string) error {
 	devices, err := astarteAPIClient.AppEngine.ListDevices(realm)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -237,7 +237,7 @@ func devicesShowF(command *cobra.Command, args []string) error {
 
 	deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -309,7 +309,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 
 		deviceDetails, err := astarteAPIClient.AppEngine.GetDevice(realm, deviceID, deviceIdentifierType)
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
@@ -328,7 +328,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		// Get the proto interface
 		iface, err := getProtoInterface(deviceID, deviceIdentifierType, snapshotInterface, interfaceTypeString, skipRealmManagementChecks)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
@@ -528,7 +528,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 			}
 
 			if interfaceDescription.Type != interfaces.DatastreamType {
-				fmt.Printf("%s is not a Datastream interface. get-samples works only on Datastream interfaces\n", interfaceName)
+				fmt.Fprintf(os.Stderr, "%s is not a Datastream interface. get-samples works only on Datastream interfaces\n", interfaceName)
 				os.Exit(1)
 			}
 
@@ -537,21 +537,21 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 
 			switch {
 			case isAggregate && interfaceDescription.IsParametric() && interfacePath == "":
-				fmt.Printf("%s is an aggregate parametric interface, a valid path should be specified\n", interfaceName)
+				fmt.Fprintf(os.Stderr, "%s is an aggregate parametric interface, a valid path should be specified\n", interfaceName)
 				os.Exit(1)
 			case !isAggregate && interfacePath == "":
-				fmt.Printf("You need to specify a valid path for interface %s\n", interfaceName)
+				fmt.Fprintf(os.Stderr, "You need to specify a valid path for interface %s\n", interfaceName)
 				os.Exit(1)
 			default:
 				if err := interfaces.ValidateQuery(interfaceDescription, interfacePath); err != nil {
-					fmt.Println(err)
+					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
 			}
 		}
 
 		if !interfaceFound {
-			fmt.Printf("Device %s has no interface named %s\n", deviceID, interfaceName)
+			fmt.Fprintf(os.Stderr, "Device %s has no interface named %s\n", deviceID, interfaceName)
 			os.Exit(1)
 		}
 	} else {
@@ -568,13 +568,13 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 		datastreamPaginator, err := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID,
 			deviceIdentifierType, interfaceName, interfacePath, sinceTime, toTime, resultSetOrder)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
 			page, err := datastreamPaginator.GetNextPage()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
 
@@ -601,13 +601,13 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 		datastreamPaginator, err := astarteAPIClient.AppEngine.GetDatastreamsTimeWindowPaginator(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath,
 			sinceTime, toTime, resultSetOrder)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		for ok := true; ok; ok = datastreamPaginator.HasNextPage() {
 			page, err := datastreamPaginator.GetNextAggregatePage()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
 
@@ -676,12 +676,12 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 
 	iface, err := getProtoInterface(deviceID, deviceIdentifierType, interfaceName, interfaceTypeString, skipRealmManagementChecks)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if !skipRealmManagementChecks {
 		if iface.Ownership != interfaces.ServerOwnership {
-			fmt.Println("send-data makes sense only for server-owned interfaces")
+			fmt.Fprintln(os.Stderr, "send-data makes sense only for server-owned interfaces")
 			os.Exit(1)
 		}
 	}
@@ -712,7 +712,7 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 		if payloadType == "" {
 			mapping, err := interfaces.InterfaceMappingFromPath(iface, interfacePath)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
 			payloadType = mapping.Type
@@ -764,7 +764,7 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	}
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

@@ -50,7 +50,7 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if resourceNamespace == "" {
@@ -59,7 +59,7 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 
 	astarteObject, err := getAstarteInstance(resourceName, resourceNamespace)
 	if err != nil {
-		fmt.Printf("Could not find resource %s in namespace %s.\n", resourceName, resourceNamespace)
+		fmt.Fprintf(os.Stderr, "Could not find resource %s in namespace %s.\n", resourceName, resourceNamespace)
 		os.Exit(1)
 	}
 
@@ -67,12 +67,12 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 	_, deploymentManager, deploymentProfile := getManagedAstarteResourceStatus(*astarteObject)
 	oldAstarteVersion, err := semver.NewVersion(astarteSpec["version"].(string))
 	if err != nil {
-		fmt.Printf("Installed version %s is not a valid Astarte version. Please ensure your Astarte installation is manageable by astartectl.", astarteSpec["version"].(string))
+		fmt.Fprintf(os.Stderr, "Installed version %s is not a valid Astarte version. Please ensure your Astarte installation is manageable by astartectl.", astarteSpec["version"].(string))
 		os.Exit(1)
 	}
 
 	if deploymentManager != "astartectl" {
-		fmt.Println("WARNING: It looks like this Astarte deployment isn't managed by astartectl. On paper, everything should still work, but have extra care in reviewing changes once done.")
+		fmt.Fprintln(os.Stderr, "WARNING: It looks like this Astarte deployment isn't managed by astartectl. On paper, everything should still work, but have extra care in reviewing changes once done.")
 	}
 
 	// Good. Let's check the version now.
@@ -89,13 +89,13 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 		}
 		version, err = utils.PromptChoice("What Astarte version would you like to upgrade to?", latestAstarteVersion, false)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
 	astarteVersion, err := semver.NewVersion(version)
 	if err != nil {
-		fmt.Printf("%s is not a valid Astarte version", version)
+		fmt.Fprintf(os.Stderr, "%s is not a valid Astarte version", version)
 		os.Exit(1)
 	}
 
@@ -110,7 +110,7 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 		fmt.Println("It looks like this deployment has no profile associated. To move forward, you should probably associate a profile. You may choose not to, but in that case, I won't be able to help you if anything changed in the Operator.")
 		associateProfile, err := utils.AskForConfirmation("Would you like to associate a profile?")
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		if associateProfile {
@@ -120,7 +120,7 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 			// Get the profile
 			deploymentProfile, astarteDeployment, err = promptForProfile(command, astarteVersion)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
 		} else {
@@ -132,7 +132,7 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 		// and call it a day.
 		astarteDeployment = deployment.GetMatchingProfile(deploymentProfile, astarteVersion)
 		if !astarteDeployment.IsValid() {
-			fmt.Printf("I found no matching '%s' profile for Astarte %s. Maybe upgrade astartectl?\n", deploymentProfile, version)
+			fmt.Fprintf(os.Stderr, "I found no matching '%s' profile for Astarte %s. Maybe upgrade astartectl?\n", deploymentProfile, version)
 			os.Exit(1)
 		}
 		fmt.Println("Found a matching profile. Let me handle the hard stuff for you then, you're in good hands!")
@@ -183,7 +183,7 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 	_, err = kubernetesDynamicClient.Resource(astarteV1Alpha1).Namespace(resourceNamespace).Patch(
 		context.TODO(), resourceName, types.MergePatchType, patch, v1.PatchOptions{})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

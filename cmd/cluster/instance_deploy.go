@@ -67,19 +67,19 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 		latestAstarteVersion, _ := getLastAstarteRelease()
 		version, err = utils.PromptChoice("What Astarte version would you like to install?", latestAstarteVersion, false)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
 	astarteVersion, err := semver.NewVersion(version)
 	if err != nil {
-		fmt.Printf("%s is not a valid Astarte version", version)
+		fmt.Fprintf(os.Stderr, "%s is not a valid Astarte version", version)
 		os.Exit(1)
 	}
 
 	profile, astarteDeployment, err := promptForProfile(command, astarteVersion)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -95,7 +95,7 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	if reviewConfiguration {
 		marshaledResource, err := yaml.Marshal(astarteDeploymentResource)
 		if err != nil {
-			fmt.Println("Could not build the YAML representation. Aborting.")
+			fmt.Fprintln(os.Stderr, "Could not build the YAML representation. Aborting.")
 			os.Exit(1)
 		}
 		fmt.Println(string(marshaledResource))
@@ -109,7 +109,7 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	// Let's do it. Retrieve the namespace first and ensure it's there
 	namespaceList, err := kubernetesClient.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	namespaceFound := false
@@ -121,12 +121,12 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	}
 
 	if !namespaceFound {
-		fmt.Printf("Namespace %s does not exist, creating it...\n", resourceNamespace)
+		fmt.Fprintf(os.Stderr, "Namespace %s does not exist, creating it...\n", resourceNamespace)
 		nsSpec := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: resourceNamespace}}
 		_, err := kubernetesClient.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 		if err != nil {
-			fmt.Println("Could not create namespace!")
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, "Could not create namespace!")
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -134,8 +134,8 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	_, err = kubernetesDynamicClient.Resource(astarteV1Alpha1).Namespace(resourceNamespace).Create(
 		context.TODO(), &unstructured.Unstructured{Object: astarteDeploymentResource}, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Println("Error while deploying Astarte Resource.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "Error while deploying Astarte Resource.")
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -153,6 +153,6 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	}
 
 	// We timed out. However, don't fail
-	fmt.Println("Could not fetch Housekeeping key! A context wasn't created, and you should check your deployment - something might be off")
+	fmt.Fprintln(os.Stderr, "Could not fetch Housekeeping key! A context wasn't created, and you should check your deployment - something might be off")
 	return nil
 }

@@ -46,7 +46,7 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 	resourceName := args[0]
 	resourceNamespace, err := command.Flags().GetString("namespace")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if resourceNamespace == "" {
@@ -54,12 +54,12 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 	}
 	deleteVolumes, err := command.Flags().GetBool("delete-volumes")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	if _, err := getAstarteInstance(resourceName, resourceNamespace); err != nil {
-		fmt.Printf("Could not find resource %s in namespace %s.\n", resourceName, resourceNamespace)
+		fmt.Fprintf(os.Stderr, "Could not find resource %s in namespace %s.\n", resourceName, resourceNamespace)
 		os.Exit(1)
 	}
 
@@ -67,7 +67,7 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 	fmt.Println("WARNING: This operation is NOT REVERSIBLE and ALL DATA WILL BE LOST!!!")
 	confirmation, err := utils.PromptChoice("To continue, please enter the exact name of the Astarte instance you are deleting:", "", true)
 	if confirmation != resourceName {
-		fmt.Println("Aborting.")
+		fmt.Fprintln(os.Stderr, "Aborting.")
 		os.Exit(1)
 	}
 
@@ -75,8 +75,8 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 	// Kill it.
 	err = kubernetesDynamicClient.Resource(astarteV1Alpha1).Namespace(resourceNamespace).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 	if err != nil {
-		fmt.Println("Error while destroying Astarte Resource.")
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, "Error while destroying Astarte Resource.")
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -86,7 +86,7 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 		fmt.Println("Deleting all Volumes...")
 		pvcList, err := kubernetesClient.CoreV1().PersistentVolumeClaims(resourceNamespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			fmt.Println("Could not list PVCs. You might need to delete Volumes manually.")
+			fmt.Fprintln(os.Stderr, "Could not list PVCs. You might need to delete Volumes manually.")
 			os.Exit(1)
 		}
 
