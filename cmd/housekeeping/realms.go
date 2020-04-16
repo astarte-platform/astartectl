@@ -379,7 +379,8 @@ func getClusterNameFromURLs() (string, error) {
 			if err != nil {
 				continue
 			}
-			if cluster.IndividualURLs.Housekeeping == viper.GetString("individual-urls.housekeeping") || cluster.URL == viper.GetString("url") {
+			if (cluster.IndividualURLs.Housekeeping == viper.GetString("individual-urls.housekeeping") && viper.GetString("individual-urls.housekeeping") != "") ||
+				(cluster.URL == viper.GetString("url") && viper.GetString("url") != "") {
 				// yay
 				return c, nil
 			}
