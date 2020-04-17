@@ -1,0 +1,72 @@
+project_name: astartectl
+
+before:
+  hooks:
+    - go mod download
+builds:
+- id: astartectl
+  binary: astartectl
+  goos:
+    - linux
+    - darwin
+    - windows
+  env:
+  - CGO_ENABLED=0
+# Do not build archives
+archives:
+nfpms:
+  # note that this is an array of nfpm configs
+  - id: astartectl
+    package_name: astartectl
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Arch }}"
+
+    # Replacements for GOOS and GOARCH in the package name.
+    # Keys should be valid GOOSs or GOARCHs.
+    # Values are the respective replacements.
+    # Default is empty.
+    replacements:
+      darwin: macOS
+      amd64: x86_64
+
+    vendor: Ispirata
+    # Your app's homepage.
+    # Default is empty.
+    homepage: https://github.com/astarte-platform/astartectl
+
+    # Your app's maintainer (probably you).
+    # Default is empty.
+    maintainer: Astarte Developers <info@astarte-platform.org>
+
+    # Your app's description.
+    # Default is empty.
+    description: Command-line tool to manage Astarte Clusters.
+
+    # Your app's license.
+    # Default is empty.
+    license: Apache 2.0
+
+    # Formats to be generated.
+    formats:
+      - deb
+      - rpm
+
+    # Override default /usr/local/bin destination for binaries
+    bindir: /usr/bin
+
+    scripts:
+      postinstall: "scripts/postinstall.sh"
+      preremove: "scripts/preremove.sh"
+
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+release:
+  prerelease: auto
+  name_template: "astartectl {{.Version}}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
