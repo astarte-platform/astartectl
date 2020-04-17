@@ -220,8 +220,12 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	}
 
 	if privateKey == "" && publicKey == "" {
-		fmt.Println("A new private key will be generated for this realm and saved in your configuration.")
-		fmt.Printf("You will be able to access it with \"astartectl config contexts get-realm-key %s\".\n", contextName)
+		if createContext {
+			fmt.Println("A new private key will be generated for this realm and saved in your configuration.")
+			fmt.Printf("You will be able to access it with \"astartectl config contexts get-realm-key %s\".\n", contextName)
+		} else {
+			fmt.Println("A new private key will be generated for this realm and printed after successful Realm creation.")
+		}
 		fmt.Println()
 	}
 
@@ -289,8 +293,15 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 
 	fmt.Printf("Realm %s created successfully!\n", realm)
 
-	// If we're not creating a context, return
+	// If we're not creating a context, return (and print the key for reference)
 	if !createContext {
+		if privateKey == "" && publicKey == "" {
+			fmt.Println()
+			fmt.Println("This is your Realm's private key. Make sure you store it somewhere safe.")
+			fmt.Println()
+			fmt.Println(string(privateKeyContent))
+		}
+
 		return nil
 	}
 
