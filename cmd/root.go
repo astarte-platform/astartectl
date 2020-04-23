@@ -83,7 +83,8 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if err := config.ConfigureViper(cfgContext); err != nil {
+	// If the config does not exist, do not warn - it's simply not there.
+	if err := config.ConfigureViper(cfgContext); err != nil && !os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "warn: Error while loading configuration: %s\n", err.Error())
 	}
 
