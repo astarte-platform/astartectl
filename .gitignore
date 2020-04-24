@@ -3,3 +3,4 @@ main
 astartectl
 astartectl_*
 .gobuild
+dist/
