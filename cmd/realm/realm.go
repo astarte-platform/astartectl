@@ -51,7 +51,7 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
 	astarteAPIClient, err = utils.APICommandSetup(
-		map[misc.AstarteService]string{misc.RealmManagement: "individual-urls.realm-management."}, "realm.key", "realm.key-file")
+		map[misc.AstarteService]string{misc.RealmManagement: "individual-urls.realm-management"}, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}
