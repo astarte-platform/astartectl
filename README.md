@@ -20,39 +20,35 @@ You can download latest `astartectl` binaries for all platforms from [GitHub Rel
 
 Move the binaries to your `$PATH` folder or set your `$PATH` to the folder where `astartectl` is run from.
 
-### Using go get
-
-Assuming you have you go installation and [GOPATH set up](https://github.com/golang/go/wiki/SettingGOPATH),
-you can just run
-
-`go get github.com/astarte-platform/astartectl`
-
-The `astartectl` binary will be installed in your `GOPATH`.
-
 ## Configuration
 
-If you are using `astartectl` a lot with the same deployment, it could be easier to use a configuration
-file instead of using flags. By default `astartectl` will search for `.astartectl.yaml` in your home
-directory, but you can make it use a custom configuration by setting its path in the `ASTARTECTL_CONFIG`
-environment variable.
+`astartectl` works with a context-based configuration. If you are familiar with how `kubectl` works, you'll
+find most of its concepts in `astartectl` configuration system. There are two main entities in `astartectl`
+configuration: `cluster` and `context`.
 
-This is a minimal sample configuration
+A `cluster` represents an Astarte Cluster. It might contain housekeeping credentials, but most of all it should
+bear the API URLs necessary to interact with the cluster. `astartectl config clusters` allows you to manipulate
+available clusters.
 
-```yaml
-# This will be used as base url and urls to housekeeping, realm-management and
-# pairing will be build appending /<service-name> to the base url
-url: https://<your API base url>
-housekeeping:
-  key: <path to your housekeeping key>
-realm:
-  name: <your realm name>
-  key: <path to your realm key>
-```
+A `context` represents a configuration for `astartectl`, which references a `cluster` and, optionally an Astarte
+Realm. A `context` with no realm associated is meant to interact with Housekeeping (for, e.g., creating a Realm).
+`astartectl config contexts` allows you to manipulate available clusters.
 
-You can also use environment variables, by using the `ASTARTECTL` prefix and joining the configuration
-key with `_`, (e.g. `ASTARTECTL_REALM_NAME`).
+### Active context
 
-Flags always override configuration.
+At any time, when invoking `astartectl` without any further configuration options, the active `context` will be
+used. There is only one context available at a time, which can be queried by issuing `astartectl config current-context`.
+The context can be changed at any time using `astartectl config set-current-context`.
+
+### Fetching context information
+
+In most cases, if you have access to the Kubernetes Cluster hosting your Astarte Cluster, you will be able to
+automatically build the `cluster` entry in the configuration. This can be done through the
+`astartectl cluster instances get-cluster-config` command, which creates a `cluster` entry based on the Astarte
+instance installed on the Kubernetes cluster referenced by your current `kubectl` context, if any.
+
+In the same fashion, creating a new Realm automatically creates a new configuration `context`, if a private
+key and all necessary information are provided.
 
 ## Usage
 
