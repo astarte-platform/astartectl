@@ -66,6 +66,7 @@ sets specified as arguments to gen-jwt. Supported API sets are:
 
 appengine - Would generate a token valid for AppEngine API. Requires a Realm key for signing.
 channels - Would generate a token valid for Astarte Channels. Requires a Realm key for signing.
+flow - Would generate a token valid for Astarte Flow. Requires a Realm key for signing.
 realm-management - Would generate a token valid for Realm Management API. Requires a Realm key for signing.
 pairing - Would generate a token valid for Pairing API (and, potentially, Device registration). Requires a Realm key for signing.
 housekeeping - Would generate a token valid for Housekeeping API. Requires the Housekeeping key for signing.
@@ -147,10 +148,11 @@ func genJwtF(command *cobra.Command, args []string) error {
 
 			// Add all types
 			servicesAndClaims = map[misc.AstarteService][]string{
-				misc.AppEngine:       []string{},
-				misc.Channels:        []string{},
-				misc.Pairing:         []string{},
-				misc.RealmManagement: []string{},
+				misc.AppEngine:       {},
+				misc.Channels:        {},
+				misc.Flow:            {},
+				misc.Pairing:         {},
+				misc.RealmManagement: {},
 			}
 
 			break
