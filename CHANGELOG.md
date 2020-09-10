@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `housekeeping realms create` has completely different (and incompatible) semantics: it now allows supplying
   either a public, private or no key, and will create a new config context accordingly
 
+## [0.11.1] - 2020-09-10
+### Fixed
+- appengine send-data: fix object aggregated with nested arrays handling
+
 ## [0.11.0] - 2020-04-14
 ### Fixed
 - `appengine devices send-data` now parses integer values correctly for server-owned datastream aggregate
