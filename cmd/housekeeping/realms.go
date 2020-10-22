@@ -16,6 +16,7 @@ package housekeeping
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -30,9 +31,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/config"
 	"github.com/astarte-platform/astartectl/utils"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -248,13 +249,13 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		key, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyContent)
+		key, err := misc.ParsePrivateKeyFromPEM(privateKeyContent)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 
-		if publicKeyContent, err = getPublicKeyPEMBytes(&key.PublicKey); err != nil {
+		if publicKeyContent, err = getPublicKeyPEMBytesFromPrivateKey(key); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -271,7 +272,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 			os.Exit(1)
 		}
 
-		if publicKeyContent, err = getPublicKeyPEMBytes(&key.PublicKey); err != nil {
+		if publicKeyContent, err = getPublicKeyPEMBytesFromPrivateKey(key); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -363,8 +364,21 @@ func getPrivateKeyPEMBytes(key *rsa.PrivateKey) ([]byte, error) {
 	return outbuf.Bytes(), nil
 }
 
-func getPublicKeyPEMBytes(key *rsa.PublicKey) ([]byte, error) {
-	pkixBytes, err := x509.MarshalPKIXPublicKey(key)
+func getPublicKeyPEMBytesFromPrivateKey(key interface{}) ([]byte, error) {
+	var pkixBytes []byte
+	var err error
+
+	switch k := key.(type) {
+	case *rsa.PrivateKey:
+		pkixBytes, err = x509.MarshalPKIXPublicKey(k.Public())
+
+	case *ecdsa.PrivateKey:
+		pkixBytes, err = x509.MarshalPKIXPublicKey(k.Public())
+
+	default:
+		return nil, errors.New("Unsupported private key type")
+	}
+
 	if err != nil {
 		return nil, err
 	}
