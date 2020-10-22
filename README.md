@@ -4,6 +4,8 @@ Command line utility to manage Astarte
 
 ## Installation
 
+`astartectl` requires at least Go 1.13.
+
 ### Using homebrew
 
 If you are using [homebrew](https://brew.sh/) on your system, you can install `astartectl` out of its tap:

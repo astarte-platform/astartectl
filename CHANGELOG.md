@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `housekeeping realms create` has completely different (and incompatible) semantics: it now allows supplying
   either a public, private or no key, and will create a new config context accordingly
 
+## [0.11.2] - Unreleased
+### Added
+- Add support for EC keys for JWT generation.
+
+### Changed
+- Bump Go version requirement to >= 1.13.
+
 ## [0.11.1] - 2020-09-10
 ### Fixed
 - appengine send-data: fix object aggregated with nested arrays handling

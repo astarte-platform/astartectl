@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/araddon/dateparse v0.0.0-20200409225146-d820a6159ab1
-	github.com/astarte-platform/astarte-go v0.0.0-20200910083236-fdd796f5f40b
+	github.com/astarte-platform/astarte-go v0.0.0-20201019144134-034b33222f08
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/google/go-github/v30 v30.1.0
 	github.com/google/uuid v1.1.2
