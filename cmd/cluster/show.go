@@ -40,7 +40,7 @@ func clusterShowF(command *cobra.Command, args []string) error {
 	if err != nil {
 		fmt.Println("Could not find an Astarte Operator Deployment on this Kubernetes Cluster.")
 		fmt.Println()
-		fmt.Println("To install Astarte Operator in this cluster, please run astartectl cluster install-operator.")
+		fmt.Println("To install Astarte Operator in this cluster, please use Helm (https://helm.sh) and follow the Astarte Administrator Guide.")
 		os.Exit(0)
 	}
 
