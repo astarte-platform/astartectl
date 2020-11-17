@@ -130,6 +130,8 @@ func isASupportedOutputType(outputType string) bool {
 func init() {
 	AppEngineCmd.AddCommand(devicesCmd)
 
+	devicesListCmd.Flags().BoolP("details", "d", false, "When set, return the device list with all the DeviceDetails. Otherwise, just return the Device ID")
+
 	devicesGetSamplesCmd.Flags().IntP("count", "c", 10000, "Number of samples to be retrieved. Defaults to 10000. Setting this to 0 retrieves all samples.")
 	devicesGetSamplesCmd.Flags().Bool("ascending", false, "When set, returns samples in ascending order rather than descending.")
 	devicesGetSamplesCmd.Flags().String("since", "", "When set, returns only samples newer than the provided date.")
@@ -161,13 +163,41 @@ func init() {
 }
 
 func devicesListF(command *cobra.Command, args []string) error {
-	devices, err := astarteAPIClient.AppEngine.ListDevices(realm)
+	details, err := command.Flags().GetBool("details")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
-	fmt.Println(devices)
+	if details {
+		paginator, err := astarteAPIClient.AppEngine.GetDeviceListPaginator(realm, 50)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		for hasNext := paginator.HasNextPage(); hasNext; hasNext = paginator.HasNextPage() {
+			page, err := paginator.GetNextDeviceDetailsPage()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			for _, deviceDetails := range page {
+				prettyPrintDeviceDetails(deviceDetails)
+				fmt.Println()
+			}
+		}
+
+	} else {
+		devices, err := astarteAPIClient.AppEngine.ListDevices(realm)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		fmt.Println(devices)
+	}
+
 	return nil
 }
 
