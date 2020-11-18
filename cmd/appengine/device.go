@@ -126,12 +126,16 @@ const (
 	// ActiveSince allows to filter devices that connected at least once since a
 	// timestamp. Its filter value must be a timestamp in ISO8601 format.
 	ActiveSinceFilter DeviceFilterType = "active-since"
+	// Connected allows filtering devices that are currently
+	// connected/disconnected. Its filter value must be a string that can be
+	// parsed as a boolean
+	ConnectedFilter DeviceFilterType = "connected"
 )
 
 // IsValid returns an error if DeviceFilterType does not represent a valid Astarte Mapping Type
 func (f DeviceFilterType) IsValid() error {
 	switch f {
-	case ActiveSinceFilter:
+	case ActiveSinceFilter, ConnectedFilter:
 		return nil
 	}
 	return errors.New("invalid filter type")
@@ -153,7 +157,8 @@ func init() {
 
 	filtersDoc := `Filter to restrict the device list. Filters must be expressed in the form <filter-type>=<filter-value>. If more than one filter is passed, they will be combined with an AND operation.
 These are the currently supported filter-types:
-active-since: allows to filter devices that connected at least once since a specific timestamp. Its filter value must be a timestamp in ISO8601 format. Usage example: -f active-since=2020-11-12T00:00:00Z`
+active-since: allows to filter devices that connected at least once since a specific timestamp. Its filter value must be a timestamp in ISO8601 format. Usage example: -f active-since=2020-11-12T00:00:00Z
+connected: allows filtering devices that are currently connected/disconnected. Its filter value must be a string that can be parsed as a boolean. Usage example: -f connected=true`
 
 	devicesListCmd.Flags().StringSliceP("filter", "f", []string{}, filtersDoc)
 
@@ -287,6 +292,10 @@ func acceptedByFilter(device client.DeviceDetails, filterType DeviceFilterType, 
 		// Otherwise, we check if the device disconnected after the beginning of the range.
 		// If so, the device was active during the time frame
 		return device.LastDisconnection.After(ts)
+	case ConnectedFilter:
+		desiredConnectedState := filterValue.(bool)
+
+		return desiredConnectedState == device.Connected
 	}
 
 	// Should never end up here, if we do we accept everything
@@ -324,6 +333,13 @@ func buildDeviceFilters(rawDeviceFilters []string) (map[DeviceFilterType]interfa
 
 			ret[filterType] = t
 
+		case ConnectedFilter:
+			connected, err := strconv.ParseBool(rawFilterValue)
+			if err != nil {
+				return emptyMap, errors.New("Invalid filter value for connected filter: " + rawFilterValue)
+			}
+
+			ret[filterType] = connected
 		}
 	}
 

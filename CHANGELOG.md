@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add support for printing device details in `appengine devices list`
 - Add support for filtering recently active devices in `appengine devices list`
+- Add support for filtering connected/disconnected devices in `appengine devices list`
 
 ## [0.11.2] - 2020-10-22
 ### Added
