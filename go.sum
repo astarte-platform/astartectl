@@ -29,6 +29,8 @@ github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a h1:idn718Q4
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/astarte-platform/astarte-go v0.0.0-20201019144134-034b33222f08 h1:FQpW+asev0z9HNK5GnvLcrIpxlIorcxJNeHGSw4BBho=
 github.com/astarte-platform/astarte-go v0.0.0-20201019144134-034b33222f08/go.mod h1:z3qfyKDldol0qjw6ongq72DmMj2TbwNzxLYhcVm+tF4=
+github.com/astarte-platform/astarte-go v0.0.0-20201118151044-4ba5fe0a4e52 h1:d+3fU/W7kih7CMaFTHefLWmQXSwrSRTe2fn5Noze8ws=
+github.com/astarte-platform/astarte-go v0.0.0-20201118151044-4ba5fe0a4e52/go.mod h1:z3qfyKDldol0qjw6ongq72DmMj2TbwNzxLYhcVm+tF4=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0 h1:HWo1m869IqiPhD389kmkxeTalrjNbbJTC8LXupb+sl0=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
