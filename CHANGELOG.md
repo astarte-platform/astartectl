@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.11.3] - Unreleased
+## [0.11.3] - 2021-01-27
 ### Added
 - Add support for printing device details in `appengine devices list`
 - Add support for filtering recently active devices in `appengine devices list`
