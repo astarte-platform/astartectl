@@ -17,6 +17,7 @@ package appengine
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -118,6 +119,28 @@ this is automatically determined - however, you can tweak this behavior by using
 
 var supportedOutputTypes = []string{"default", "csv", "json"}
 
+// DeviceFilterType represents the possible filter types for the device list
+type DeviceFilterType string
+
+const (
+	// ActiveSince allows to filter devices that connected at least once since a
+	// timestamp. Its filter value must be a timestamp in ISO8601 format.
+	ActiveSinceFilter DeviceFilterType = "active-since"
+	// Connected allows filtering devices that are currently
+	// connected/disconnected. Its filter value must be a string that can be
+	// parsed as a boolean
+	ConnectedFilter DeviceFilterType = "connected"
+)
+
+// IsValid returns an error if DeviceFilterType does not represent a valid Astarte Mapping Type
+func (f DeviceFilterType) IsValid() error {
+	switch f {
+	case ActiveSinceFilter, ConnectedFilter:
+		return nil
+	}
+	return errors.New("invalid filter type")
+}
+
 func isASupportedOutputType(outputType string) bool {
 	for _, s := range supportedOutputTypes {
 		if s == outputType {
@@ -129,6 +152,15 @@ func isASupportedOutputType(outputType string) bool {
 
 func init() {
 	AppEngineCmd.AddCommand(devicesCmd)
+
+	devicesListCmd.Flags().BoolP("details", "d", false, "When set, return the device list with all the DeviceDetails. Otherwise, just return the Device ID")
+
+	filtersDoc := `Filter to restrict the device list. Filters must be expressed in the form <filter-type>=<filter-value>. If more than one filter is passed, they will be combined with an AND operation.
+These are the currently supported filter-types:
+active-since: allows to filter devices that connected at least once since a specific timestamp. Its filter value must be a timestamp in ISO8601 format. Usage example: -f active-since=2020-11-12T00:00:00Z
+connected: allows filtering devices that are currently connected/disconnected. Its filter value must be a string that can be parsed as a boolean. Usage example: -f connected=true`
+
+	devicesListCmd.Flags().StringSliceP("filter", "f", []string{}, filtersDoc)
 
 	devicesGetSamplesCmd.Flags().IntP("count", "c", 10000, "Number of samples to be retrieved. Defaults to 10000. Setting this to 0 retrieves all samples.")
 	devicesGetSamplesCmd.Flags().Bool("ascending", false, "When set, returns samples in ascending order rather than descending.")
@@ -161,6 +193,32 @@ func init() {
 }
 
 func devicesListF(command *cobra.Command, args []string) error {
+	details, err := command.Flags().GetBool("details")
+	if err != nil {
+		return err
+	}
+
+	rawDeviceFilters, err := command.Flags().GetStringSlice("filter")
+	if err != nil {
+		return err
+	}
+
+	deviceFiltersMap, err := buildDeviceFilters(rawDeviceFilters)
+	if err != nil {
+		return err
+	}
+
+	if !details && len(deviceFiltersMap) == 0 {
+		printSimpleDevicesList(realm)
+	} else {
+		printDevicesList(realm, details, deviceFiltersMap)
+
+	}
+
+	return nil
+}
+
+func printSimpleDevicesList(realm string) {
 	devices, err := astarteAPIClient.AppEngine.ListDevices(realm)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -168,7 +226,124 @@ func devicesListF(command *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(devices)
-	return nil
+}
+
+func printDevicesList(realm string, details bool, deviceFilters map[DeviceFilterType]interface{}) {
+	paginator, err := astarteAPIClient.AppEngine.GetDeviceListPaginator(realm, 100, client.DeviceDetailsFormat)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// This will be used only if details is false
+	deviceIDList := []string{}
+
+	hasFilters := len(deviceFilters) > 0
+
+	for hasNext := paginator.HasNextPage(); hasNext; hasNext = paginator.HasNextPage() {
+		page := []client.DeviceDetails{}
+		err := paginator.GetNextPage(&page)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		for _, deviceDetails := range page {
+			if hasFilters && !deviceShouldBeIncluded(deviceDetails, deviceFilters) {
+				continue
+			}
+
+			if details {
+				// If we want details, we print the list as we go
+				prettyPrintDeviceDetails(deviceDetails)
+				fmt.Println()
+			} else {
+				// Otherwise, we populate the deviceIDList
+				deviceIDList = append(deviceIDList, deviceDetails.DeviceID)
+			}
+		}
+	}
+
+	if !details {
+		fmt.Println(deviceIDList)
+	}
+}
+
+func deviceShouldBeIncluded(device client.DeviceDetails, deviceFilters map[DeviceFilterType]interface{}) bool {
+	for filterType, filterValue := range deviceFilters {
+		if !acceptedByFilter(device, filterType, filterValue) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func acceptedByFilter(device client.DeviceDetails, filterType DeviceFilterType, filterValue interface{}) bool {
+	switch filterType {
+	case ActiveSinceFilter:
+		// If it's currently connected, then it surely was active
+		if device.Connected {
+			return true
+		}
+
+		ts := filterValue.(time.Time)
+
+		// Otherwise, we check if the device disconnected after the beginning of the range.
+		// If so, the device was active during the time frame
+		return device.LastDisconnection.After(ts)
+	case ConnectedFilter:
+		desiredConnectedState := filterValue.(bool)
+
+		return desiredConnectedState == device.Connected
+	}
+
+	// Should never end up here, if we do we accept everything
+	return true
+}
+
+func buildDeviceFilters(rawDeviceFilters []string) (map[DeviceFilterType]interface{}, error) {
+	emptyMap := map[DeviceFilterType]interface{}{}
+	ret := emptyMap
+
+	for _, filter := range rawDeviceFilters {
+		s := strings.Split(filter, "=")
+		if len(s) != 2 {
+			return emptyMap, errors.New("Invalid filter format")
+		}
+
+		filterType := DeviceFilterType(s[0])
+		rawFilterValue := s[1]
+
+		err := filterType.IsValid()
+		if err != nil {
+			return emptyMap, errors.New("Invalid filter type: " + s[0])
+		}
+
+		switch filterType {
+		case ActiveSinceFilter:
+			t, err := time.Parse(time.RFC3339, rawFilterValue)
+			if err != nil {
+				return emptyMap, errors.New("Invalid filter value for active-since filter: " + rawFilterValue)
+			}
+
+			if t.After(time.Now()) {
+				return emptyMap, errors.New("Timestamp for active-since must be in the past")
+			}
+
+			ret[filterType] = t
+
+		case ConnectedFilter:
+			connected, err := strconv.ParseBool(rawFilterValue)
+			if err != nil {
+				return emptyMap, errors.New("Invalid filter value for connected filter: " + rawFilterValue)
+			}
+
+			ret[filterType] = connected
+		}
+	}
+
+	return ret, nil
 }
 
 func prettyPrintDeviceDetails(deviceDetails client.DeviceDetails) {
