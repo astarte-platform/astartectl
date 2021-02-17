@@ -99,7 +99,7 @@ Should be Housekeeping key to generate an housekeeping token, Realm key for ever
 	genJwtCmd.MarkFlagFilename("private-key")
 	genJwtCmd.Flags().StringSliceP("claims", "c", nil, `The list of claims to be added in the JWT. Defaults to all-access claims.
 You can specify the flag multiple times or separate the claims with a comma.`)
-	genJwtCmd.Flags().Int64P("expiry", "e", 300, "Expiration time of the token in seconds. 0 means the token will never expire.")
+	genJwtCmd.Flags().Int64P("expiry", "e", 28800, "Expiration time of the token in seconds. Defaults to 8h. 0 means the token will never expire.")
 
 	UtilsCmd.AddCommand(genKeypairCmd)
 	UtilsCmd.AddCommand(genJwtCmd)
