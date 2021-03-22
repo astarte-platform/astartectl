@@ -22,70 +22,70 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// MetadataCmd represents the metadata command
-var metadataCmd = &cobra.Command{
-	Use:   "metadata",
-	Short: "Interact with Device Metadata",
-	Long:  `Perform actions on Astarte Device Metadata.`,
+// AttributesCmd represents the attributes command
+var attributesCmd = &cobra.Command{
+	Use:   "attributes",
+	Short: "Interact with Device Attributes",
+	Long:  `Perform actions on Astarte Device Attributes.`,
 }
 
-var metadataListCmd = &cobra.Command{
+var attributesListCmd = &cobra.Command{
 	Use:   "list <device_id_or_alias>",
-	Short: "List metadata",
-	Long: `List all metadata for a given Device.
+	Short: "List attributes",
+	Long: `List all attributes for a given Device.
 
 <device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
 this is automatically determined - however, you can tweak this behavior by using --force-device-id or
 --force-id-type={device-id,alias}.`,
-	Example: `  astartectl appengine devices metadata list`,
+	Example: `  astartectl appengine devices attributes list`,
 	Args:    cobra.ExactArgs(1),
-	RunE:    metadataListF,
+	RunE:    attributesListF,
 	Aliases: []string{"ls"},
 }
 
-var metadataSetCmd = &cobra.Command{
+var attributeSetCmd = &cobra.Command{
 	Use:   "set <device_id_or_alias> <key>=<value>",
-	Short: "Set device metadata",
-	Long: `Set a value to a metadata key in the given Device, in the form <key>=<value>.
+	Short: "Set device attribute",
+	Long: `Set a value to an attribute key in the given Device, in the form <key>=<value>.
 This is effectively an upsert operation: if the key already exist, the new value overwrites the old one.
 
 <device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
 this is automatically determined - however, you can tweak this behavior by using --force-device-id or
 --force-id-type={device-id,alias}.`,
-	Example: `  astartectl appengine devices metadata add 2TBn-jNESuuHamE2Zo1anA room=kitchen`,
+	Example: `  astartectl appengine devices attributes add 2TBn-jNESuuHamE2Zo1anA room=kitchen`,
 	Args:    cobra.ExactArgs(2),
-	RunE:    metadataSetF,
+	RunE:    attributeSetF,
 }
 
-var metadataRemoveCmd = &cobra.Command{
+var attributeRemoveCmd = &cobra.Command{
 	Use:   "remove <device_id_or_alias> <key>",
-	Short: "Remove metadata from a Device",
-	Long: `Remove metadata from the given Device, by specifying the key that has to be removed.
+	Short: "Remove attribute from a Device",
+	Long: `Remove attribute from the given Device, by specifying the key that has to be removed.
 
 <device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
 this is automatically determined - however, you can tweak this behavior by using --force-device-id or
 --force-id-type={device-id,alias}.`,
-	Example: `  astartectl appengine devices metadata remove 2TBn-jNESuuHamE2Zo1anA room`,
+	Example: `  astartectl appengine devices attributes remove 2TBn-jNESuuHamE2Zo1anA room`,
 	Args:    cobra.ExactArgs(2),
-	RunE:    metadataRemoveF,
+	RunE:    attributeRemoveF,
 	Aliases: []string{"rm"},
 }
 
 func init() {
-	devicesCmd.AddCommand(metadataCmd)
+	devicesCmd.AddCommand(attributesCmd)
 
-	metadataListCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
-	metadataSetCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
-	metadataRemoveCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	attributesListCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	attributeSetCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	attributeRemoveCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
 
-	metadataCmd.AddCommand(
-		metadataListCmd,
-		metadataSetCmd,
-		metadataRemoveCmd,
+	attributesCmd.AddCommand(
+		attributesListCmd,
+		attributeSetCmd,
+		attributeRemoveCmd,
 	)
 }
 
-func metadataListF(command *cobra.Command, args []string) error {
+func attributesListF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	forceIDType, err := command.Flags().GetString("force-id-type")
 	if err != nil {
@@ -96,17 +96,17 @@ func metadataListF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	metadata, err := astarteAPIClient.AppEngine.ListDeviceMetadata(realm, deviceID, deviceIdentifierType)
+	attributes, err := astarteAPIClient.AppEngine.ListDeviceAttributes(realm, deviceID, deviceIdentifierType)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("%v\n", metadata)
+	fmt.Printf("%v\n", attributes)
 	return nil
 }
 
-func metadataSetF(command *cobra.Command, args []string) error {
+func attributeSetF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	forceIDType, err := command.Flags().GetString("force-id-type")
 	if err != nil {
@@ -117,14 +117,14 @@ func metadataSetF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	metaKeyAndValue := args[1]
-	meta := strings.Split(metaKeyAndValue, "=")
-	if len(meta) != 2 {
-		fmt.Println("Metadata should be in the form <key>=<value>")
+	attributeKeyAndValue := args[1]
+	attr := strings.Split(attributeKeyAndValue, "=")
+	if len(attr) != 2 {
+		fmt.Println("Attributes should be in the form <key>=<value>")
 		os.Exit(1)
 	}
 
-	err = astarteAPIClient.AppEngine.SetDeviceMetadata(realm, deviceID, deviceIdentifierType, meta[0], meta[1])
+	err = astarteAPIClient.AppEngine.SetDeviceAttribute(realm, deviceID, deviceIdentifierType, attr[0], attr[1])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -134,7 +134,7 @@ func metadataSetF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func metadataRemoveF(command *cobra.Command, args []string) error {
+func attributeRemoveF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	forceIDType, err := command.Flags().GetString("force-id-type")
 	if err != nil {
@@ -147,7 +147,7 @@ func metadataRemoveF(command *cobra.Command, args []string) error {
 
 	key := args[1]
 
-	err = astarteAPIClient.AppEngine.DeleteDeviceMetadata(realm, deviceID, deviceIdentifierType, key)
+	err = astarteAPIClient.AppEngine.DeleteDeviceAttribute(realm, deviceID, deviceIdentifierType, key)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
