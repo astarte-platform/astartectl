@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-beta.2] - 2021-03-26
+### Changed
+- Device metadata have been renamed to attributes.
+- Default jwt expiration time to 8 hours (instead of 5 minutes).
+
 ## [1.0.0-beta.1] - 2021-02-16
 ### Added
 - `cluster instance get-cluster-config` allows getting a cluster configuration out of the
