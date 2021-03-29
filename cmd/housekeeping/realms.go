@@ -68,7 +68,7 @@ var realmsCreateCmd = &cobra.Command{
 	Use:     "create <realm_name>",
 	Short:   "Create realm",
 	Long:    "Create a realm in your Astarte instance.",
-	Example: `  astartectl housekeeping realms create myrealm -p /path/to/public_key`,
+	Example: `  astartectl housekeeping realms create myrealm --realm-public-key /path/to/public_key`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    realmsCreateF,
 }
