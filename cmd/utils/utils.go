@@ -18,8 +18,9 @@ import (
 	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/spf13/cobra"
 
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -37,8 +38,8 @@ var UtilsCmd = &cobra.Command{
 
 var genKeypairCmd = &cobra.Command{
 	Use:   "gen-keypair <realm_name>",
-	Short: "Generate an RSA keypair",
-	Long: `Generate an RSA keypair to use for realm authentication.
+	Short: "Generate an ECDSA keypair",
+	Long: `Generate an ECDSA keypair to use for realm authentication.
 
 The keypair will be saved in the current directory with names <realm_name>_private.pem and <realm_name>_public.pem`,
 	Example: `  astartectl utils gen-keypair myrealm`,
@@ -109,12 +110,8 @@ func genKeypairF(command *cobra.Command, args []string) error {
 	realm := args[0]
 
 	reader := rand.Reader
-	bitSize := 4096
 
-	key, err := rsa.GenerateKey(reader, bitSize)
-	if err != nil {
-		return err
-	}
+	key, err := ecdsa.GenerateKey(elliptic.P256(), reader)
 	checkError(err)
 
 	publicKey := key.PublicKey
@@ -219,14 +216,17 @@ func genJwtF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func savePEMKey(fileName string, key *rsa.PrivateKey) {
+func savePEMKey(fileName string, key *ecdsa.PrivateKey) {
 	outFile, err := os.Create(fileName)
 	checkError(err)
 	defer outFile.Close()
 
+	marshaled, err := x509.MarshalECPrivateKey(key)
+	checkError(err)
+
 	var privateKey = &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
+		Type:  "EC PRIVATE KEY",
+		Bytes: marshaled,
 	}
 
 	err = pem.Encode(outFile, privateKey)
@@ -235,7 +235,7 @@ func savePEMKey(fileName string, key *rsa.PrivateKey) {
 	fmt.Println("Wrote " + fileName)
 }
 
-func savePublicPEMKey(fileName string, pubkey rsa.PublicKey) {
+func savePublicPEMKey(fileName string, pubkey ecdsa.PublicKey) {
 	pkixBytes, err := x509.MarshalPKIXPublicKey(&pubkey)
 	checkError(err)
 	var pemkey = &pem.Block{
