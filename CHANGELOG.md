@@ -5,8 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.0.0] - Unreleased
+
+## [1.0.0-beta.3] - 2022-01-04
+### Added
+- Support for 1.0 profiles
+
 ### Changed
 - Generate new keypairs using elliptic curves instead of RSA.
+- Updated Kubernetes APIs to 1.23
+- Require at least Go 1.17 (due to Kubernetes deps)
+- Use Go 1.17 for releases
 
 ## [1.0.0-beta.2] - 2021-03-26
 ### Changed
