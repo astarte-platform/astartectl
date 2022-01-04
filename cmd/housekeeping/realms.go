@@ -68,7 +68,7 @@ var realmsShowCmd = &cobra.Command{
 var realmsCreateCmd = &cobra.Command{
 	Use:     "create <realm_name>",
 	Short:   "Create realm",
-	Long:    "Create a realm in your Astarte instance.",
+	Long:    "Create a realm in your Astarte instance. If a private key is provided, an astartectl context with full access is created.",
 	Example: `  astartectl housekeeping realms create myrealm --realm-public-key /path/to/public_key`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    realmsCreateF,
