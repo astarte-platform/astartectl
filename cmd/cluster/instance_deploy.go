@@ -150,8 +150,8 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	fmt.Println("Your Astarte instance has been successfully deployed. Please allow a few minutes for the Cluster to start. You can monitor the progress with astartectl cluster show.")
 	fmt.Println("Now waiting for Housekeeping setup to set up a context...")
 
-	// 1 minute timeout
-	for i := 0; i < 12; i++ {
+	// 2 minute timeout
+	for i := 0; i < 24; i++ {
 		// Try every 5 seconds
 		time.Sleep(5 * time.Second)
 		if _, err = getHousekeepingKey(resourceName, resourceNamespace, false); err == nil {
