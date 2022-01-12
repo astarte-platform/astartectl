@@ -115,13 +115,15 @@ type Astartev1alpha1DeploymentSpec struct {
 		} `yaml:"resources,omitempty"`
 	} `yaml:"cassandra"`
 	Vernemq struct {
-		Host         string `yaml:"host,omitempty"`
-		Port         int    `yaml:"port,omitempty"`
-		Deploy       bool   `yaml:"deploy,omitempty"`
-		Replicas     int    `yaml:"replicas,omitempty"`
-		AntiAffinity bool   `yaml:"antiAffinity,omitempty"`
-		CaSecret     string `yaml:"caSecret,omitempty"`
-		Storage      struct {
+		Host                      string `yaml:"host,omitempty"`
+		Port                      int    `yaml:"port,omitempty"`
+		Deploy                    bool   `yaml:"deploy,omitempty"`
+		Replicas                  int    `yaml:"replicas,omitempty"`
+		AntiAffinity              bool   `yaml:"antiAffinity,omitempty"`
+		SslListener               bool   `yaml:"sslListener,omitempty"`
+		SslListenerCertSecretName string `yaml:"sslListenerCertSecretName,omitempty"`
+		CaSecret                  string `yaml:"caSecret,omitempty"`
+		Storage                   struct {
 			Size             string      `yaml:"size"`
 			ClassName        string      `yaml:"className,omitempty"`
 			VolumeDefinition interface{} `yaml:"volumeDefinition,omitempty"`

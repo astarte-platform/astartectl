@@ -44,6 +44,8 @@ func init() {
 	deployCmd.PersistentFlags().String("profile", "", "Astarte Deployment Profile. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("api-host", "", "The API host for this Astarte deployment. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("broker-host", "", "The Broker host for this Astarte deployment. If not specified, it will be prompted when deploying.")
+	deployCmd.PersistentFlags().Int("broker-port", 8883, "The Broker port for this Astarte deployment. Defaults to 8883.")
+	deployCmd.PersistentFlags().String("broker-tls-secret", "", "The existing TLS Secret, if any, to be used by the broker as its SSL Certificate. When specified, VerneMQ SSL listener will be enabled.")
 	deployCmd.PersistentFlags().String("cassandra-nodes", "", "The Cassandra nodes the Astarte deployment should use for connecting. Valid only if the deployment profile has an external Cassandra.")
 	deployCmd.PersistentFlags().String("cassandra-volume-size", "", "The Cassandra PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("cfssl-volume-size", "", "If Astarte is < 1.0.0, the CFSSL PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
