@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.0.0] - Unreleased
 
+## [1.0.0-beta.4] - 2022-01-12
+### Added
+- deploy: Support for VerneMQ SSL Listener (1.0.1+)
+- deploy: Support for custom Broker port
+- deploy: Support non-interactive scenarios
+
+### Changed
+- deploy: Allow up to 2 minutes for housekeeping to come up after deployment
+
 ## [1.0.0-beta.3] - 2022-01-04
 ### Added
 - Support for 1.0 profiles
