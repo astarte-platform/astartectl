@@ -70,9 +70,9 @@ func init() {
 
 	// Minimal VerneMQ installation
 	astarteBurstProfile10.DefaultSpec.Vernemq.Deploy = true
-	astarteBurstProfile10.DefaultSpec.Vernemq.Resources.Requests.CPU = "200m"
+	astarteBurstProfile10.DefaultSpec.Vernemq.Resources.Requests.CPU = "0m"
 	astarteBurstProfile10.DefaultSpec.Vernemq.Resources.Requests.Memory = "256M"
-	astarteBurstProfile10.DefaultSpec.Vernemq.Resources.Limits.CPU = "1000m"
+	astarteBurstProfile10.DefaultSpec.Vernemq.Resources.Limits.CPU = "0m"
 	astarteBurstProfile10.DefaultSpec.Vernemq.Resources.Limits.Memory = "256M"
 	astarteBurstProfile10.DefaultSpec.Vernemq.Storage.Size = "4Gi"
 }
