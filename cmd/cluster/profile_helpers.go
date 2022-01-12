@@ -33,6 +33,7 @@ func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resource
 	astarteDeployment.DefaultSpec.Version = astarteVersion.String()
 	astarteDeployment.DefaultSpec.API.Host = getStringFromSpecOrFlagOrPromptOrDie(spec, "api.host", command, "api-host", "Please enter the API Host for this Deployment:", "", false)
 	astarteDeployment.DefaultSpec.Vernemq.Host = getStringFromSpecOrFlagOrPromptOrDie(spec, "vernemq.host", command, "broker-host", "Please enter the MQTT Broker Host for this Deployment:", "", false)
+	astarteDeployment.DefaultSpec.Vernemq.Port = getIntFromSpecOrFlagOrPromptOrDie(spec, "vernemq.port", command, "broker-port", "Please enter the MQTT Broker Port for this Deployment:", 8883, false)
 	storageClass := getStringFromSpecOrFlag(spec, "storageClassName", command, "storage-class-name")
 	if storageClass != "" {
 		astarteDeployment.DefaultSpec.StorageClassName = getStringFromSpecOrFlag(spec, "storageClassName", command, "storage-class-name")

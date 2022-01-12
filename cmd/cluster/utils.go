@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -386,6 +387,40 @@ func getFromSpecOrPromptOrDie(spec map[string]interface{}, field string, command
 	}
 
 	return getFromPromptOrDie(command, question, defaultValue, allowEmpty)
+}
+
+func getIntFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, flagName string, question string, defaultValue int, allowEmpty bool) int {
+	ret := getValueFromSpec(spec, field)
+	if ret != nil {
+		return ret.(int)
+	}
+
+	return getIntFlagFromPromptOrDie(command, flagName, question, defaultValue, allowEmpty)
+}
+
+func getIntFlagFromPromptOrDie(command *cobra.Command, flagName string, question string, defaultValue int, allowEmpty bool) int {
+	var ret int
+	flag := command.Flags().Lookup(flagName)
+	if flag != nil {
+		var err error
+		ret, err = command.Flags().GetInt(flagName)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
+	// Given we have no real way to check, let's prompt (or attempt to if the defaults match)
+	if defaultValue == ret {
+		i := getFromPromptOrDie(command, question, strconv.Itoa(defaultValue), allowEmpty)
+		var err error
+		if ret, err = strconv.Atoi(i); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
+	return ret
 }
 
 func getStringFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, flagName string, question string, defaultValue string, allowEmpty bool) string {
