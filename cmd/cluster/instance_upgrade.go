@@ -75,6 +75,11 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, "WARNING: It looks like this Astarte deployment isn't managed by astartectl. On paper, everything should still work, but have extra care in reviewing changes once done.")
 	}
 
+	y, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		return err
+	}
+
 	// Good. Let's check the version now.
 	version := ""
 	if len(args) == 2 {
@@ -87,7 +92,7 @@ func instanceUpgradeF(command *cobra.Command, args []string) error {
 			fmt.Printf("Latest released Astarte version is %s. You're on latest and greatest!\n", latestAstarteVersion)
 			os.Exit(0)
 		}
-		version, err = utils.PromptChoice("What Astarte version would you like to upgrade to?", latestAstarteVersion, false)
+		version, err = utils.PromptChoice("What Astarte version would you like to upgrade to?", latestAstarteVersion, false, y)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)

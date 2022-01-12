@@ -56,12 +56,13 @@ func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resource
 			astarteDeployment.DefaultSpec.Vernemq.Storage.Size, false)
 	}
 	if astarteDeployment.DefaultSpec.Cfssl.Deploy {
-		astarteDeployment.DefaultSpec.Cfssl.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.storage.size", command, "cfssl-volume-size", "Please enter the CFSSL Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Cfssl.Storage.Size, false)
-		cfsslDBDriver := getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.dbConfig.driver", command, "cfssl-db-driver", "Please enter the CFSSL DB Driver for this deployment.\nPlease note that leaving this empty will default to using SQLite, which is strongly discouraged in production.\nCFSSL DB Driver:",
-			"", true)
+		storageGate, _ := semver.NewConstraint("< 1.0.0")
+		if storageGate.Check(astarteVersion) {
+			astarteDeployment.DefaultSpec.Cfssl.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.storage.size", command, "cfssl-volume-size", "Please enter the CFSSL Volume size for this Deployment:",
+				astarteDeployment.DefaultSpec.Cfssl.Storage.Size, false)
+		}
+		cfsslDBDriver := getStringFromSpecOrFlag(spec, "cfssl.dbConfig.driver", command, "cfssl-db-driver")
 		if cfsslDBDriver != "" && cfsslDBDriver != "sqlite3" {
-			fmt.Println(cfsslDBDriver)
 			astarteDeployment.DefaultSpec.Cfssl.DbConfig.Driver = cfsslDBDriver
 			astarteDeployment.DefaultSpec.Cfssl.DbConfig.DataSource = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.dbConfig.dataSource", command, "cfssl-db-datasource", "Please enter the CFSSL DB Datasource (Connection URL) for this Deployment:",
 				"", false)
