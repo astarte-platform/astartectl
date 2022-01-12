@@ -46,7 +46,7 @@ func init() {
 	deployCmd.PersistentFlags().String("broker-host", "", "The Broker host for this Astarte deployment. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("cassandra-nodes", "", "The Cassandra nodes the Astarte deployment should use for connecting. Valid only if the deployment profile has an external Cassandra.")
 	deployCmd.PersistentFlags().String("cassandra-volume-size", "", "The Cassandra PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
-	deployCmd.PersistentFlags().String("cfssl-volume-size", "", "The CFSSL PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
+	deployCmd.PersistentFlags().String("cfssl-volume-size", "", "If Astarte is < 1.0.0, the CFSSL PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("cfssl-db-driver", "", "The CFSSL Database Driver. If not specified, it will default to SQLite.")
 	deployCmd.PersistentFlags().String("cfssl-db-datasource", "", "The CFSSL Database Datasource. Compulsory when specifying a DB Driver different from SQLite.")
 	deployCmd.PersistentFlags().String("rabbitmq-volume-size", "", "The RabbitMQ PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
@@ -59,13 +59,17 @@ func init() {
 }
 
 func clusterDeployF(command *cobra.Command, args []string) error {
+	y, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		return err
+	}
 	version, err := command.Flags().GetString("version")
 	if err != nil {
 		return err
 	}
 	if version == "" {
 		latestAstarteVersion, _ := getLastAstarteRelease()
-		version, err = utils.PromptChoice("What Astarte version would you like to install?", latestAstarteVersion, false)
+		version, err = utils.PromptChoice("What Astarte version would you like to install?", latestAstarteVersion, false, y)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -91,19 +95,23 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	//
 	fmt.Println()
 	fmt.Println("Your Astarte instance is ready to be deployed!")
-	reviewConfiguration, _ := utils.AskForConfirmation("Do you wish to review the configuration before deployment?")
-	if reviewConfiguration {
-		marshaledResource, err := yaml.Marshal(astarteDeploymentResource)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Could not build the YAML representation. Aborting.")
-			os.Exit(1)
-		}
-		fmt.Println(string(marshaledResource))
+	marshaledResource, err := yaml.Marshal(astarteDeploymentResource)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Could not build the YAML representation. Aborting.")
+		os.Exit(1)
 	}
-	goAhead, _ := utils.AskForConfirmation(fmt.Sprintf("Your Astarte instance \"%s\" will be deployed in namespace \"%s\". Do you want to continue?", resourceName, resourceNamespace))
-	if !goAhead {
-		fmt.Println("Aborting.")
-		os.Exit(0)
+	if !y {
+		reviewConfiguration, _ := utils.AskForConfirmation("Do you wish to review the configuration before deployment?")
+		if reviewConfiguration {
+			fmt.Println(string(marshaledResource))
+		}
+		goAhead, _ := utils.AskForConfirmation(fmt.Sprintf("Your Astarte instance \"%s\" will be deployed in namespace \"%s\". Do you want to continue?", resourceName, resourceNamespace))
+		if !goAhead {
+			fmt.Println("Aborting.")
+			os.Exit(0)
+		}
+	} else {
+		fmt.Println(string(marshaledResource))
 	}
 
 	// Let's do it. Retrieve the namespace first and ensure it's there

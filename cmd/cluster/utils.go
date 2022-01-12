@@ -415,7 +415,13 @@ func getStringFlagFromPromptOrDie(command *cobra.Command, flagName string, quest
 }
 
 func getFromPromptOrDie(command *cobra.Command, question string, defaultValue string, allowEmpty bool) string {
-	ret, err := utils.PromptChoice(question, defaultValue, allowEmpty)
+	y, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	ret, err := utils.PromptChoice(question, defaultValue, allowEmpty, y)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
