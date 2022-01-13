@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.0.0] - Unreleased
 
+## [1.0.0-beta.6] - 2022-01-13
+### Added
+- housekeeping/realms: Add non-interactive mode
+- config: Allow querying for current cluster
+- pairing/agent: Allow registering a device with a machine-friendly output
+
+### Changed
+- `utils gen-jwt` will now use the private keys specified in the context, if any, to
+  generate the tokens without asking for a private key explicitly.
+
 ## [1.0.0-beta.5] - 2022-01-12
 ### Changed
 - deploy: burst profile for 1.0 should not specify a set amount of CPU for Verne
