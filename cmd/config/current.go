@@ -31,6 +31,15 @@ var currentContextCmd = &cobra.Command{
 	Aliases: []string{"get-current-context"},
 }
 
+var currentClusterCmd = &cobra.Command{
+	Use:     "current-cluster",
+	Short:   "Shows the cluster being used by the current astartectl configuration context",
+	Long:    `Shows the cluster being used by the current astartectl configuration context.`,
+	Args:    cobra.ExactArgs(0),
+	RunE:    currentClusterF,
+	Aliases: []string{"get-current-cluster"},
+}
+
 var setCurrentContextCmd = &cobra.Command{
 	Use:     "set-current-context <context>",
 	Short:   "Sets the current astartectl configuration context",
@@ -42,6 +51,7 @@ var setCurrentContextCmd = &cobra.Command{
 
 func init() {
 	ConfigCmd.AddCommand(currentContextCmd)
+	ConfigCmd.AddCommand(currentClusterCmd)
 	ConfigCmd.AddCommand(setCurrentContextCmd)
 }
 
@@ -53,6 +63,23 @@ func currentContextF(command *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(baseConfig.CurrentContext)
+	return nil
+}
+
+func currentClusterF(command *cobra.Command, args []string) error {
+	baseConfig, err := config.LoadBaseConfiguration(config.GetConfigDir())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	currentContext, err := config.LoadContextConfiguration(config.GetConfigDir(), baseConfig.CurrentContext)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	fmt.Println(currentContext.Cluster)
 	return nil
 }
 
