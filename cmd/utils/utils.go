@@ -16,12 +16,14 @@ package utils
 
 import (
 	"github.com/astarte-platform/astarte-go/misc"
+	"github.com/astarte-platform/astartectl/config"
 	"github.com/spf13/cobra"
 
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -63,7 +65,10 @@ var genJwtCmd = &cobra.Command{
 	Long: `Generate a signed JWT to access Astarte APIs.
 
 The token will be signed with the key provided through the -k parameter, and will be valid for the API
-sets specified as arguments to gen-jwt. Supported API sets are:
+sets specified as arguments to gen-jwt. If a config context is set and it holds a valid private key to
+either its Realm or Housekeeping and -k is not set, those keys will be used.
+
+Supported API sets are:
 
 appengine - Would generate a token valid for AppEngine API. Requires a Realm key for signing.
 channels - Would generate a token valid for Astarte Channels. Requires a Realm key for signing.
@@ -96,7 +101,6 @@ Would generate a token with only the desired claims for appengine and pairing.
 func init() {
 	genJwtCmd.Flags().StringP("private-key", "k", "", `Path to PEM encoded private key.
 Should be Housekeeping key to generate an housekeeping token, Realm key for everything else.`)
-	genJwtCmd.MarkFlagRequired("private-key")
 	genJwtCmd.MarkFlagFilename("private-key")
 	genJwtCmd.Flags().StringSliceP("claims", "c", nil, `The list of claims to be added in the JWT. Defaults to all-access claims.
 You can specify the flag multiple times or separate the claims with a comma.`)
@@ -136,6 +140,7 @@ func validJwtType(t string) bool {
 func genJwtF(command *cobra.Command, args []string) error {
 	servicesAndClaims := map[misc.AstarteService][]string{}
 
+	shouldUseHousekeepingKey := false
 	for _, t := range args {
 		// Metatype
 		if t == "all-realm-apis" {
@@ -160,8 +165,11 @@ func genJwtF(command *cobra.Command, args []string) error {
 			return fmt.Errorf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
 		}
 
-		if astarteService == misc.Housekeeping && len(args) != 1 {
-			return errors.New("Conflicting API types specified. Specify only API sets which require the same key type for signing")
+		if astarteService == misc.Housekeeping {
+			if len(args) != 1 {
+				return errors.New("Conflicting API types specified. Specify only API sets which require the same key type for signing")
+			}
+			shouldUseHousekeepingKey = true
 		}
 
 		servicesAndClaims[astarteService] = []string{}
@@ -196,19 +204,63 @@ func genJwtF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	privateKey, err := command.Flags().GetString("private-key")
-	if err != nil {
-		return err
-	}
-
 	expiryOffset, err := command.Flags().GetInt64("expiry")
 	if err != nil {
 		return err
 	}
 
-	tokenString, err := misc.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
+	var tokenString string
+
+	privateKey, err := command.Flags().GetString("private-key")
 	if err != nil {
 		return err
+	}
+
+	if privateKey == "" {
+		// In this case, retrieve the key from the context
+		c, err := config.LoadBaseConfiguration(config.GetConfigDir())
+		if err != nil {
+			return err
+		}
+
+		context, err := config.LoadContextConfiguration(config.GetConfigDir(), c.CurrentContext)
+		if err != nil {
+			return err
+		}
+
+		var loadedKey string
+		if !shouldUseHousekeepingKey {
+			if context.Realm.Key == "" {
+				return errors.New("private key not provided, and current context doesn't have a private realm key")
+			}
+			loadedKey = context.Realm.Key
+		} else {
+			cluster, err := config.LoadClusterConfiguration(config.GetConfigDir(), context.Cluster)
+			if err != nil {
+				return err
+			}
+
+			if cluster.Housekeeping.Key == "" {
+				return errors.New("private key not provided, and current context doesn't have a private housekeeping key")
+			}
+			loadedKey = cluster.Housekeeping.Key
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(loadedKey)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		tokenString, err = misc.GenerateAstarteJWTFromPEMKey(decoded, servicesAndClaims, expiryOffset)
+		if err != nil {
+			return err
+		}
+	} else {
+		tokenString, err = misc.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Println(tokenString)
