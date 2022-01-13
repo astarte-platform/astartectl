@@ -94,6 +94,8 @@ func init() {
 The format is <datacenter-name>:<replication-factor>,<other-datacenter-name>:<other-replication-factor>.
 You can also specify the flag multiple times instead of separating it with a comma.`)
 
+	realmsCreateCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
+
 	realmsCmd.AddCommand(
 		realmsListCmd,
 		realmsShowCmd,
@@ -231,8 +233,14 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		fmt.Println()
 	}
 
-	if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
-		os.Exit(0)
+	y, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		return err
+	}
+	if !y {
+		if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
+			os.Exit(0)
+		}
 	}
 
 	var publicKeyContent []byte

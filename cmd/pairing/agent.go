@@ -53,6 +53,8 @@ All data belonging to the device will be kept as is in Astarte.`,
 }
 
 func init() {
+	agentRegisterCmd.PersistentFlags().Bool("compact-output", false, "When true, only the Credentials Secret will be printed to stdout upon success.")
+
 	agentUnregisterCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
 
 	PairingCmd.AddCommand(agentCmd)
@@ -76,13 +78,21 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	// Print the Credentials Secret
-	fmt.Printf("Device %s successfully registered in Realm %s.\n", deviceID, realm)
-	fmt.Printf("The Device's Credentials Secret is \"%s\".\n", credentialsSecret)
-	fmt.Println()
-	fmt.Println("Please don't share the Credentials Secret, and ensure it is transferred securely to your Device.")
-	fmt.Printf("Once the Device pairs for the first time, the Credentials Secret ")
-	fmt.Printf("will be associated permanently to the Device and it won't be changeable anymore.\n")
+	if compact, err := command.Flags().GetBool("compact-output"); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	} else if !compact {
+		// Print the Credentials Secret
+		fmt.Printf("Device %s successfully registered in Realm %s.\n", deviceID, realm)
+		fmt.Printf("The Device's Credentials Secret is \"%s\".\n", credentialsSecret)
+		fmt.Println()
+		fmt.Println("Please don't share the Credentials Secret, and ensure it is transferred securely to your Device.")
+		fmt.Printf("Once the Device pairs for the first time, the Credentials Secret ")
+		fmt.Printf("will be associated permanently to the Device and it won't be changeable anymore.\n")
+	} else {
+		fmt.Println(credentialsSecret)
+	}
+
 	return nil
 }
 
