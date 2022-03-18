@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - `cluster show`: add operator-name and operator-namespace flags
+- `utils interfaces validate` allows validating Astarte Interfaces
 
 ## [1.0.0-beta.7] - 2022-02-09
 ### Added
