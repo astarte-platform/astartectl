@@ -141,8 +141,8 @@ func getAstarte(astarteCRD dynamic.NamespaceableResourceInterface, name string, 
 	return astarteCRD.Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-func getAstarteOperator() (*appsv1.Deployment, error) {
-	return kubernetesClient.AppsV1().Deployments("kube-system").Get(context.TODO(), "astarte-operator", metav1.GetOptions{})
+func getAstarteOperator(operatorName, operatorNamespace string) (*appsv1.Deployment, error) {
+	return kubernetesClient.AppsV1().Deployments(operatorNamespace).Get(context.TODO(), operatorName, metav1.GetOptions{})
 }
 
 func getLastOperatorRelease() (string, error) {

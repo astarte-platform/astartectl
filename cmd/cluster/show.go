@@ -32,11 +32,24 @@ var showCmd = &cobra.Command{
 }
 
 func init() {
+	showCmd.PersistentFlags().String("operator-name", "astarte-operator-controller-manager", "The name of the Astarte Operator instance.")
+	showCmd.PersistentFlags().String("operator-namespace", "kube-system", "The namespace in which the Astarte Operator resides.")
+
 	ClusterCmd.AddCommand(showCmd)
 }
 
 func clusterShowF(command *cobra.Command, args []string) error {
-	operator, err := getAstarteOperator()
+	operatorName, err := command.Flags().GetString("operator-name")
+	if err != nil {
+		return err
+	}
+
+	operatorNamespace, err := command.Flags().GetString("operator-namespace")
+	if err != nil {
+		return err
+	}
+
+	operator, err := getAstarteOperator(operatorName, operatorNamespace)
 	if err != nil {
 		fmt.Println("Could not find an Astarte Operator Deployment on this Kubernetes Cluster.")
 		fmt.Println()
