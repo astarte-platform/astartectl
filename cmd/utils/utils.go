@@ -15,6 +15,8 @@
 package utils
 
 import (
+	"text/tabwriter"
+
 	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/config"
 	"github.com/spf13/cobra"
@@ -24,6 +26,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -35,7 +38,7 @@ import (
 var UtilsCmd = &cobra.Command{
 	Use:   "utils",
 	Short: "Various utilities to interact with Astarte",
-	Long:  `utils includes commands to generate keypairs and device ids`,
+	Long:  `utils includes commands to generate and handle keypairs, device ids and JWT tokens`,
 }
 
 var genKeypairCmd = &cobra.Command{
@@ -98,6 +101,28 @@ Would generate a token with only the desired claims for appengine and pairing.
 	RunE:      genJwtF,
 }
 
+var showJwtClaimsCmd = &cobra.Command{
+	Use:   "show-jwt-claims <token>",
+	Short: "Show an Astarte JWT token's claims",
+	Long: `Show the set of claims contained in an Astarte JWT token.
+
+Besides standard JWT fields, Astarte JWT tokens contain a set of Astarte claims.
+Astarte's data access APIs match the devices' topology like a tree, allowing to declare the
+authorization in terms of path allow-listing.
+Every claim is an array of regular expressions, which act as a logical OR.
+Astarte specific token claims are:
+	AppEngine API ("a_aea")
+	Realm Management API ("a_rma")
+	Housekeeping API ("a_ha")
+	Pairing API ("a_pa")
+	Channels ("a_ch")
+	Flow ("a_f")
+`,
+	Example: `  astartectl utils show-jwt-claims $TOKEN`,
+	Args:    cobra.MinimumNArgs(1),
+	RunE:    showJwtClaimsF,
+}
+
 func init() {
 	genJwtCmd.Flags().StringP("private-key", "k", "", `Path to PEM encoded private key.
 Should be Housekeeping key to generate an housekeeping token, Realm key for everything else.`)
@@ -108,6 +133,9 @@ You can specify the flag multiple times or separate the claims with a comma.`)
 
 	UtilsCmd.AddCommand(genKeypairCmd)
 	UtilsCmd.AddCommand(genJwtCmd)
+
+	showJwtClaimsCmd.Flags().BoolP("pretty", "p", false, "Whether the output should be pretty-printed.")
+	UtilsCmd.AddCommand(showJwtClaimsCmd)
 }
 
 func genKeypairF(command *cobra.Command, args []string) error {
@@ -303,6 +331,42 @@ func savePublicPEMKey(fileName string, pubkey ecdsa.PublicKey) {
 	checkError(err)
 
 	fmt.Println("Wrote " + fileName)
+}
+
+func showJwtClaimsF(command *cobra.Command, args []string) error {
+	claims, err := misc.GetJWTAstarteClaims(args[0])
+	if err != nil {
+		return err
+	}
+
+	pretty, err := command.Flags().GetBool("pretty")
+	if err != nil {
+		return err
+	}
+
+	if pretty {
+		prettyPrintJwtClaims(claims)
+	} else {
+		out, _ := json.MarshalIndent(claims, "", "    ")
+		fmt.Println(string(out))
+	}
+
+	return nil
+}
+
+func prettyPrintJwtClaims(claims misc.AstarteClaims) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	fmt.Fprintf(w, "AppEngine API:\t%v\n", claims.AppEngineAPI)
+	fmt.Fprintf(w, "RealmManagement API:\t%v\n", claims.RealmManagement)
+	fmt.Fprintf(w, "Housekeeping API:\t%v\n", claims.Housekeeping)
+	fmt.Fprintf(w, "Pairing API:\t%v\n", claims.Pairing)
+	fmt.Fprintf(w, "Channels:\t%v\n", claims.Channels)
+	fmt.Fprintf(w, "Flow:\t%v\n", claims.Flow)
+	fmt.Fprintf(w, "ExpiresAt:\t%v\n", claims.ExpiresAt)
+	fmt.Fprintf(w, "IssuedAt:\t%v\n", claims.IssuedAt)
+	fmt.Fprintf(w, "NotBefore:\t%v\n", claims.NotBefore)
+	fmt.Fprintf(w, "Issuer:\t%v\n", claims.Issuer)
+	w.Flush()
 }
 
 func checkError(err error) {
