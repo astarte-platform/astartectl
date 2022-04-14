@@ -31,8 +31,8 @@ var astarteBasicProfile10 AstarteClusterProfile = AstarteClusterProfile{
 }
 
 func init() {
-	astarteBasicProfile10.Compatibility.MaxAstarteVersion, _ = semver.NewVersion("1.0.0")
-	astarteBasicProfile10.Compatibility.MinAstarteVersion, _ = semver.NewVersion("1.0.99")
+	astarteBasicProfile10.Compatibility.MaxAstarteVersion, _ = semver.NewVersion("1.0.99")
+	astarteBasicProfile10.Compatibility.MinAstarteVersion, _ = semver.NewVersion("1.0.0")
 
 	// Let components basic only
 	astarteBasicProfile10.DefaultSpec.Components.Resources.Requests.CPU = "1200m"

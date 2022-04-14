@@ -31,9 +31,9 @@ import (
 
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "Deploy an Astarte Instance in the current Kubernetes Cluster",
-	Long: `Deploy an Astarte Instance in the current Kubernetes Cluster. This will adhere to the same current-context
-kubectl mentions. If no versions are specified, the last stable version is deployed.`,
+	Short: "Deploy a minimal Astarte Instance in the current Kubernetes Cluster. Only for testing.",
+	Long: `Deploy a minimal Astarte Instance in the current Kubernetes Cluster. This will adhere to the same current-context
+kubectl mentions. If no versions are specified, the last stable version is deployed. This should only be used for testing purposes.`,
 	Example: `  astartectl cluster instances deploy`,
 	RunE:    clusterDeployF,
 }
@@ -41,7 +41,6 @@ kubectl mentions. If no versions are specified, the last stable version is deplo
 func init() {
 	deployCmd.PersistentFlags().String("name", "", "Name of the deployed Astarte resource.")
 	deployCmd.PersistentFlags().String("version", "", "Version of Astarte to deploy. If not specified, last stable version will be deployed.")
-	deployCmd.PersistentFlags().String("profile", "", "Astarte Deployment Profile. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("api-host", "", "The API host for this Astarte deployment. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("broker-host", "", "The Broker host for this Astarte deployment. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().Int("broker-port", 8883, "The Broker port for this Astarte deployment. Defaults to 8883.")
@@ -83,7 +82,7 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	profile, astarteDeployment, err := promptForProfile(command, astarteVersion)
+	profile, astarteDeployment, err := getBasicProfile(command, astarteVersion)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

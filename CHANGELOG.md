@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - `cluster show`: add operator-name and operator-namespace flags
 
+### Removed
+- `cluster instance deploy`: remove profile choice, only deploy a basic Astarte instance.
+
 ## [1.0.0-beta.7] - 2022-02-09
 ### Added
 - realm/interfaces/sync: Add non-interactive mode
