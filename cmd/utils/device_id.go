@@ -137,7 +137,7 @@ func generateRandomDeviceIDF(command *cobra.Command, args []string) error {
 func computeDeviceIDFromStringF(command *cobra.Command, args []string) error {
 	namespaceUUID := args[0]
 	stringData := args[1]
-	deviceID, err := misc.GetNamespacedAstarteDeviceID(namespaceUUID, []byte(stringData))
+	deviceID, err := misc.GenerateAstarteDeviceID(namespaceUUID, []byte(stringData))
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func computeDeviceIDFromBytesF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	deviceID, err := misc.GetNamespacedAstarteDeviceID(namespaceUUID, actualBytes)
+	deviceID, err := misc.GenerateAstarteDeviceID(namespaceUUID, actualBytes)
 	if err != nil {
 		return err
 	}
