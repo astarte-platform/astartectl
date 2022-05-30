@@ -341,6 +341,33 @@ func promptForProfile(command *cobra.Command, astarteVersion *semver.Version) (s
 	return promptForProfileExcluding(command, astarteVersion, []string{})
 }
 
+func getBasicProfile(command *cobra.Command, astarteVersion *semver.Version) (string, deployment.AstarteClusterProfile, error) {
+	nodes, allocatableCPU, allocatableMemory, err := getClusterAllocatableResources()
+	if err != nil {
+		return "", deployment.AstarteClusterProfile{}, err
+	}
+
+	fmt.Printf("Cluster has %v nodes\n", nodes)
+	fmt.Printf("Allocatable CPU is %vm\n", allocatableCPU)
+	fmt.Printf("Allocatable Memory is %v\n", bytefmt.ByteSize(uint64(allocatableMemory)))
+	fmt.Println()
+
+	clusterRequirements := deployment.AstarteProfileRequirements{
+		CPUAllocation:    allocatableCPU,
+		MemoryAllocation: allocatableMemory,
+		MinNodes:         nodes,
+		MaxNodes:         nodes,
+	}
+	availableProfiles := deployment.GetProfilesForVersionAndRequirements(astarteVersion, clusterRequirements)
+
+	if len(availableProfiles) == 0 {
+		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("Unfortunately, your cluster allocatable resources do not allow for an Astarte instance to be deployed")
+	}
+
+	// only "basic" type profiles are available at the moment
+	return "basic", availableProfiles["basic"], nil
+}
+
 func getValueFromSpec(spec map[string]interface{}, field string) interface{} {
 	fieldTokens := strings.Split(field, ".")
 	aMap := spec
