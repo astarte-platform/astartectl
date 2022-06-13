@@ -29,6 +29,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/astarte-platform/astarte-go/client"
 	"github.com/astarte-platform/astarte-go/interfaces"
+	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/jedib0t/go-pretty/table"
 
 	"github.com/araddon/dateparse"
@@ -449,11 +450,11 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 	if len(args) == 2 {
 		snapshotInterface = args[1]
 	}
-	skipRealmManagementChecks, err := command.Flags().GetBool("skip-realm-management-checks")
+	skipRealmManagementChecks, err := shouldSkipRealmManagementChecks(*command)
 	if err != nil {
 		return err
 	}
-	skipRealmManagementChecks = skipRealmManagementChecks || astarteAPIClient.RealmManagement == nil
+
 	if skipRealmManagementChecks && snapshotInterface == "" {
 		return fmt.Errorf("When not using Realm Management checks, an interface should always be specified")
 	}
@@ -654,11 +655,11 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	if ascending {
 		resultSetOrder = client.AscendingOrder
 	}
-	skipRealmManagementChecks, err := command.Flags().GetBool("skip-realm-management-checks")
+	skipRealmManagementChecks, err := shouldSkipRealmManagementChecks(*command)
 	if err != nil {
 		return err
 	}
-	skipRealmManagementChecks = skipRealmManagementChecks || astarteAPIClient.RealmManagement == nil
+
 	forceAggregate, err := command.Flags().GetBool("aggregate")
 	if err != nil {
 		return err
@@ -847,11 +848,11 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	skipRealmManagementChecks, err := command.Flags().GetBool("skip-realm-management-checks")
+	skipRealmManagementChecks, err := shouldSkipRealmManagementChecks(*command)
 	if err != nil {
 		return err
 	}
-	skipRealmManagementChecks = skipRealmManagementChecks || astarteAPIClient.RealmManagement == nil
+
 	interfaceTypeString, err := command.Flags().GetString("interface-type")
 	if err != nil {
 		return err
@@ -957,6 +958,36 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	// Done
 	fmt.Println("ok")
 	return nil
+}
+
+func shouldSkipRealmManagementChecks(cmd cobra.Command) (bool, error) {
+	skipRealmManagementChecks, err := cmd.Flags().GetBool("skip-realm-management-checks")
+	if err != nil {
+		return false, err
+	}
+
+	// skip RM checks if explicitly requested, or if RM service is not set
+	if skipRealmManagementChecks || astarteAPIClient.RealmManagement == nil {
+		return true, nil
+	} else {
+		token, err := cmd.Flags().GetString("token")
+		if err != nil {
+			return false, err
+		}
+
+		hasRealmManagementClaim, err := misc.IsJWTAstarteClaimValidForService(token, misc.RealmManagement)
+		// if the token is invalid, any Astarte API will return 403 forbidden
+		if err != nil {
+			return false, nil
+		}
+
+		if !hasRealmManagementClaim {
+			fmt.Println("Warning: provided token does not allow for RealmManagement checks. This might lead to unexpected errors.")
+		}
+
+		// finally, skip RM checks if the token has no RM claims
+		return !hasRealmManagementClaim, nil
+	}
 }
 
 func getProtoInterface(deviceID string, deviceIdentifierType client.DeviceIdentifierType,

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - `cluster instances migrate replace-voyager` allows to migrate a deprecated AstarteVoyagerIngress
   to an AstarteDefaultIngress resource.
+- `utils show-jwt-claims` to display claims of an Astarte token.
 
 ### Changed
 - `cluster show`: add operator-name and operator-namespace flags
