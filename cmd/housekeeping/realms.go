@@ -17,6 +17,7 @@ package housekeeping
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -67,8 +68,8 @@ var realmsShowCmd = &cobra.Command{
 var realmsCreateCmd = &cobra.Command{
 	Use:     "create <realm_name>",
 	Short:   "Create realm",
-	Long:    "Create a realm in your Astarte instance.",
-	Example: `  astartectl housekeeping realms create myrealm -p /path/to/public_key`,
+	Long:    "Create a realm in your Astarte instance. If a private key is provided, an astartectl context with full access is created.",
+	Example: `  astartectl housekeeping realms create myrealm --realm-public-key /path/to/public_key`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    realmsCreateF,
 }
@@ -92,6 +93,8 @@ func init() {
 
 The format is <datacenter-name>:<replication-factor>,<other-datacenter-name>:<other-replication-factor>.
 You can also specify the flag multiple times instead of separating it with a comma.`)
+
+	realmsCreateCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
 
 	realmsCmd.AddCommand(
 		realmsListCmd,
@@ -230,8 +233,14 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		fmt.Println()
 	}
 
-	if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
-		os.Exit(0)
+	y, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		return err
+	}
+	if !y {
+		if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
+			os.Exit(0)
+		}
 	}
 
 	var publicKeyContent []byte
@@ -261,8 +270,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		}
 	default:
 		reader := rand.Reader
-		bitSize := 4096
-		key, err := rsa.GenerateKey(reader, bitSize)
+		key, err := ecdsa.GenerateKey(elliptic.P256(), reader)
 		if err != nil {
 			return err
 		}
@@ -350,10 +358,15 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func getPrivateKeyPEMBytes(key *rsa.PrivateKey) ([]byte, error) {
+func getPrivateKeyPEMBytes(key *ecdsa.PrivateKey) ([]byte, error) {
+	marshaled, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
+		return nil, err
+	}
+
 	var pemkey = &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
+		Type:  "EC PRIVATE KEY",
+		Bytes: marshaled,
 	}
 	var outbuf bytes.Buffer
 

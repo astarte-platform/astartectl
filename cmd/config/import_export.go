@@ -42,7 +42,7 @@ var configExportCmd = &cobra.Command{
 	astartectl config import. By default, the complete list of clusters and contexts is exported, but you can
 	tweak this behavior by using --clusters and --contexts, providing a list of names. By default, the resulting
 	JSON file is printed on stdout, but it can also be saved to a file by specifying -o.`,
-	Example: `  astartectl housekeeping realms create myrealm -p /path/to/public_key`,
+	Example: `  astartectl housekeeping realms create myrealm --realm-public-key /path/to/public_key`,
 	Args:    cobra.ExactArgs(0),
 	RunE:    configExportF,
 }

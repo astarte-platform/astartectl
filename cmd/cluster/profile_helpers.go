@@ -33,6 +33,17 @@ func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resource
 	astarteDeployment.DefaultSpec.Version = astarteVersion.String()
 	astarteDeployment.DefaultSpec.API.Host = getStringFromSpecOrFlagOrPromptOrDie(spec, "api.host", command, "api-host", "Please enter the API Host for this Deployment:", "", false)
 	astarteDeployment.DefaultSpec.Vernemq.Host = getStringFromSpecOrFlagOrPromptOrDie(spec, "vernemq.host", command, "broker-host", "Please enter the MQTT Broker Host for this Deployment:", "", false)
+	astarteDeployment.DefaultSpec.Vernemq.Port = getIntFromSpecOrFlagOrPromptOrDie(spec, "vernemq.port", command, "broker-port", "Please enter the MQTT Broker Port for this Deployment:", 8883, false)
+	vernemqTLSSecret := getStringFromSpecOrFlagOrPromptOrDie(spec, "vernemq.tls-secret", command, "broker-tls-secret", "Please enter the Kubernetes TLS Secret name for the MQTT Broker SSL Certificate:", "", false)
+	if vernemqTLSSecret != "" {
+		astarteDeployment.DefaultSpec.Vernemq.SslListener = true
+		astarteDeployment.DefaultSpec.Vernemq.SslListenerCertSecretName = vernemqTLSSecret
+		fmt.Println("VerneMQ SSL Listener will be activated.")
+	} else {
+		astarteDeployment.DefaultSpec.Vernemq.SslListener = false
+		fmt.Println("VerneMQ SSL Listener will not be activated. Ensure your broker ingress will have PROXYv2 SSL Termination.")
+	}
+
 	storageClass := getStringFromSpecOrFlag(spec, "storageClassName", command, "storage-class-name")
 	if storageClass != "" {
 		astarteDeployment.DefaultSpec.StorageClassName = getStringFromSpecOrFlag(spec, "storageClassName", command, "storage-class-name")
@@ -56,12 +67,13 @@ func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resource
 			astarteDeployment.DefaultSpec.Vernemq.Storage.Size, false)
 	}
 	if astarteDeployment.DefaultSpec.Cfssl.Deploy {
-		astarteDeployment.DefaultSpec.Cfssl.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.storage.size", command, "cfssl-volume-size", "Please enter the CFSSL Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Cfssl.Storage.Size, false)
-		cfsslDBDriver := getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.dbConfig.driver", command, "cfssl-db-driver", "Please enter the CFSSL DB Driver for this deployment.\nPlease note that leaving this empty will default to using SQLite, which is strongly discouraged in production.\nCFSSL DB Driver:",
-			"", true)
+		storageGate, _ := semver.NewConstraint("< 1.0.0")
+		if storageGate.Check(astarteVersion) {
+			astarteDeployment.DefaultSpec.Cfssl.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.storage.size", command, "cfssl-volume-size", "Please enter the CFSSL Volume size for this Deployment:",
+				astarteDeployment.DefaultSpec.Cfssl.Storage.Size, false)
+		}
+		cfsslDBDriver := getStringFromSpecOrFlag(spec, "cfssl.dbConfig.driver", command, "cfssl-db-driver")
 		if cfsslDBDriver != "" && cfsslDBDriver != "sqlite3" {
-			fmt.Println(cfsslDBDriver)
 			astarteDeployment.DefaultSpec.Cfssl.DbConfig.Driver = cfsslDBDriver
 			astarteDeployment.DefaultSpec.Cfssl.DbConfig.DataSource = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.dbConfig.dataSource", command, "cfssl-db-datasource", "Please enter the CFSSL DB Datasource (Connection URL) for this Deployment:",
 				"", false)

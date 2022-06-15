@@ -18,14 +18,10 @@ package deployment
 func GetAllBuiltinAstarteClusterProfiles() []AstarteClusterProfile {
 	return []AstarteClusterProfile{
 		// 0.10 profiles
-		astarteBurstProfile010,
 		astarteBasicProfile010,
-		astarteMinimalProductionProfile010,
-		astarteDevelopmentProfile010,
 		// 0.11 profiles
-		astarteBurstProfile011,
 		astarteBasicProfile011,
-		astarteMinimalProductionProfile011,
-		astarteDevelopmentProfile011,
+		// 1.0 profiles (good for 1.0 for now)
+		astarteBasicProfile10,
 	}
 }

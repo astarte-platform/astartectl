@@ -4,6 +4,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2022-06-13
+### Added
+- `cluster instances migrate replace-voyager` allows to migrate a deprecated AstarteVoyagerIngress
+  to an AstarteDefaultIngress resource.
+- `utils show-jwt-claims` to display claims of an Astarte token.
+
+### Changed
+- `cluster show`: add operator-name and operator-namespace flags
+- `utils interfaces validate` allows validating Astarte Interfaces
+
+### Removed
+- `cluster instance deploy`: remove profile choice, only deploy a basic Astarte instance.
+- `cluster instance`: remove outdated `change-profile` subcommmand.
+- `cluster instance`: remove outdated `upgrade` subcommmand.
+
+## [1.0.0-beta.7] - 2022-02-09
+### Added
+- realm/interfaces/sync: Add non-interactive mode
+
+## [1.0.0-beta.6] - 2022-01-13
+### Added
+- housekeeping/realms: Add non-interactive mode
+- config: Allow querying for current cluster
+- pairing/agent: Allow registering a device with a machine-friendly output
+
+### Changed
+- `utils gen-jwt` will now use the private keys specified in the context, if any, to
+  generate the tokens without asking for a private key explicitly.
+
+## [1.0.0-beta.5] - 2022-01-12
+### Changed
+- deploy: burst profile for 1.0 should not specify a set amount of CPU for Verne
+
+## [1.0.0-beta.4] - 2022-01-12
+### Added
+- deploy: Support for VerneMQ SSL Listener (1.0.1+)
+- deploy: Support for custom Broker port
+- deploy: Support non-interactive scenarios
+
+### Changed
+- deploy: Allow up to 2 minutes for housekeeping to come up after deployment
+
+## [1.0.0-beta.3] - 2022-01-04
+### Added
+- Support for 1.0 profiles
+
+### Changed
+- Generate new keypairs using elliptic curves instead of RSA.
+- Updated Kubernetes APIs to 1.23
+- Require at least Go 1.17 (due to Kubernetes deps)
+- Use Go 1.17 for releases
+
 ## [1.0.0-beta.2] - 2021-03-26
 ### Changed
 - Device metadata have been renamed to attributes.

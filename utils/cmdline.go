@@ -30,7 +30,19 @@ func AskForConfirmation(s string) (bool, error) {
 }
 
 // PromptChoice gets input from the user
-func PromptChoice(question string, defaultValue string, allowEmpty bool) (string, error) {
+func PromptChoice(question string, defaultValue string, allowEmpty, nonInteractive bool) (string, error) {
+	// Is it non-interactive?
+	if nonInteractive {
+		switch {
+		case defaultValue != "":
+			return defaultValue, nil
+		case allowEmpty:
+			return "", nil
+		default:
+			return "", fmt.Errorf("%s\nRequested non-interactive command, but a necessary parameter was not provided.", question)
+		}
+	}
+
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
