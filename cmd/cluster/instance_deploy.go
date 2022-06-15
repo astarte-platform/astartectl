@@ -31,9 +31,9 @@ import (
 
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "Deploy an Astarte Instance in the current Kubernetes Cluster",
-	Long: `Deploy an Astarte Instance in the current Kubernetes Cluster. This will adhere to the same current-context
-kubectl mentions. If no versions are specified, the last stable version is deployed.`,
+	Short: "Deploy a minimal Astarte Instance in the current Kubernetes Cluster. Only for testing.",
+	Long: `Deploy a minimal Astarte Instance in the current Kubernetes Cluster. This will adhere to the same current-context
+kubectl mentions. If no versions are specified, the last stable version is deployed. This should only be used for testing purposes.`,
 	Example: `  astartectl cluster instances deploy`,
 	RunE:    clusterDeployF,
 }
@@ -41,12 +41,13 @@ kubectl mentions. If no versions are specified, the last stable version is deplo
 func init() {
 	deployCmd.PersistentFlags().String("name", "", "Name of the deployed Astarte resource.")
 	deployCmd.PersistentFlags().String("version", "", "Version of Astarte to deploy. If not specified, last stable version will be deployed.")
-	deployCmd.PersistentFlags().String("profile", "", "Astarte Deployment Profile. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("api-host", "", "The API host for this Astarte deployment. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("broker-host", "", "The Broker host for this Astarte deployment. If not specified, it will be prompted when deploying.")
+	deployCmd.PersistentFlags().Int("broker-port", 8883, "The Broker port for this Astarte deployment. Defaults to 8883.")
+	deployCmd.PersistentFlags().String("broker-tls-secret", "", "The existing TLS Secret, if any, to be used by the broker as its SSL Certificate. When specified, VerneMQ SSL listener will be enabled.")
 	deployCmd.PersistentFlags().String("cassandra-nodes", "", "The Cassandra nodes the Astarte deployment should use for connecting. Valid only if the deployment profile has an external Cassandra.")
 	deployCmd.PersistentFlags().String("cassandra-volume-size", "", "The Cassandra PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
-	deployCmd.PersistentFlags().String("cfssl-volume-size", "", "The CFSSL PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
+	deployCmd.PersistentFlags().String("cfssl-volume-size", "", "If Astarte is < 1.0.0, the CFSSL PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
 	deployCmd.PersistentFlags().String("cfssl-db-driver", "", "The CFSSL Database Driver. If not specified, it will default to SQLite.")
 	deployCmd.PersistentFlags().String("cfssl-db-datasource", "", "The CFSSL Database Datasource. Compulsory when specifying a DB Driver different from SQLite.")
 	deployCmd.PersistentFlags().String("rabbitmq-volume-size", "", "The RabbitMQ PVC size for this Astarte deployment. If not specified, it will be prompted when deploying.")
@@ -59,13 +60,17 @@ func init() {
 }
 
 func clusterDeployF(command *cobra.Command, args []string) error {
+	y, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		return err
+	}
 	version, err := command.Flags().GetString("version")
 	if err != nil {
 		return err
 	}
 	if version == "" {
 		latestAstarteVersion, _ := getLastAstarteRelease()
-		version, err = utils.PromptChoice("What Astarte version would you like to install?", latestAstarteVersion, false)
+		version, err = utils.PromptChoice("What Astarte version would you like to install?", latestAstarteVersion, false, y)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -77,7 +82,7 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	profile, astarteDeployment, err := promptForProfile(command, astarteVersion)
+	profile, astarteDeployment, err := getBasicProfile(command, astarteVersion)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -91,19 +96,23 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	//
 	fmt.Println()
 	fmt.Println("Your Astarte instance is ready to be deployed!")
-	reviewConfiguration, _ := utils.AskForConfirmation("Do you wish to review the configuration before deployment?")
-	if reviewConfiguration {
-		marshaledResource, err := yaml.Marshal(astarteDeploymentResource)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Could not build the YAML representation. Aborting.")
-			os.Exit(1)
-		}
-		fmt.Println(string(marshaledResource))
+	marshaledResource, err := yaml.Marshal(astarteDeploymentResource)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Could not build the YAML representation. Aborting.")
+		os.Exit(1)
 	}
-	goAhead, _ := utils.AskForConfirmation(fmt.Sprintf("Your Astarte instance \"%s\" will be deployed in namespace \"%s\". Do you want to continue?", resourceName, resourceNamespace))
-	if !goAhead {
-		fmt.Println("Aborting.")
-		os.Exit(0)
+	if !y {
+		reviewConfiguration, _ := utils.AskForConfirmation("Do you wish to review the configuration before deployment?")
+		if reviewConfiguration {
+			fmt.Println(string(marshaledResource))
+		}
+		goAhead, _ := utils.AskForConfirmation(fmt.Sprintf("Your Astarte instance \"%s\" will be deployed in namespace \"%s\". Do you want to continue?", resourceName, resourceNamespace))
+		if !goAhead {
+			fmt.Println("Aborting.")
+			os.Exit(0)
+		}
+	} else {
+		fmt.Println(string(marshaledResource))
 	}
 
 	// Let's do it. Retrieve the namespace first and ensure it's there
@@ -142,8 +151,8 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	fmt.Println("Your Astarte instance has been successfully deployed. Please allow a few minutes for the Cluster to start. You can monitor the progress with astartectl cluster show.")
 	fmt.Println("Now waiting for Housekeeping setup to set up a context...")
 
-	// 1 minute timeout
-	for i := 0; i < 12; i++ {
+	// 2 minute timeout
+	for i := 0; i < 24; i++ {
 		// Try every 5 seconds
 		time.Sleep(5 * time.Second)
 		if _, err = getHousekeepingKey(resourceName, resourceNamespace, false); err == nil {

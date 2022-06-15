@@ -17,10 +17,12 @@ package cluster
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/bytefmt"
@@ -39,6 +41,7 @@ import (
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/yaml"
 )
 
 func init() {
@@ -140,8 +143,8 @@ func getAstarte(astarteCRD dynamic.NamespaceableResourceInterface, name string, 
 	return astarteCRD.Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-func getAstarteOperator() (*appsv1.Deployment, error) {
-	return kubernetesClient.AppsV1().Deployments("kube-system").Get(context.TODO(), "astarte-operator", metav1.GetOptions{})
+func getAstarteOperator(operatorName, operatorNamespace string) (*appsv1.Deployment, error) {
+	return kubernetesClient.AppsV1().Deployments(operatorNamespace).Get(context.TODO(), operatorName, metav1.GetOptions{})
 }
 
 func getLastOperatorRelease() (string, error) {
@@ -338,6 +341,33 @@ func promptForProfile(command *cobra.Command, astarteVersion *semver.Version) (s
 	return promptForProfileExcluding(command, astarteVersion, []string{})
 }
 
+func getBasicProfile(command *cobra.Command, astarteVersion *semver.Version) (string, deployment.AstarteClusterProfile, error) {
+	nodes, allocatableCPU, allocatableMemory, err := getClusterAllocatableResources()
+	if err != nil {
+		return "", deployment.AstarteClusterProfile{}, err
+	}
+
+	fmt.Printf("Cluster has %v nodes\n", nodes)
+	fmt.Printf("Allocatable CPU is %vm\n", allocatableCPU)
+	fmt.Printf("Allocatable Memory is %v\n", bytefmt.ByteSize(uint64(allocatableMemory)))
+	fmt.Println()
+
+	clusterRequirements := deployment.AstarteProfileRequirements{
+		CPUAllocation:    allocatableCPU,
+		MemoryAllocation: allocatableMemory,
+		MinNodes:         nodes,
+		MaxNodes:         nodes,
+	}
+	availableProfiles := deployment.GetProfilesForVersionAndRequirements(astarteVersion, clusterRequirements)
+
+	if len(availableProfiles) == 0 {
+		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("Unfortunately, your cluster allocatable resources do not allow for an Astarte instance to be deployed")
+	}
+
+	// only "basic" type profiles are available at the moment
+	return "basic", availableProfiles["basic"], nil
+}
+
 func getValueFromSpec(spec map[string]interface{}, field string) interface{} {
 	fieldTokens := strings.Split(field, ".")
 	aMap := spec
@@ -388,6 +418,40 @@ func getFromSpecOrPromptOrDie(spec map[string]interface{}, field string, command
 	return getFromPromptOrDie(command, question, defaultValue, allowEmpty)
 }
 
+func getIntFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, flagName string, question string, defaultValue int, allowEmpty bool) int {
+	ret := getValueFromSpec(spec, field)
+	if ret != nil {
+		return ret.(int)
+	}
+
+	return getIntFlagFromPromptOrDie(command, flagName, question, defaultValue, allowEmpty)
+}
+
+func getIntFlagFromPromptOrDie(command *cobra.Command, flagName string, question string, defaultValue int, allowEmpty bool) int {
+	var ret int
+	flag := command.Flags().Lookup(flagName)
+	if flag != nil {
+		var err error
+		ret, err = command.Flags().GetInt(flagName)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
+	// Given we have no real way to check, let's prompt (or attempt to if the defaults match)
+	if defaultValue == ret {
+		i := getFromPromptOrDie(command, question, strconv.Itoa(defaultValue), allowEmpty)
+		var err error
+		if ret, err = strconv.Atoi(i); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
+	return ret
+}
+
 func getStringFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, flagName string, question string, defaultValue string, allowEmpty bool) string {
 	ret := getValueFromSpec(spec, field)
 	if ret != nil {
@@ -415,7 +479,13 @@ func getStringFlagFromPromptOrDie(command *cobra.Command, flagName string, quest
 }
 
 func getFromPromptOrDie(command *cobra.Command, question string, defaultValue string, allowEmpty bool) string {
-	ret, err := utils.PromptChoice(question, defaultValue, allowEmpty)
+	y, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	ret, err := utils.PromptChoice(question, defaultValue, allowEmpty, y)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -437,4 +507,43 @@ func setInMapRecursively(aMap map[string]interface{}, tokens []string, customFie
 		}
 	}
 	return aMap
+}
+
+func unstructuredToJSON(in *unstructured.Unstructured) ([]byte, error) {
+	out, err := json.Marshal(in.Object)
+	if err != nil {
+		return []byte{}, err
+	}
+	return out, nil
+}
+
+func unstructuredToYAML(in *unstructured.Unstructured) ([]byte, error) {
+	j, err := unstructuredToJSON(in)
+	if err != nil {
+		return []byte{}, err
+	}
+	out, err := yaml.JSONToYAML(j)
+	if err != nil {
+		return []byte{}, err
+	}
+	return out, nil
+}
+
+func dumpResourceToYAMLFile(in *unstructured.Unstructured, filepath string) error {
+	f, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	y, err := unstructuredToYAML(in)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(filepath, []byte(y), 0644); err != nil {
+		return err
+	}
+
+	return nil
 }

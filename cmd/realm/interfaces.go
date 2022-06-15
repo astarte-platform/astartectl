@@ -110,6 +110,8 @@ realm, depending on the realm's state.`,
 func init() {
 	RealmManagementCmd.AddCommand(interfacesCmd)
 
+	interfacesSyncCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
+
 	interfacesCmd.AddCommand(
 		interfacesListCmd,
 		interfacesVersionsCmd,
@@ -266,8 +268,15 @@ func interfacesSyncF(command *cobra.Command, args []string) error {
 		fmt.Printf("Will update interface %s to version %d.%d\n", v.Name, v.MajorVersion, v.MinorVersion)
 	}
 	fmt.Println()
-	if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
-		return nil
+
+	y, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		return err
+	}
+	if !y {
+		if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
+			return nil
+		}
 	}
 
 	// Start syncing.

@@ -15,12 +15,18 @@
 package utils
 
 import (
+	"text/tabwriter"
+
 	"github.com/astarte-platform/astarte-go/misc"
+	"github.com/astarte-platform/astartectl/config"
 	"github.com/spf13/cobra"
 
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -32,13 +38,13 @@ import (
 var UtilsCmd = &cobra.Command{
 	Use:   "utils",
 	Short: "Various utilities to interact with Astarte",
-	Long:  `utils includes commands to generate keypairs and device ids`,
+	Long:  `utils includes commands to generate and handle keypairs, device ids and JWT tokens`,
 }
 
 var genKeypairCmd = &cobra.Command{
 	Use:   "gen-keypair <realm_name>",
-	Short: "Generate an RSA keypair",
-	Long: `Generate an RSA keypair to use for realm authentication.
+	Short: "Generate an ECDSA keypair",
+	Long: `Generate an ECDSA keypair to use for realm authentication.
 
 The keypair will be saved in the current directory with names <realm_name>_private.pem and <realm_name>_public.pem`,
 	Example: `  astartectl utils gen-keypair myrealm`,
@@ -62,7 +68,10 @@ var genJwtCmd = &cobra.Command{
 	Long: `Generate a signed JWT to access Astarte APIs.
 
 The token will be signed with the key provided through the -k parameter, and will be valid for the API
-sets specified as arguments to gen-jwt. Supported API sets are:
+sets specified as arguments to gen-jwt. If a config context is set and it holds a valid private key to
+either its Realm or Housekeeping and -k is not set, those keys will be used.
+
+Supported API sets are:
 
 appengine - Would generate a token valid for AppEngine API. Requires a Realm key for signing.
 channels - Would generate a token valid for Astarte Channels. Requires a Realm key for signing.
@@ -92,10 +101,31 @@ Would generate a token with only the desired claims for appengine and pairing.
 	RunE:      genJwtF,
 }
 
+var showJwtClaimsCmd = &cobra.Command{
+	Use:   "show-jwt-claims <token>",
+	Short: "Show an Astarte JWT token's claims",
+	Long: `Show the set of claims contained in an Astarte JWT token.
+
+Besides standard JWT fields, Astarte JWT tokens contain a set of Astarte claims.
+Astarte's data access APIs match the devices' topology like a tree, allowing to declare the
+authorization in terms of path allow-listing.
+Every claim is an array of regular expressions, which act as a logical OR.
+Astarte specific token claims are:
+	AppEngine API ("a_aea")
+	Realm Management API ("a_rma")
+	Housekeeping API ("a_ha")
+	Pairing API ("a_pa")
+	Channels ("a_ch")
+	Flow ("a_f")
+`,
+	Example: `  astartectl utils show-jwt-claims $TOKEN`,
+	Args:    cobra.MinimumNArgs(1),
+	RunE:    showJwtClaimsF,
+}
+
 func init() {
 	genJwtCmd.Flags().StringP("private-key", "k", "", `Path to PEM encoded private key.
 Should be Housekeeping key to generate an housekeeping token, Realm key for everything else.`)
-	genJwtCmd.MarkFlagRequired("private-key")
 	genJwtCmd.MarkFlagFilename("private-key")
 	genJwtCmd.Flags().StringSliceP("claims", "c", nil, `The list of claims to be added in the JWT. Defaults to all-access claims.
 You can specify the flag multiple times or separate the claims with a comma.`)
@@ -103,18 +133,17 @@ You can specify the flag multiple times or separate the claims with a comma.`)
 
 	UtilsCmd.AddCommand(genKeypairCmd)
 	UtilsCmd.AddCommand(genJwtCmd)
+
+	showJwtClaimsCmd.Flags().BoolP("pretty", "p", false, "Whether the output should be pretty-printed.")
+	UtilsCmd.AddCommand(showJwtClaimsCmd)
 }
 
 func genKeypairF(command *cobra.Command, args []string) error {
 	realm := args[0]
 
 	reader := rand.Reader
-	bitSize := 4096
 
-	key, err := rsa.GenerateKey(reader, bitSize)
-	if err != nil {
-		return err
-	}
+	key, err := ecdsa.GenerateKey(elliptic.P256(), reader)
 	checkError(err)
 
 	publicKey := key.PublicKey
@@ -139,6 +168,7 @@ func validJwtType(t string) bool {
 func genJwtF(command *cobra.Command, args []string) error {
 	servicesAndClaims := map[misc.AstarteService][]string{}
 
+	shouldUseHousekeepingKey := false
 	for _, t := range args {
 		// Metatype
 		if t == "all-realm-apis" {
@@ -163,8 +193,11 @@ func genJwtF(command *cobra.Command, args []string) error {
 			return fmt.Errorf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
 		}
 
-		if astarteService == misc.Housekeeping && len(args) != 1 {
-			return errors.New("Conflicting API types specified. Specify only API sets which require the same key type for signing")
+		if astarteService == misc.Housekeeping {
+			if len(args) != 1 {
+				return errors.New("Conflicting API types specified. Specify only API sets which require the same key type for signing")
+			}
+			shouldUseHousekeepingKey = true
 		}
 
 		servicesAndClaims[astarteService] = []string{}
@@ -199,19 +232,63 @@ func genJwtF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	privateKey, err := command.Flags().GetString("private-key")
-	if err != nil {
-		return err
-	}
-
 	expiryOffset, err := command.Flags().GetInt64("expiry")
 	if err != nil {
 		return err
 	}
 
-	tokenString, err := misc.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
+	var tokenString string
+
+	privateKey, err := command.Flags().GetString("private-key")
 	if err != nil {
 		return err
+	}
+
+	if privateKey == "" {
+		// In this case, retrieve the key from the context
+		c, err := config.LoadBaseConfiguration(config.GetConfigDir())
+		if err != nil {
+			return err
+		}
+
+		context, err := config.LoadContextConfiguration(config.GetConfigDir(), c.CurrentContext)
+		if err != nil {
+			return err
+		}
+
+		var loadedKey string
+		if !shouldUseHousekeepingKey {
+			if context.Realm.Key == "" {
+				return errors.New("private key not provided, and current context doesn't have a private realm key")
+			}
+			loadedKey = context.Realm.Key
+		} else {
+			cluster, err := config.LoadClusterConfiguration(config.GetConfigDir(), context.Cluster)
+			if err != nil {
+				return err
+			}
+
+			if cluster.Housekeeping.Key == "" {
+				return errors.New("private key not provided, and current context doesn't have a private housekeeping key")
+			}
+			loadedKey = cluster.Housekeeping.Key
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(loadedKey)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		tokenString, err = misc.GenerateAstarteJWTFromPEMKey(decoded, servicesAndClaims, expiryOffset)
+		if err != nil {
+			return err
+		}
+	} else {
+		tokenString, err = misc.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Println(tokenString)
@@ -219,14 +296,17 @@ func genJwtF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func savePEMKey(fileName string, key *rsa.PrivateKey) {
+func savePEMKey(fileName string, key *ecdsa.PrivateKey) {
 	outFile, err := os.Create(fileName)
 	checkError(err)
 	defer outFile.Close()
 
+	marshaled, err := x509.MarshalECPrivateKey(key)
+	checkError(err)
+
 	var privateKey = &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
+		Type:  "EC PRIVATE KEY",
+		Bytes: marshaled,
 	}
 
 	err = pem.Encode(outFile, privateKey)
@@ -235,7 +315,7 @@ func savePEMKey(fileName string, key *rsa.PrivateKey) {
 	fmt.Println("Wrote " + fileName)
 }
 
-func savePublicPEMKey(fileName string, pubkey rsa.PublicKey) {
+func savePublicPEMKey(fileName string, pubkey ecdsa.PublicKey) {
 	pkixBytes, err := x509.MarshalPKIXPublicKey(&pubkey)
 	checkError(err)
 	var pemkey = &pem.Block{
@@ -251,6 +331,42 @@ func savePublicPEMKey(fileName string, pubkey rsa.PublicKey) {
 	checkError(err)
 
 	fmt.Println("Wrote " + fileName)
+}
+
+func showJwtClaimsF(command *cobra.Command, args []string) error {
+	claims, err := misc.GetJWTAstarteClaims(args[0])
+	if err != nil {
+		return err
+	}
+
+	pretty, err := command.Flags().GetBool("pretty")
+	if err != nil {
+		return err
+	}
+
+	if pretty {
+		prettyPrintJwtClaims(claims)
+	} else {
+		out, _ := json.MarshalIndent(claims, "", "    ")
+		fmt.Println(string(out))
+	}
+
+	return nil
+}
+
+func prettyPrintJwtClaims(claims misc.AstarteClaims) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	fmt.Fprintf(w, "AppEngine API:\t%v\n", claims.AppEngineAPI)
+	fmt.Fprintf(w, "RealmManagement API:\t%v\n", claims.RealmManagement)
+	fmt.Fprintf(w, "Housekeeping API:\t%v\n", claims.Housekeeping)
+	fmt.Fprintf(w, "Pairing API:\t%v\n", claims.Pairing)
+	fmt.Fprintf(w, "Channels:\t%v\n", claims.Channels)
+	fmt.Fprintf(w, "Flow:\t%v\n", claims.Flow)
+	fmt.Fprintf(w, "ExpiresAt:\t%v\n", claims.ExpiresAt)
+	fmt.Fprintf(w, "IssuedAt:\t%v\n", claims.IssuedAt)
+	fmt.Fprintf(w, "NotBefore:\t%v\n", claims.NotBefore)
+	fmt.Fprintf(w, "Issuer:\t%v\n", claims.Issuer)
+	w.Flush()
 }
 
 func checkError(err error) {
