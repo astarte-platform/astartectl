@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - Unreleased
+### Fixed
+- context: do not warn when config is missing. Users will have to provide parameters by hand.
+
 ## [1.0.0] - 2022-06-13
 ### Added
 - `cluster instances migrate replace-voyager` allows to migrate a deprecated AstarteVoyagerIngress
