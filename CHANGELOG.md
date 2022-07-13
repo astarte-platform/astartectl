@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.0.1] - Unreleased
+## Added
+- `cluster instance deploy`: add `--burst` flag to deploy a burst Astarte instance. It 
+  should be used only in resource-constrained environments, such as CI. Only Astarte
+  0.11.x and 1.0.x are supported.
+
 ### Fixed
 - context: do not warn when config is missing. Users will have to provide parameters by hand.
 

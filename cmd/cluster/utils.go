@@ -341,7 +341,7 @@ func promptForProfile(command *cobra.Command, astarteVersion *semver.Version) (s
 	return promptForProfileExcluding(command, astarteVersion, []string{})
 }
 
-func getBasicProfile(command *cobra.Command, astarteVersion *semver.Version) (string, deployment.AstarteClusterProfile, error) {
+func getProfile(command *cobra.Command, astarteVersion *semver.Version, burst bool) (string, deployment.AstarteClusterProfile, error) {
 	nodes, allocatableCPU, allocatableMemory, err := getClusterAllocatableResources()
 	if err != nil {
 		return "", deployment.AstarteClusterProfile{}, err
@@ -364,7 +364,13 @@ func getBasicProfile(command *cobra.Command, astarteVersion *semver.Version) (st
 		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("Unfortunately, your cluster allocatable resources do not allow for an Astarte instance to be deployed")
 	}
 
-	// only "basic" type profiles are available at the moment
+	// Invariant: since burst requirements are a strict subset of basic requirements,
+	// if a cluster allows for a basic profile, it also allows for a burst one.
+	if burst {
+		return "burst", availableProfiles["burst"], nil
+	}
+
+	// basic type profiles are the default
 	return "basic", availableProfiles["basic"], nil
 }
 
