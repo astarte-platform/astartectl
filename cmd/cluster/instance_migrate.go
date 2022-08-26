@@ -30,6 +30,8 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	"github.com/astarte-platform/astartectl/utils"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 var MigrateCmd = &cobra.Command{
@@ -49,6 +51,16 @@ Before the actual migration starts, the user is required to review the to-be-ins
 	RunE:    replaceVoyagerF,
 }
 
+var updateStorageVersionCmd = &cobra.Command{
+	Use:   "storage-version",
+	Short: "Update Astarte, AVI and Flow CRDs to the v1alpha2 storage version",
+	Long: `Update the storage version of Astarte, AstarteVoyagerIngress and Flow CRDs from v1alpha1 to v1alpha2.
+	
+This is NOT a standalone command, please refer to the Astarte documentation for the complete upgrade procedure.`,
+	Example: `  astartectl cluster instances migrate storage-version`,
+	RunE:    updateStorageVersionCmdF,
+}
+
 func init() {
 	InstancesCmd.AddCommand(MigrateCmd)
 
@@ -58,6 +70,17 @@ func init() {
 	replaceVoyagerCmd.PersistentFlags().StringP("out", "o", "", "The name of the file in which the AstarteVoyagerIngress custom resource will be saved.")
 
 	MigrateCmd.AddCommand(replaceVoyagerCmd)
+	MigrateCmd.AddCommand(updateStorageVersionCmd)
+}
+
+func updateStorageVersionCmdF(command *cobra.Command, args []string) error {
+	crds := []string{"astartes.api.astarte-platform.org", "astartevoyageringresses.api.astarte-platform.org", "flows.api.astarte-platform.org"}
+	for _, v := range crds {
+		if err := updateStorageVersion(v); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func replaceVoyagerF(command *cobra.Command, args []string) error {
@@ -580,5 +603,51 @@ func maybeNotifyForUnmanagedAnnotations(aviObj *unstructured.Unstructured) {
 		}
 		fmt.Println("However, the migration of these annotations is not supported as they are Voyager specific and, as such, they will be dropped.")
 
+	}
+}
+
+func updateStorageVersion(crdName string) error {
+	// First of all, some sanity checks
+	fmt.Printf("Checking migration preconditions for %s\n", crdName)
+	// get the CRD
+	crd, err := kubernetesAPIExtensionsClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(),
+		crdName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// ensure that we are performing the migration on a correctly configured CRD:
+	// at this point, the CRD should have both v1alpha1 and v1alpha2 as storedVersions
+	err = checkUpdateStorageVersionPreconditions(crd.Status.StoredVersions, []string{"v1alpha1", "v1alpha2"})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Migrating %s\n", crdName)
+	// update the stored versions...
+	crd.Status.StoredVersions = []string{"v1alpha2"}
+
+	// ... and perform the CRD update
+	if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		_, err := kubernetesAPIExtensionsClient.ApiextensionsV1().CustomResourceDefinitions().UpdateStatus(context.Background(), crd, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	fmt.Printf("%s correctly migrated\n", crdName)
+	return nil
+}
+
+func checkUpdateStorageVersionPreconditions(currentStoredVersions []string, requiredStoredVersions []string) error {
+	if cmp.Equal(currentStoredVersions, requiredStoredVersions, cmpopts.SortSlices(func(a, b string) bool {
+		return a < b
+	})) {
+		return nil
+	} else {
+		return fmt.Errorf("CRD status not consistent with API migration. Refer to the Astarte documentation on how to perform migration")
 	}
 }
