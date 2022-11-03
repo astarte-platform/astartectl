@@ -56,7 +56,7 @@ var updateStorageVersionCmd = &cobra.Command{
 	Short: "Update Astarte, AVI and Flow CRDs to the v1alpha2 storage version",
 	Long: `Update the storage version of Astarte, AstarteVoyagerIngress and Flow CRDs from [v1alpha1, v1alpha2] to v1alpha2.
 	
-This is NOT a standalone command, please refer to the Astarte documentation on the upgrade to Astarte Operator 1.1 for the complete upgrade procedure.`,
+This is NOT a standalone command, please refer to the Astarte documentation on the upgrade to Astarte Operator v22.11 for the complete upgrade procedure.`,
 	Example: `  astartectl cluster instances migrate storage-version`,
 	RunE:    updateStorageVersionCmdF,
 }
@@ -93,7 +93,7 @@ func updateStorageVersionCmdF(command *cobra.Command, args []string) error {
 	// check that all 3 CRDs have the right storedVersions
 	for k, v := range crdsWithStoredVersions {
 		if !checkStoredVersionsMatch(v, crdsStoredVersionsBeforeUpgrade) {
-			return fmt.Errorf("CRD %s status not consistent with API migration. Refer to the Astarte documentation on the upgrade to Astarte Operator 1.1", k)
+			return fmt.Errorf("CRD %s status not consistent with API migration. Refer to the Astarte documentation on the upgrade to Astarte Operator 22.11", k)
 		}
 	}
 
@@ -648,7 +648,7 @@ func restoreAllStoredVersions(crds map[string][]string) error {
 			return err
 		}
 	}
-	fmt.Println("Done. Please, check again the upgrade guide for Astarte Operator 1.1 before retrying.")
+	fmt.Println("Done. Please, check again the upgrade guide for Astarte Operator v22.11 before retrying.")
 	return nil
 }
 
