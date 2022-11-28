@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `cluster instances migrate storage-version` allows to migrate CRDs with `[v1alpha1, v1alpha2]`
   stored versions to just `[v1alpha2]`.
 
+## [1.0.1] - Unreleased
+## Added
+- `cluster instance deploy`: add `--burst` flag to deploy a burst Astarte instance. It 
+  should be used only in resource-constrained environments, such as CI. Only Astarte
+  0.11.x and 1.0.x are supported.
+
+### Fixed
+- context: do not warn when config is missing. Users will have to provide parameters by hand.
+
 ## [1.0.0] - 2022-06-13
 ### Added
 - `cluster instances migrate replace-voyager` allows to migrate a deprecated AstarteVoyagerIngress
