@@ -55,6 +55,7 @@ func init() {
 	deployCmd.PersistentFlags().String("storage-class-name", "", "The Kubernetes Storage Class name for this Astarte deployment. If not specified, it will be left empty and the default Storage Class for your Cloud Provider will be used. Keep in mind that with some Cloud Providers, you always need to specify this.")
 	deployCmd.PersistentFlags().Bool("no-ssl", false, "Don't use SSL for the API and Broker endpoints. Strongly not recommended.")
 	deployCmd.PersistentFlags().BoolP("non-interactive", "y", false, "Non-interactive mode. Will answer yes by default to all questions.")
+	deployCmd.PersistentFlags().Bool("burst", false, "Deploy a burst Astarte instance. Only useful in resource-constrained environments, such as CI runners.")
 
 	InstancesCmd.AddCommand(deployCmd)
 }
@@ -68,6 +69,13 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	// if only --burst is given, default to true
+	command.Flags().Lookup("burst").NoOptDefVal = "true"
+	burst, err := command.Flags().GetBool("burst")
+	if err != nil {
+		return err
+	}
+
 	if version == "" {
 		latestAstarteVersion, _ := getLastAstarteRelease()
 		version, err = utils.PromptChoice("What Astarte version would you like to install?", latestAstarteVersion, false, y)
@@ -82,7 +90,7 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	profile, astarteDeployment, err := getBasicProfile(command, astarteVersion)
+	profile, astarteDeployment, err := getProfile(command, astarteVersion, burst)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
