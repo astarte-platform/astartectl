@@ -30,6 +30,8 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	"github.com/astarte-platform/astartectl/utils"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 var MigrateCmd = &cobra.Command{
@@ -49,6 +51,19 @@ Before the actual migration starts, the user is required to review the to-be-ins
 	RunE:    replaceVoyagerF,
 }
 
+var updateStorageVersionCmd = &cobra.Command{
+	Use:   "storage-version",
+	Short: "Update Astarte, AVI and Flow CRDs to the v1alpha2 storage version",
+	Long: `Update the storage version of Astarte, AstarteVoyagerIngress and Flow CRDs from [v1alpha1, v1alpha2] to v1alpha2.
+	
+This is NOT a standalone command, please refer to the Astarte documentation on the upgrade to Astarte Operator v22.11 for the complete upgrade procedure.`,
+	Example: `  astartectl cluster instances migrate storage-version`,
+	RunE:    updateStorageVersionCmdF,
+}
+
+var crdsStoredVersionsBeforeUpgrade = []string{"v1alpha1", "v1alpha2"}
+var crdsStoredVersionsAfterUpgrade = []string{"v1alpha2"}
+
 func init() {
 	InstancesCmd.AddCommand(MigrateCmd)
 
@@ -58,6 +73,39 @@ func init() {
 	replaceVoyagerCmd.PersistentFlags().StringP("out", "o", "", "The name of the file in which the AstarteVoyagerIngress custom resource will be saved.")
 
 	MigrateCmd.AddCommand(replaceVoyagerCmd)
+	MigrateCmd.AddCommand(updateStorageVersionCmd)
+}
+
+func updateStorageVersionCmdF(command *cobra.Command, args []string) error {
+	crds := []string{"astartes.api.astarte-platform.org", "astartevoyageringresses.api.astarte-platform.org", "flows.api.astarte-platform.org"}
+
+	crdsWithStoredVersions := map[string][]string{}
+	//check that required CRDs exist and save their current storedVersions, in case you need to restore them.
+	for _, v := range crds {
+		if crd, err := kubernetesAPIExtensionsClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(),
+			v, metav1.GetOptions{}); err != nil {
+			return err
+		} else {
+			crdsWithStoredVersions[v] = crd.Status.StoredVersions
+		}
+	}
+
+	// check that all 3 CRDs have the right storedVersions
+	for k, v := range crdsWithStoredVersions {
+		if !checkStoredVersionsMatch(v, crdsStoredVersionsBeforeUpgrade) {
+			return fmt.Errorf("CRD %s status not consistent with API migration. Refer to the Astarte documentation on the upgrade to Astarte Operator 22.11", k)
+		}
+	}
+
+	// if all preconditions are met, we can start upgrading the CRDs
+	if err := updateAllStoredVersions(crdsWithStoredVersions); err != nil {
+		// something went wrong, revert revert revert
+		return restoreAllStoredVersions(crdsWithStoredVersions)
+	}
+
+	fmt.Println("All CRDs were upgraded successfully!")
+
+	return nil
 }
 
 func replaceVoyagerF(command *cobra.Command, args []string) error {
@@ -581,4 +629,53 @@ func maybeNotifyForUnmanagedAnnotations(aviObj *unstructured.Unstructured) {
 		fmt.Println("However, the migration of these annotations is not supported as they are Voyager specific and, as such, they will be dropped.")
 
 	}
+}
+
+func updateAllStoredVersions(crds map[string][]string) error {
+	for crd := range crds {
+		if err := updateStoredVersionsTo(crd, crdsStoredVersionsAfterUpgrade); err != nil {
+			fmt.Printf("Error updating %s: %s. Will restore CRDs.", crd, err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+func restoreAllStoredVersions(crds map[string][]string) error {
+	fmt.Println("Restoring CRDs to the previous state...")
+	for crd, oldStoredVersions := range crds {
+		if err := updateStoredVersionsTo(crd, oldStoredVersions); err != nil {
+			return err
+		}
+	}
+	fmt.Println("Done. Please, check again the upgrade guide for Astarte Operator v22.11 before retrying.")
+	return nil
+}
+
+func updateStoredVersionsTo(crdName string, newStoredVersions []string) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		crd, err := kubernetesAPIExtensionsClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(),
+			crdName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		// if it has the desired storedVersions already, do nothing
+		if checkStoredVersionsMatch(crd.Status.StoredVersions, newStoredVersions) {
+			return nil
+		}
+
+		crd.Status.StoredVersions = newStoredVersions
+
+		if _, err = kubernetesAPIExtensionsClient.ApiextensionsV1().CustomResourceDefinitions().UpdateStatus(context.Background(), crd, metav1.UpdateOptions{}); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func checkStoredVersionsMatch(currentStoredVersions []string, requiredStoredVersions []string) bool {
+	return cmp.Equal(currentStoredVersions, requiredStoredVersions, cmpopts.SortSlices(func(a, b string) bool {
+		return a < b
+	}))
 }
