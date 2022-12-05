@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [22.11.00] - Unreleased
 ### Added
 - `cluster instances migrate storage-version` allows to migrate CRDs with `[v1alpha1, v1alpha2]`
   stored versions to just `[v1alpha2]`.
