@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "1.0.0"
+var version = "1.0.1"
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
