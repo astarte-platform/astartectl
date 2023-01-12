@@ -66,12 +66,24 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgContext, "context", "", "Configuration context to use. When not specified, defaults to current context.")
 	rootCmd.PersistentFlags().StringP("astarte-url", "u", "", "Base url for your Astarte deployment (e.g. https://api.astarte.example.com)")
 	rootCmd.PersistentFlags().StringP("token", "t", "", "Token for authenticating against Astarte APIs. When set, it takes precedence over any private key setting. Claims in the token have to match the permissions needed for the individual command.")
+	rootCmd.PersistentFlags().Bool("ignore-ssl-errors", false, "When set, ignore SSL errors towards the Astarte APIs.")
+
 	if err := viper.BindPFlag("config-dir", rootCmd.PersistentFlags().Lookup("config-dir")); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("astarte-url"))
-	viper.BindPFlag("token", rootCmd.PersistentFlags().Lookup("token"))
+	if err := viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("astarte-url")); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("token", rootCmd.PersistentFlags().Lookup("token")); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("ignore-ssl-errors", rootCmd.PersistentFlags().Lookup("ignore-ssl-errors")); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	rootCmd.AddCommand(housekeeping.HousekeepingCmd)
 	rootCmd.AddCommand(pairing.PairingCmd)
