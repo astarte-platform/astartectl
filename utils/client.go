@@ -15,10 +15,13 @@
 package utils
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/astarte-platform/astarte-go/client"
 	"github.com/astarte-platform/astarte-go/misc"
@@ -38,12 +41,22 @@ func APICommandSetup(individualURLVariables map[misc.AstarteService]string, keyV
 		}
 	}
 
+	ignoreSSLErrors := viper.GetBool("ignore-ssl-errors")
+	httpClient := &http.Client{
+		Timeout: time.Second * 30,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: ignoreSSLErrors,
+			},
+		},
+	}
+
 	var err error
 	if len(individualURLs) > 0 {
 		// Use explicit URLs for Service
-		astarteAPIClient, err = client.NewClientWithIndividualURLs(individualURLs, nil)
+		astarteAPIClient, err = client.NewClientWithIndividualURLs(individualURLs, httpClient)
 	} else if astarteURL != "" {
-		astarteAPIClient, err = client.NewClient(astarteURL, nil)
+		astarteAPIClient, err = client.NewClient(astarteURL, httpClient)
 	} else {
 		err = errors.New("Either astarte-url or an individual API URL have to be specified")
 	}
