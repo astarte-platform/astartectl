@@ -45,10 +45,15 @@ func init() {
 }
 
 func statsDevicesF(command *cobra.Command, args []string) error {
-	devicesStats, err := astarteAPIClient.AppEngine.GetDevicesStats(realm)
+	devicesStatsReq, err := astarteAPIClient.GetDevicesStats(realm)
 	if err != nil {
 		return err
 	}
+	devicesStatsRes, err := devicesStatsReq.Run(astarteAPIClient)
+	if err != nil {
+		return err
+	}
+	devicesStats, _ := devicesStatsRes.Parse()
 
 	fmt.Printf("%+v\n", devicesStats)
 	return nil

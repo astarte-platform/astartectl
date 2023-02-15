@@ -15,8 +15,8 @@
 package housekeeping
 
 import (
+	"github.com/astarte-platform/astarte-go/astarteservices"
 	"github.com/astarte-platform/astarte-go/client"
-	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
 
 	"github.com/spf13/cobra"
@@ -45,7 +45,7 @@ func init() {
 
 func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	var err error
-	astarteAPIClient, err = utils.APICommandSetup(map[misc.AstarteService]string{misc.Housekeeping: "individual-urls.housekeeping"},
+	astarteAPIClient, err = utils.APICommandSetup(map[astarteservices.AstarteService]string{astarteservices.Housekeeping: "individual-urls.housekeeping"},
 		"housekeeping.key", "housekeeping.key-file")
 
 	return err

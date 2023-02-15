@@ -110,11 +110,19 @@ func init() {
 }
 
 func groupsListF(command *cobra.Command, args []string) error {
-	groupsList, err := astarteAPIClient.AppEngine.ListGroups(realm)
+	groupsListCall, err := astarteAPIClient.ListGroups(realm)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	groupsListRes, err := groupsListCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	groupsList, _ := groupsListRes.Parse()
 
 	fmt.Println(groupsList)
 	return nil
@@ -138,11 +146,29 @@ func groupsCreateF(command *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	err = astarteAPIClient.AppEngine.CreateGroup(realm, groupName, deviceIdentifiers, deviceIdentifiersType)
+
+	// turn device aliases in device IDs, if needed
+	if deviceIdentifiersType == client.AstarteDeviceAlias {
+		for i := 0; i < len(deviceIdentifiers); i++ {
+			deviceIdentifiers[i], err = getDeviceIDfromAlias(deviceIdentifiers[i])
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	createGroupCall, err := astarteAPIClient.CreateGroup(realm, groupName, deviceIdentifiers)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	createGroupRes, err := createGroupCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	_, _ = createGroupRes.Parse()
 
 	fmt.Println("ok")
 	return nil
@@ -151,10 +177,30 @@ func groupsCreateF(command *cobra.Command, args []string) error {
 func groupsDevicesListF(command *cobra.Command, args []string) error {
 	groupName := args[0]
 
-	deviceList, err := astarteAPIClient.AppEngine.ListGroupDevices(realm, groupName)
+	deviceListPaginator, err := astarteAPIClient.ListGroupDevices(realm, groupName, 100, client.DeviceIDFormat)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+
+	deviceList := []string{}
+	for deviceListPaginator.HasNextPage() {
+		deviceListCall, err := deviceListPaginator.GetNextPage()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		deviceListRes, err := deviceListCall.Run(astarteAPIClient)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		rawDevices, _ := deviceListRes.Parse()
+		devices, _ := rawDevices.([]string)
+		for _, v := range devices {
+			deviceList = append(deviceList, v)
+		}
 	}
 
 	fmt.Println(deviceList)
@@ -163,23 +209,23 @@ func groupsDevicesListF(command *cobra.Command, args []string) error {
 
 func groupsDevicesAddF(command *cobra.Command, args []string) error {
 	groupName := args[0]
-	deviceIdentifier := args[1]
-
-	forceIDType, err := command.Flags().GetString("force-id-type")
+	deviceIdentifier, err := getDeviceIDfromArgs(command, args)
 	if err != nil {
 		return err
 	}
 
-	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceIdentifier, forceIDType)
-	if err != nil {
-		return err
-	}
-
-	err = astarteAPIClient.AppEngine.AddDeviceToGroup(realm, groupName, deviceIdentifier, deviceIdentifierType)
+	addDeviceCall, err := astarteAPIClient.AddDeviceToGroup(realm, groupName, deviceIdentifier)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	addDeviceRes, err := addDeviceCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	_, _ = addDeviceRes.Parse()
 
 	fmt.Println("ok")
 	return nil
@@ -187,24 +233,62 @@ func groupsDevicesAddF(command *cobra.Command, args []string) error {
 
 func groupsDevicesRemoveF(command *cobra.Command, args []string) error {
 	groupName := args[0]
-	deviceIdentifier := args[1]
-
-	forceIDType, err := command.Flags().GetString("force-id-type")
+	deviceIdentifier, err := getDeviceIDfromArgs(command, args)
 	if err != nil {
 		return err
 	}
 
-	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceIdentifier, forceIDType)
-	if err != nil {
-		return err
-	}
-
-	err = astarteAPIClient.AppEngine.RemoveDeviceFromGroup(realm, groupName, deviceIdentifier, deviceIdentifierType)
+	removeDeviceCall, err := astarteAPIClient.RemoveDeviceFromGroup(realm, groupName, deviceIdentifier)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
+	removeDeviceRes, err := removeDeviceCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	_, _ = removeDeviceRes.Parse()
+
 	fmt.Println("ok")
 	return nil
+}
+
+func getDeviceIDfromArgs(cmd *cobra.Command, args []string) (string, error) {
+	deviceIdentifier := args[1]
+
+	forceIDType, err := cmd.Flags().GetString("force-id-type")
+	if err != nil {
+		return "", err
+	}
+
+	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceIdentifier, forceIDType)
+	if err != nil {
+		return "", err
+	}
+
+	if deviceIdentifierType == client.AstarteDeviceAlias {
+		deviceIdentifier, err = getDeviceIDfromAlias(deviceIdentifier)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return deviceIdentifier, nil
+}
+
+func getDeviceIDfromAlias(alias string) (string, error) {
+	getDeviceIDCall, err := astarteAPIClient.GetDeviceIDFromAlias(realm, alias)
+	if err != nil {
+		return "", fmt.Errorf("Could not resolve the alias %s to an Astarte Device ID, error %w", alias, err)
+	}
+	getDeviceIDRes, err := getDeviceIDCall.Run(astarteAPIClient)
+	if err != nil {
+		return "", fmt.Errorf("Could not resolve the alias %s to an Astarte Device ID, error %w", alias, err)
+	}
+	rawDeviceID, _ := getDeviceIDRes.Parse()
+	deviceID, _ := rawDeviceID.(string)
+	return deviceID, nil
 }
