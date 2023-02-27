@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -86,6 +87,9 @@ func triggersListF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(realmTriggersCall, astarteAPIClient)
+
 	realmTriggersRes, err := realmTriggersCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -105,6 +109,9 @@ func triggersShowF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(getTriggerCall, astarteAPIClient)
+
 	getTriggerRes, err := getTriggerCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -135,6 +142,9 @@ func triggersInstallF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(installTriggerCall, astarteAPIClient)
+
 	installTriggerRes, err := installTriggerCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -154,6 +164,9 @@ func triggersDeleteF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(deleteTriggerCall, astarteAPIClient)
+
 	deleteTriggerRes, err := deleteTriggerCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

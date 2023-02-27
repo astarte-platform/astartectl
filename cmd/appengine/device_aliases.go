@@ -21,6 +21,7 @@ import (
 
 	"github.com/astarte-platform/astarte-go/client"
 	"github.com/astarte-platform/astarte-go/deviceid"
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -82,6 +83,9 @@ func aliasesListF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(deviceAliasesCall, astarteAPIClient)
+
 	deviceAliasesRes, err := deviceAliasesCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -137,6 +141,8 @@ func aliasesRemoveF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(deleteAliasCall, astarteAPIClient)
 
 	deleteAliasRes, err := deleteAliasCall.Run(astarteAPIClient)
 	if err != nil {

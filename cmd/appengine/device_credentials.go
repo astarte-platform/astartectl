@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -74,6 +75,9 @@ func devicesCredentialsInhibitF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	utils.MaybeCurlAndExit(inhibitDeviceReq, astarteAPIClient)
+
 	inhibitDeviceRes, err := inhibitDeviceReq.Run(astarteAPIClient)
 	if err != nil {
 		return err

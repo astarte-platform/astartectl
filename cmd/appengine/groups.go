@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/astarte-platform/astarte-go/client"
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -116,6 +117,8 @@ func groupsListF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	utils.MaybeCurlAndExit(groupsListCall, astarteAPIClient)
+
 	groupsListRes, err := groupsListCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -163,6 +166,8 @@ func groupsCreateF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	utils.MaybeCurlAndExit(createGroupCall, astarteAPIClient)
+
 	createGroupRes, err := createGroupCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -190,6 +195,9 @@ func groupsDevicesListF(command *cobra.Command, args []string) error {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+
+		utils.MaybeCurlAndExit(deviceListCall, astarteAPIClient)
+
 		deviceListRes, err := deviceListCall.Run(astarteAPIClient)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -219,6 +227,9 @@ func groupsDevicesAddF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(addDeviceCall, astarteAPIClient)
+
 	addDeviceRes, err := addDeviceCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -243,6 +254,8 @@ func groupsDevicesRemoveF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(removeDeviceCall, astarteAPIClient)
 
 	removeDeviceRes, err := removeDeviceCall.Run(astarteAPIClient)
 	if err != nil {

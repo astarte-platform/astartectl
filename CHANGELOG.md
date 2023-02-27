@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [22.11.01] - Unreleased
 ### Added
 - Add support for ignoring SSL errors while interacting with the Astarte APIs.
+- Add the `--to-curl` flag to print a command-line equivalent of a command instead
+  of running it.
 ### Changed
 - `cluster instance deploy`: Astarte >= `v1.0.0` is deployed using the
   `api.astarte-platform.org/v1alpha2` API.

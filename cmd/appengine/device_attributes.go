@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -101,6 +102,9 @@ func attributesListF(command *cobra.Command, args []string) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(attributesCall, astarteAPIClient)
+
 	attributesRes, err := attributesCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -136,6 +140,8 @@ func attributeSetF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	utils.MaybeCurlAndExit(setAttributeCall, astarteAPIClient)
+
 	setAttributeRes, err := setAttributeCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -166,6 +172,8 @@ func attributeRemoveF(command *cobra.Command, args []string) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(deleteAttributeCall, astarteAPIClient)
 
 	deleteAttributeRes, err := deleteAttributeCall.Run(astarteAPIClient)
 	if err != nil {

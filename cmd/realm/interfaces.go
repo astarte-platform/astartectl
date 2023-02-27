@@ -24,6 +24,7 @@ import (
 	"github.com/astarte-platform/astarte-go/interfaces"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // interfacesCmd represents the interfaces command
@@ -129,6 +130,9 @@ func interfacesListF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(listInterfacesCall, astarteAPIClient)
+
 	listInterfacesRes, err := listInterfacesCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -152,6 +156,8 @@ func interfacesVersionsF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(interfaceVersionsCall, astarteAPIClient)
 
 	interfaceVersionsRes, err := interfaceVersionsCall.Run(astarteAPIClient)
 	if err != nil {
@@ -220,6 +226,9 @@ func interfacesDeleteF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(deleteInterfaceCall, astarteAPIClient)
+
 	deleteInterfaceRes, err := deleteInterfaceCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -253,6 +262,13 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 }
 
 func interfacesSyncF(command *cobra.Command, args []string) error {
+	// `interface sync` is unnatural btw
+	if viper.GetBool("to-curl") {
+		fmt.Println(`'interfaces sync' does not support the --to-curl option.
+Install or update your interfaces one by one with 'interfaces install' or 'interface update'.`)
+		os.Exit(1)
+	}
+
 	interfacesToInstall := []interfaces.AstarteInterface{}
 	interfacesToUpdate := []interfaces.AstarteInterface{}
 
@@ -333,6 +349,11 @@ func getInterfaceDefinition(realm, interfaceName string, interfaceMajor int) (in
 		return interfaces.AstarteInterface{}, err
 	}
 
+	// When we're here in the context of `interfaces sync`, the to-curl flag
+	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// and thus the call will never exit unexpectedly
+	utils.MaybeCurlAndExit(getInterfaceCall, astarteAPIClient)
+
 	getInterfaceRes, err := getInterfaceCall.Run(astarteAPIClient)
 	if err != nil {
 		return interfaces.AstarteInterface{}, err
@@ -350,6 +371,12 @@ func installInterface(realm string, iface interfaces.AstarteInterface) error {
 	if err != nil {
 		return err
 	}
+
+	// When we're here in the context of `interfaces sync`, the to-curl flag
+	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// and thus the call will never exit unexpectedly
+	utils.MaybeCurlAndExit(installInterfaceCall, astarteAPIClient)
+
 	installInterfaceRes, err := installInterfaceCall.Run(astarteAPIClient)
 	if err != nil {
 		return err
@@ -364,6 +391,12 @@ func updateInterface(realm string, interfaceName string, interfaceMajor int, new
 	if err != nil {
 		return err
 	}
+
+	// When we're here in the context of `interfaces sync`, the to-curl flag
+	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// and thus the call will never exit unexpectedly
+	utils.MaybeCurlAndExit(updateInterfaceCall, astarteAPIClient)
+
 	updateInterfaceRes, err := updateInterfaceCall.Run(astarteAPIClient)
 	if err != nil {
 		return err
