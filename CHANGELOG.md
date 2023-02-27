@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add support for ignoring SSL errors while interacting with the Astarte APIs.
 
+### Fixed
+- `appengine devices send-data` correctly parses integers as int32 instead of in64.
+  Fix [#176](https://github.com/astarte-platform/astartectl/issues/176).
+
 ## [22.11.00] - 2022-12-06
 ### Added
 - `cluster instances migrate storage-version` allows to migrate CRDs with `[v1alpha1, v1alpha2]`
