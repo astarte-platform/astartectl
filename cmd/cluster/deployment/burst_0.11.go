@@ -26,7 +26,7 @@ var astarteBurstProfile011 AstarteClusterProfile = AstarteClusterProfile{
 		MemoryAllocation: 5 * 1024 * 1024 * 1024,
 	},
 	Compatibility:      AstarteProfileCompatibility{},
-	DefaultSpec:        Astartev1alpha1DeploymentSpec{},
+	DefaultSpec:        AstarteDeploymentSpec{},
 	CustomizableFields: []AstarteProfileCustomizableField{},
 }
 
