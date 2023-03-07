@@ -1084,7 +1084,13 @@ func parseSendDataPayload(payload string, mappingType interfaces.AstarteMappingT
 		if ret, err = strconv.ParseFloat(payload, 64); err != nil {
 			return nil, err
 		}
-	case interfaces.Integer, interfaces.LongInteger:
+	case interfaces.Integer:
+		val, err := strconv.ParseInt(payload, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		ret = int32(val)
+	case interfaces.LongInteger:
 		if ret, err = strconv.ParseInt(payload, 10, 64); err != nil {
 			return nil, err
 		}
