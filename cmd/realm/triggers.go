@@ -81,12 +81,18 @@ func init() {
 }
 
 func triggersListF(command *cobra.Command, args []string) error {
-	realmTriggers, err := astarteAPIClient.RealmManagement.ListTriggers(realm)
+	realmTriggersCall, err := astarteAPIClient.ListTriggers(realm)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
+	realmTriggersRes, err := realmTriggersCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	rawRealmTriggers, _ := realmTriggersRes.Parse()
+	realmTriggers, _ := rawRealmTriggers.([]string)
 	fmt.Println(realmTriggers)
 	return nil
 }
@@ -94,14 +100,21 @@ func triggersListF(command *cobra.Command, args []string) error {
 func triggersShowF(command *cobra.Command, args []string) error {
 	triggerName := args[0]
 
-	triggerDefinition, err := astarteAPIClient.RealmManagement.GetTrigger(realm, triggerName)
+	getTriggerCall, err := astarteAPIClient.GetTrigger(realm, triggerName)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	getTriggerRes, err := getTriggerCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
+	triggerDefinition, _ := getTriggerRes.Parse()
 	respJSON, _ := json.MarshalIndent(triggerDefinition, "", "  ")
 	fmt.Println(string(respJSON))
+
 	return nil
 }
 
@@ -117,11 +130,18 @@ func triggersInstallF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = astarteAPIClient.RealmManagement.InstallTrigger(realm, triggerBody)
+	installTriggerCall, err := astarteAPIClient.InstallTrigger(realm, triggerBody)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	installTriggerRes, err := installTriggerCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	_, _ = installTriggerRes.Parse()
 
 	fmt.Println("ok")
 	return nil
@@ -129,11 +149,18 @@ func triggersInstallF(command *cobra.Command, args []string) error {
 
 func triggersDeleteF(command *cobra.Command, args []string) error {
 	triggerName := args[0]
-	err := astarteAPIClient.RealmManagement.DeleteTrigger(realm, triggerName)
+	deleteTriggerCall, err := astarteAPIClient.DeleteTrigger(realm, triggerName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	deleteTriggerRes, err := deleteTriggerCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	_, _ = deleteTriggerRes.Parse()
 
 	fmt.Println("ok")
 	return nil

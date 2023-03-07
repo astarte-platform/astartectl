@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - `cluster instance deploy`: Astarte >= `v1.0.0` is deployed using the
   `api.astarte-platform.org/v1alpha2` API.
+- Require at least Go 1.18 (due to astarte-go dep).
+- Use Go 1.18 for releases.
 
 ### Fixed
 - `appengine devices send-data` correctly parses integers as int32 instead of in64.

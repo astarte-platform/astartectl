@@ -17,8 +17,8 @@ package realm
 import (
 	"errors"
 
+	"github.com/astarte-platform/astarte-go/astarteservices"
 	"github.com/astarte-platform/astarte-go/client"
-	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
 
 	"github.com/spf13/cobra"
@@ -51,7 +51,7 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
 	astarteAPIClient, err = utils.APICommandSetup(
-		map[misc.AstarteService]string{misc.RealmManagement: "individual-urls.realm-management"}, "realm.key", "realm.key-file")
+		map[astarteservices.AstarteService]string{astarteservices.RealmManagement: "individual-urls.realm-management"}, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}

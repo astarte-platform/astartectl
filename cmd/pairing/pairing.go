@@ -17,8 +17,8 @@ package pairing
 import (
 	"errors"
 
+	"github.com/astarte-platform/astarte-go/astarteservices"
 	"github.com/astarte-platform/astarte-go/client"
-	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -50,7 +50,7 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
 	astarteAPIClient, err = utils.APICommandSetup(
-		map[misc.AstarteService]string{misc.Pairing: "individual-urls.pairing"}, "realm.key", "realm.key-file")
+		map[astarteservices.AstarteService]string{astarteservices.Pairing: "individual-urls.pairing"}, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}

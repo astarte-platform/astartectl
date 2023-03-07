@@ -17,7 +17,8 @@ package utils
 import (
 	"text/tabwriter"
 
-	"github.com/astarte-platform/astarte-go/misc"
+	"github.com/astarte-platform/astarte-go/astarteservices"
+	"github.com/astarte-platform/astarte-go/auth"
 	"github.com/astarte-platform/astartectl/config"
 	"github.com/spf13/cobra"
 
@@ -166,7 +167,7 @@ func validJwtType(t string) bool {
 }
 
 func genJwtF(command *cobra.Command, args []string) error {
-	servicesAndClaims := map[misc.AstarteService][]string{}
+	servicesAndClaims := map[astarteservices.AstarteService][]string{}
 
 	shouldUseHousekeepingKey := false
 	for _, t := range args {
@@ -177,23 +178,23 @@ func genJwtF(command *cobra.Command, args []string) error {
 			}
 
 			// Add all types
-			servicesAndClaims = map[misc.AstarteService][]string{
-				misc.AppEngine:       {},
-				misc.Channels:        {},
-				misc.Flow:            {},
-				misc.Pairing:         {},
-				misc.RealmManagement: {},
+			servicesAndClaims = map[astarteservices.AstarteService][]string{
+				astarteservices.AppEngine:       {},
+				astarteservices.Channels:        {},
+				astarteservices.Flow:            {},
+				astarteservices.Pairing:         {},
+				astarteservices.RealmManagement: {},
 			}
 
 			break
 		}
 
-		astarteService, err := misc.AstarteServiceFromString(t)
+		astarteService, err := astarteservices.FromString(t)
 		if err != nil {
 			return fmt.Errorf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
 		}
 
-		if astarteService == misc.Housekeeping {
+		if astarteService == astarteservices.Housekeeping {
 			if len(args) != 1 {
 				return errors.New("Conflicting API types specified. Specify only API sets which require the same key type for signing")
 			}
@@ -220,7 +221,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 
 		if apiSetSpecific {
 			tokens := strings.SplitN(claim, ":", 2)
-			astarteService, err := misc.AstarteServiceFromString(tokens[0])
+			astarteService, err := astarteservices.FromString(tokens[0])
 			if err != nil {
 				return fmt.Errorf("Invalid type specified in claim. Valid types are: %s", strings.Join(jwtTypes, ", "))
 			}
@@ -280,12 +281,12 @@ func genJwtF(command *cobra.Command, args []string) error {
 			os.Exit(1)
 		}
 
-		tokenString, err = misc.GenerateAstarteJWTFromPEMKey(decoded, servicesAndClaims, expiryOffset)
+		tokenString, err = auth.GenerateAstarteJWTFromPEMKey(decoded, servicesAndClaims, expiryOffset)
 		if err != nil {
 			return err
 		}
 	} else {
-		tokenString, err = misc.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
+		tokenString, err = auth.GenerateAstarteJWTFromKeyFile(privateKey, servicesAndClaims, expiryOffset)
 		if err != nil {
 			return err
 		}
@@ -334,7 +335,7 @@ func savePublicPEMKey(fileName string, pubkey ecdsa.PublicKey) {
 }
 
 func showJwtClaimsF(command *cobra.Command, args []string) error {
-	claims, err := misc.GetJWTAstarteClaims(args[0])
+	claims, err := auth.GetJWTAstarteClaims(args[0])
 	if err != nil {
 		return err
 	}
@@ -354,7 +355,7 @@ func showJwtClaimsF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-func prettyPrintJwtClaims(claims misc.AstarteClaims) {
+func prettyPrintJwtClaims(claims auth.AstarteClaims) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
 	fmt.Fprintf(w, "AppEngine API:\t%v\n", claims.AppEngineAPI)
 	fmt.Fprintf(w, "RealmManagement API:\t%v\n", claims.RealmManagement)
