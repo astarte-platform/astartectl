@@ -17,6 +17,7 @@ package appengine
 import (
 	"fmt"
 
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -49,6 +50,9 @@ func statsDevicesF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	utils.MaybeCurlAndExit(devicesStatsReq, astarteAPIClient)
+
 	devicesStatsRes, err := devicesStatsReq.Run(astarteAPIClient)
 	if err != nil {
 		return err

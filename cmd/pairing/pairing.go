@@ -44,6 +44,9 @@ func init() {
 	viper.BindPFlag("individual-urls.pairing", PairingCmd.PersistentFlags().Lookup("pairing-url"))
 	PairingCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
+	PairingCmd.PersistentFlags().Bool("to-curl", false,
+		"When set, display a command-line equivalent instead of running the command.")
+	viper.BindPFlag("pairing-to-curl", PairingCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
@@ -60,6 +63,9 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	if realm == "" {
 		return errors.New("realm is required")
 	}
+
+	// if just --to-curl is given, default to true
+	cmd.Flags().Lookup("to-curl").NoOptDefVal = "true"
 
 	return nil
 }

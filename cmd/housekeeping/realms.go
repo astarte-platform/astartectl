@@ -110,6 +110,9 @@ func realmsListF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(realmsCall, astarteAPIClient)
+
 	realmsRes, err := realmsCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -129,6 +132,9 @@ func realmsShowF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(getRealmDetailsCall, astarteAPIClient)
+
 	getRealmDetailsRes, err := getRealmDetailsCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -332,6 +338,9 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 			os.Exit(1)
 		}
 	}
+
+	utils.MaybeCurlAndExit(createRealmReq, astarteAPIClient)
+
 	createRealmRes, err := createRealmReq.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

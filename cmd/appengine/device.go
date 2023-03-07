@@ -31,6 +31,7 @@ import (
 	"github.com/astarte-platform/astarte-go/auth"
 	"github.com/astarte-platform/astarte-go/client"
 	"github.com/astarte-platform/astarte-go/interfaces"
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/jedib0t/go-pretty/table"
 
 	"github.com/araddon/dateparse"
@@ -235,6 +236,9 @@ func printSimpleDevicesList(realm string) {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		utils.MaybeCurlAndExit(nextPageCall, astarteAPIClient)
+
 		deviceListRes, err := nextPageCall.Run(astarteAPIClient)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -270,6 +274,9 @@ func printDevicesList(realm string, details bool, deviceFilters map[DeviceFilter
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		utils.MaybeCurlAndExit(nextPageCall, astarteAPIClient)
+
 		deviceListRes, err := nextPageCall.Run(astarteAPIClient)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -457,6 +464,8 @@ func deviceDetails(realm, deviceID string, deviceIdentifierType client.DeviceIde
 		return client.DeviceDetails{}, err
 	}
 
+	utils.MaybeCurlAndExit(deviceDetailsCall, astarteAPIClient)
+
 	deviceDetailsRes, err := deviceDetailsCall.Run(astarteAPIClient)
 	if err != nil {
 		return client.DeviceDetails{}, err
@@ -571,28 +580,33 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				if err != nil {
 					warnOrFail(snapshotInterface, i.Name, err)
 				}
-				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
-				rawVal, _ := snapshotRes.Parse()
-				val, _ := rawVal.(map[string]client.DatastreamObjectValue)
-				for path, aggregate := range val {
-					if outputType == "json" {
-						jsonOutput[i.Name] = val
-					} else {
-						for _, k := range aggregate.Values.Keys() {
-							v, _ := aggregate.Values.Get(k)
-							if v == nil {
-								v = "(null)"
-							}
-							if snapshotInterface == "" {
-								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership,
-									timestampForOutput(aggregate.Timestamp, outputType)})
-							} else {
-								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v,
-									timestampForOutput(aggregate.Timestamp, outputType)})
+
+				if utils.ShouldCurl() {
+					fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
+				} else {
+					snapshotRes, err := snapshotCall.Run(astarteAPIClient)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						os.Exit(1)
+					}
+					rawVal, _ := snapshotRes.Parse()
+					val, _ := rawVal.(map[string]client.DatastreamObjectValue)
+					for path, aggregate := range val {
+						if outputType == "json" {
+							jsonOutput[i.Name] = val
+						} else {
+							for _, k := range aggregate.Values.Keys() {
+								v, _ := aggregate.Values.Get(k)
+								if v == nil {
+									v = "(null)"
+								}
+								if snapshotInterface == "" {
+									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership,
+										timestampForOutput(aggregate.Timestamp, outputType)})
+								} else {
+									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v,
+										timestampForOutput(aggregate.Timestamp, outputType)})
+								}
 							}
 						}
 					}
@@ -600,58 +614,79 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 
 			} else {
 				snapshotCall, err := astarteAPIClient.GetDatastreamIndividualSnapshot(realm, deviceID, deviceIdentifierType, i.Name)
+				if err != nil {
+					warnOrFail(snapshotInterface, i.Name, err)
+				}
+
+				if utils.ShouldCurl() {
+					fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
+				} else {
+					snapshotRes, err := snapshotCall.Run(astarteAPIClient)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						os.Exit(1)
+					}
+					rawVal, _ := snapshotRes.Parse()
+					val, _ := rawVal.(map[string]client.DatastreamIndividualValue)
+					if err != nil {
+						warnOrFail(snapshotInterface, i.Name, err)
+					}
+					jsonRepresentation := make(map[string]interface{})
+					for k, v := range val {
+						jsonRepresentation[k] = v
+						if v.Value == nil {
+							v.Value = "(null)"
+						}
+						if snapshotInterface == "" {
+							t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership,
+								timestampForOutput(v.Timestamp, outputType)})
+						} else {
+							t.AppendRow([]interface{}{i.Name, k, v.Value,
+								timestampForOutput(v.Timestamp, outputType)})
+						}
+					}
+					jsonOutput[i.Name] = jsonRepresentation
+				}
+			}
+		case interfaces.PropertiesType:
+			snapshotCall, err := astarteAPIClient.GetAllProperties(realm, deviceID, deviceIdentifierType, i.Name)
+			if err != nil {
+				warnOrFail(snapshotInterface, i.Name, err)
+			}
+
+			if utils.ShouldCurl() {
+				fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
+			} else {
 				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
 				rawVal, _ := snapshotRes.Parse()
-				val, _ := rawVal.(map[string]client.DatastreamIndividualValue)
+				val, _ := rawVal.(map[string]client.PropertyValue)
 				if err != nil {
 					warnOrFail(snapshotInterface, i.Name, err)
 				}
 				jsonRepresentation := make(map[string]interface{})
 				for k, v := range val {
 					jsonRepresentation[k] = v
-					if v.Value == nil {
-						v.Value = "(null)"
+					if v == nil {
+						v = "(null)"
 					}
 					if snapshotInterface == "" {
-						t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership,
-							timestampForOutput(v.Timestamp, outputType)})
+						t.AppendRow([]interface{}{i.Name, k, v, i.Ownership, ""})
 					} else {
-						t.AppendRow([]interface{}{i.Name, k, v.Value,
-							timestampForOutput(v.Timestamp, outputType)})
+						t.AppendRow([]interface{}{i.Name, k, v})
 					}
 				}
 				jsonOutput[i.Name] = jsonRepresentation
 			}
-		case interfaces.PropertiesType:
-			snapshotCall, err := astarteAPIClient.GetAllProperties(realm, deviceID, deviceIdentifierType, i.Name)
-			snapshotRes, err := snapshotCall.Run(astarteAPIClient)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			rawVal, _ := snapshotRes.Parse()
-			val, _ := rawVal.(map[string]client.PropertyValue)
-			if err != nil {
-				warnOrFail(snapshotInterface, i.Name, err)
-			}
-			jsonRepresentation := make(map[string]interface{})
-			for k, v := range val {
-				jsonRepresentation[k] = v
-				if v == nil {
-					v = "(null)"
-				}
-				if snapshotInterface == "" {
-					t.AppendRow([]interface{}{i.Name, k, v, i.Ownership, ""})
-				} else {
-					t.AppendRow([]interface{}{i.Name, k, v})
-				}
-			}
-			jsonOutput[i.Name] = jsonRepresentation
 		}
+	}
+
+	if utils.ShouldCurl() {
+		// Do not print the table if user wants just a curl
+		return nil
 	}
 
 	// Done
@@ -806,6 +841,9 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
+
+			utils.MaybeCurlAndExit(nextPageCall, astarteAPIClient)
+
 			nextPageRes, err := nextPageCall.Run(astarteAPIClient)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -850,6 +888,9 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
+
+			utils.MaybeCurlAndExit(nextPageCall, astarteAPIClient)
+
 			nextPageRes, err := nextPageCall.Run(astarteAPIClient)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -1020,6 +1061,9 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(sendDataCall, astarteAPIClient)
+
 	sendDataRes, err := sendDataCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

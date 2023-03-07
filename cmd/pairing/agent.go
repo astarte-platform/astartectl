@@ -77,6 +77,9 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(registerDeviceCall, astarteAPIClient)
+
 	registerDeviceRes, err := registerDeviceCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -134,6 +137,8 @@ func agentUnregisterF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(unregisterDeviceCall, astarteAPIClient)
 
 	unregisterDeviceRes, err := unregisterDeviceCall.Run(astarteAPIClient)
 	if err != nil {

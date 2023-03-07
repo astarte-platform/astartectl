@@ -49,6 +49,9 @@ func init() {
 		"Realm Management API base URL. Defaults to <astarte-url>/realmmanagement.")
 	AppEngineCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
+	AppEngineCmd.PersistentFlags().Bool("to-curl", false,
+		"When set, display a command-line equivalent instead of running the command.")
+	viper.BindPFlag("appengine-to-curl", AppEngineCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
@@ -77,6 +80,9 @@ func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 	if realm == "" {
 		return errors.New("realm is required")
 	}
+
+	// if just --to-curl is given, default to true
+	cmd.Flags().Lookup("to-curl").NoOptDefVal = "true"
 
 	return nil
 }
