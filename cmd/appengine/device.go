@@ -39,6 +39,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	dataSnapshotCurl = `curl -X GET -H "Accept: application/json" -H "Content-Type: application/json" \
+	-H "User-Agent: astarte-go" \
+	-H "Authorization: Bearer $TOKEN" \
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/$INTERFACE/$PATH?limit=1`
+
+	getSamplesCurl = `curl -X GET -H "Accept: application/json" -H "Content-Type: application/json" \
+	-H "User-Agent: astarte-go" \
+	-H "Authorization: Bearer $TOKEN" \
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/$INTERFACE/$PATH`
+
+	sendDataCurl = `curl -X POST -H "Accept: application/json" -H "Content-Type: application/json" \
+	-H "User-Agent: astarte-go" \
+	-H "Authorization: Bearer $TOKEN" \
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/$INTERFACE/$PATH
+	-data '{"data" : $DATA}'`
+)
+
 // DevicesCmd represents the devices command
 var devicesCmd = &cobra.Command{
 	Use:     "devices",
@@ -492,6 +510,11 @@ func tableWriterForOutputType(outputType string) table.Writer {
 }
 
 func devicesDataSnapshotF(command *cobra.Command, args []string) error {
+	if utils.ShouldCurl() {
+		fmt.Println(dataSnapshotCurl)
+		os.Exit(0)
+	}
+
 	deviceID := args[0]
 	forceIDType, err := command.Flags().GetString("force-id-type")
 	if err != nil {
@@ -581,32 +604,28 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					warnOrFail(snapshotInterface, i.Name, err)
 				}
 
-				if utils.ShouldCurl() {
-					fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
-				} else {
-					snapshotRes, err := snapshotCall.Run(astarteAPIClient)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-						os.Exit(1)
-					}
-					rawVal, _ := snapshotRes.Parse()
-					val, _ := rawVal.(map[string]client.DatastreamObjectValue)
-					for path, aggregate := range val {
-						if outputType == "json" {
-							jsonOutput[i.Name] = val
-						} else {
-							for _, k := range aggregate.Values.Keys() {
-								v, _ := aggregate.Values.Get(k)
-								if v == nil {
-									v = "(null)"
-								}
-								if snapshotInterface == "" {
-									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership,
-										timestampForOutput(aggregate.Timestamp, outputType)})
-								} else {
-									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v,
-										timestampForOutput(aggregate.Timestamp, outputType)})
-								}
+				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
+				rawVal, _ := snapshotRes.Parse()
+				val, _ := rawVal.(map[string]client.DatastreamObjectValue)
+				for path, aggregate := range val {
+					if outputType == "json" {
+						jsonOutput[i.Name] = val
+					} else {
+						for _, k := range aggregate.Values.Keys() {
+							v, _ := aggregate.Values.Get(k)
+							if v == nil {
+								v = "(null)"
+							}
+							if snapshotInterface == "" {
+								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership,
+									timestampForOutput(aggregate.Timestamp, outputType)})
+							} else {
+								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v,
+									timestampForOutput(aggregate.Timestamp, outputType)})
 							}
 						}
 					}
@@ -618,35 +637,32 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					warnOrFail(snapshotInterface, i.Name, err)
 				}
 
-				if utils.ShouldCurl() {
-					fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
-				} else {
-					snapshotRes, err := snapshotCall.Run(astarteAPIClient)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-						os.Exit(1)
-					}
-					rawVal, _ := snapshotRes.Parse()
-					val, _ := rawVal.(map[string]client.DatastreamIndividualValue)
-					if err != nil {
-						warnOrFail(snapshotInterface, i.Name, err)
-					}
-					jsonRepresentation := make(map[string]interface{})
-					for k, v := range val {
-						jsonRepresentation[k] = v
-						if v.Value == nil {
-							v.Value = "(null)"
-						}
-						if snapshotInterface == "" {
-							t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership,
-								timestampForOutput(v.Timestamp, outputType)})
-						} else {
-							t.AppendRow([]interface{}{i.Name, k, v.Value,
-								timestampForOutput(v.Timestamp, outputType)})
-						}
-					}
-					jsonOutput[i.Name] = jsonRepresentation
+				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
 				}
+				rawVal, _ := snapshotRes.Parse()
+				val, _ := rawVal.(map[string]client.DatastreamIndividualValue)
+				if err != nil {
+					warnOrFail(snapshotInterface, i.Name, err)
+				}
+				jsonRepresentation := make(map[string]interface{})
+				for k, v := range val {
+					jsonRepresentation[k] = v
+					if v.Value == nil {
+						v.Value = "(null)"
+					}
+					if snapshotInterface == "" {
+						t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership,
+							timestampForOutput(v.Timestamp, outputType)})
+					} else {
+						t.AppendRow([]interface{}{i.Name, k, v.Value,
+							timestampForOutput(v.Timestamp, outputType)})
+					}
+				}
+				jsonOutput[i.Name] = jsonRepresentation
+
 			}
 		case interfaces.PropertiesType:
 			snapshotCall, err := astarteAPIClient.GetAllProperties(realm, deviceID, deviceIdentifierType, i.Name)
@@ -654,39 +670,31 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				warnOrFail(snapshotInterface, i.Name, err)
 			}
 
-			if utils.ShouldCurl() {
-				fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
-			} else {
-				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
-				rawVal, _ := snapshotRes.Parse()
-				val, _ := rawVal.(map[string]client.PropertyValue)
-				if err != nil {
-					warnOrFail(snapshotInterface, i.Name, err)
-				}
-				jsonRepresentation := make(map[string]interface{})
-				for k, v := range val {
-					jsonRepresentation[k] = v
-					if v == nil {
-						v = "(null)"
-					}
-					if snapshotInterface == "" {
-						t.AppendRow([]interface{}{i.Name, k, v, i.Ownership, ""})
-					} else {
-						t.AppendRow([]interface{}{i.Name, k, v})
-					}
-				}
-				jsonOutput[i.Name] = jsonRepresentation
+			snapshotRes, err := snapshotCall.Run(astarteAPIClient)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
 			}
-		}
-	}
+			rawVal, _ := snapshotRes.Parse()
+			val, _ := rawVal.(map[string]client.PropertyValue)
+			if err != nil {
+				warnOrFail(snapshotInterface, i.Name, err)
+			}
+			jsonRepresentation := make(map[string]interface{})
+			for k, v := range val {
+				jsonRepresentation[k] = v
+				if v == nil {
+					v = "(null)"
+				}
+				if snapshotInterface == "" {
+					t.AppendRow([]interface{}{i.Name, k, v, i.Ownership, ""})
+				} else {
+					t.AppendRow([]interface{}{i.Name, k, v})
+				}
+			}
+			jsonOutput[i.Name] = jsonRepresentation
 
-	if utils.ShouldCurl() {
-		// Do not print the table if user wants just a curl
-		return nil
+		}
 	}
 
 	// Done
@@ -707,6 +715,11 @@ func warnOrFail(snapshotInterface, interfaceName string, err error) {
 }
 
 func devicesGetSamplesF(command *cobra.Command, args []string) error {
+	if utils.ShouldCurl() {
+		fmt.Println(getSamplesCurl)
+		os.Exit(0)
+	}
+
 	deviceID := args[0]
 	interfaceName := args[1]
 	var interfacePath string
@@ -841,9 +854,6 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-
-			utils.MaybeCurlAndExit(nextPageCall, astarteAPIClient)
-
 			nextPageRes, err := nextPageCall.Run(astarteAPIClient)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -888,9 +898,6 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-
-			utils.MaybeCurlAndExit(nextPageCall, astarteAPIClient)
-
 			nextPageRes, err := nextPageCall.Run(astarteAPIClient)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -941,6 +948,11 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 }
 
 func devicesSendDataF(command *cobra.Command, args []string) error {
+	if utils.ShouldCurl() {
+		fmt.Println(sendDataCurl)
+		os.Exit(0)
+	}
+
 	deviceID := args[0]
 	interfaceName := args[1]
 	interfacePath := args[2]
@@ -1061,8 +1073,6 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
-	utils.MaybeCurlAndExit(sendDataCall, astarteAPIClient)
 
 	sendDataRes, err := sendDataCall.Run(astarteAPIClient)
 	if err != nil {
