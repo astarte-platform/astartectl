@@ -746,7 +746,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	sinceTime := time.Unix(0, 0)
+	sinceTime := time.Time{}
 	if since != "" {
 		sinceTime, err = dateparse.ParseLocal(since)
 		if err != nil {
