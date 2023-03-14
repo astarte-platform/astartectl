@@ -1083,7 +1083,7 @@ func shouldSkipRealmManagementChecks(cmd cobra.Command) (bool, error) {
 	}
 
 	// skip RM checks if explicitly requested, or if RM service is not set
-	if skipRealmManagementChecks {
+	if skipRealmManagementChecks || astarteAPIClient.GetRealmManagementURL() == nil {
 		return true, nil
 	} else {
 		token, err := cmd.Flags().GetString("token")
