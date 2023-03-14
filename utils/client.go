@@ -122,20 +122,21 @@ func setupURLs(individualURLVariables map[astarteservices.AstarteService]string)
 	return ret, nil
 }
 
-func setupIndividualURLs(individualURLVariables map[astarteservices.AstarteService]string) []client.Option {
+func setupIndividualURLs(individualURLs map[astarteservices.AstarteService]string) []client.Option {
 	var ret = []client.Option{}
-	switch {
-	case individualURLVariables[astarteservices.Housekeeping] != "":
-		ret = append(ret, client.WithHousekeepingURL(individualURLVariables[astarteservices.Housekeeping]))
-		fallthrough
-	case individualURLVariables[astarteservices.AppEngine] != "":
-		ret = append(ret, client.WithAppEngineURL(individualURLVariables[astarteservices.AppEngine]))
-		fallthrough
-	case individualURLVariables[astarteservices.Pairing] != "":
-		ret = append(ret, client.WithPairingURL(individualURLVariables[astarteservices.Pairing]))
-		fallthrough
-	case individualURLVariables[astarteservices.RealmManagement] != "":
-		ret = append(ret, client.WithRealmManagementURL(individualURLVariables[astarteservices.RealmManagement]))
+
+	// Golang I hate you
+	if individualURLs[astarteservices.Housekeeping] != "" {
+		ret = append(ret, client.WithHousekeepingURL(individualURLs[astarteservices.Housekeeping]))
+	}
+	if individualURLs[astarteservices.AppEngine] != "" {
+		ret = append(ret, client.WithAppEngineURL(individualURLs[astarteservices.AppEngine]))
+	}
+	if individualURLs[astarteservices.Pairing] != "" {
+		ret = append(ret, client.WithPairingURL(individualURLs[astarteservices.Pairing]))
+	}
+	if individualURLs[astarteservices.RealmManagement] != "" {
+		ret = append(ret, client.WithRealmManagementURL(individualURLs[astarteservices.RealmManagement]))
 	}
 	return ret
 }
