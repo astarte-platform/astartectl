@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -96,11 +97,20 @@ func attributesListF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	attributes, err := astarteAPIClient.AppEngine.ListDeviceAttributes(realm, deviceID, deviceIdentifierType)
+	attributesCall, err := astarteAPIClient.ListDeviceAttributes(realm, deviceID, deviceIdentifierType)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(attributesCall, astarteAPIClient)
+
+	attributesRes, err := attributesCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	attributes, _ := attributesRes.Parse()
 
 	fmt.Printf("%v\n", attributes)
 	return nil
@@ -124,11 +134,21 @@ func attributeSetF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	err = astarteAPIClient.AppEngine.SetDeviceAttribute(realm, deviceID, deviceIdentifierType, attr[0], attr[1])
+	setAttributeCall, err := astarteAPIClient.SetDeviceAttribute(realm, deviceID, deviceIdentifierType, attr[0], attr[1])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(setAttributeCall, astarteAPIClient)
+
+	setAttributeRes, err := setAttributeCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	_, _ = setAttributeRes.Parse()
 
 	fmt.Println("ok")
 	return nil
@@ -147,11 +167,21 @@ func attributeRemoveF(command *cobra.Command, args []string) error {
 
 	key := args[1]
 
-	err = astarteAPIClient.AppEngine.DeleteDeviceAttribute(realm, deviceID, deviceIdentifierType, key)
+	deleteAttributeCall, err := astarteAPIClient.DeleteDeviceAttribute(realm, deviceID, deviceIdentifierType, key)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(deleteAttributeCall, astarteAPIClient)
+
+	deleteAttributeRes, err := deleteAttributeCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	_, _ = deleteAttributeRes.Parse()
 
 	fmt.Println("ok")
 	return nil

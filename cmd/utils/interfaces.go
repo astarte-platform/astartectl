@@ -52,7 +52,7 @@ func init() {
 func validateInterfaceF(command *cobra.Command, args []string) error {
 	interfacePath := args[0]
 
-	if _, err := interfaces.ParseInterfaceFromFile(interfacePath); err != nil {
+	if _, err := interfaces.ParseInterfaceFrom(interfacePath); err != nil {
 		fmt.Fprintf(os.Stderr, "%s is not a valid Astarte Interface: %s\n", interfacePath, err)
 		os.Exit(1)
 	}

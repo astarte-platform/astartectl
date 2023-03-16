@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/astarte-platform/astarte-go/misc"
+	"github.com/astarte-platform/astarte-go/deviceid"
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -114,7 +114,7 @@ func init() {
 
 func validateDeviceIDF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if misc.IsValidAstarteDeviceID(deviceID) {
+	if deviceid.IsValid(deviceID) {
 		fmt.Println("Valid")
 		return nil
 	}
@@ -125,7 +125,7 @@ func validateDeviceIDF(command *cobra.Command, args []string) error {
 }
 
 func generateRandomDeviceIDF(command *cobra.Command, args []string) error {
-	deviceID, err := misc.GenerateRandomAstarteDeviceID()
+	deviceID, err := deviceid.GenerateRandom()
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func generateRandomDeviceIDF(command *cobra.Command, args []string) error {
 func computeDeviceIDFromStringF(command *cobra.Command, args []string) error {
 	namespaceUUID := args[0]
 	stringData := args[1]
-	deviceID, err := misc.GenerateAstarteDeviceID(namespaceUUID, []byte(stringData))
+	deviceID, err := deviceid.Generate(namespaceUUID, []byte(stringData))
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func computeDeviceIDFromBytesF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	deviceID, err := misc.GenerateAstarteDeviceID(namespaceUUID, actualBytes)
+	deviceID, err := deviceid.Generate(namespaceUUID, actualBytes)
 	if err != nil {
 		return err
 	}
@@ -165,12 +165,12 @@ func computeDeviceIDFromBytesF(command *cobra.Command, args []string) error {
 
 func toUUIDDeviceIDF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !misc.IsValidAstarteDeviceID(deviceID) {
+	if !deviceid.IsValid(deviceID) {
 		fmt.Fprintf(os.Stderr, "%s is not a valid Astarte Device ID\n", deviceID)
 		os.Exit(1)
 	}
 
-	deviceUUID, err := misc.DeviceIDToUUID(deviceID)
+	deviceUUID, err := deviceid.ToUUID(deviceID)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func fromUUIDDeviceIDF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	deviceID, err := misc.UUIDToDeviceID(deviceUUID)
+	deviceID, err := deviceid.FromUUID(deviceUUID)
 	if err != nil {
 		return err
 	}

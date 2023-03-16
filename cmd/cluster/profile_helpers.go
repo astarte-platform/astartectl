@@ -28,61 +28,61 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resourceName, resourceNamespace string, astarteVersion *semver.Version, profileName string, astarteDeployment deployment.AstarteClusterProfile, spec map[string]interface{}) map[string]interface{} {
+func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resourceName, resourceNamespace string, astarteVersion *semver.Version, profileName string, astarteClusterProfile deployment.AstarteClusterProfile, spec map[string]interface{}) map[string]interface{} {
 	// Let's go
-	astarteDeployment.DefaultSpec.Version = astarteVersion.String()
-	astarteDeployment.DefaultSpec.API.Host = getStringFromSpecOrFlagOrPromptOrDie(spec, "api.host", command, "api-host", "Please enter the API Host for this Deployment:", "", false)
-	astarteDeployment.DefaultSpec.Vernemq.Host = getStringFromSpecOrFlagOrPromptOrDie(spec, "vernemq.host", command, "broker-host", "Please enter the MQTT Broker Host for this Deployment:", "", false)
-	astarteDeployment.DefaultSpec.Vernemq.Port = getIntFromSpecOrFlagOrPromptOrDie(spec, "vernemq.port", command, "broker-port", "Please enter the MQTT Broker Port for this Deployment:", 8883, false)
+	astarteClusterProfile.DefaultSpec.Version = astarteVersion.String()
+	astarteClusterProfile.DefaultSpec.API.Host = getStringFromSpecOrFlagOrPromptOrDie(spec, "api.host", command, "api-host", "Please enter the API Host for this Deployment:", "", false)
+	astarteClusterProfile.DefaultSpec.Vernemq.Host = getStringFromSpecOrFlagOrPromptOrDie(spec, "vernemq.host", command, "broker-host", "Please enter the MQTT Broker Host for this Deployment:", "", false)
+	astarteClusterProfile.DefaultSpec.Vernemq.Port = getIntFromSpecOrFlagOrPromptOrDie(spec, "vernemq.port", command, "broker-port", "Please enter the MQTT Broker Port for this Deployment:", 8883, false)
 	vernemqTLSSecret := getStringFromSpecOrFlagOrPromptOrDie(spec, "vernemq.tls-secret", command, "broker-tls-secret", "Please enter the Kubernetes TLS Secret name for the MQTT Broker SSL Certificate:", "", false)
 	if vernemqTLSSecret != "" {
-		astarteDeployment.DefaultSpec.Vernemq.SslListener = true
-		astarteDeployment.DefaultSpec.Vernemq.SslListenerCertSecretName = vernemqTLSSecret
+		astarteClusterProfile.DefaultSpec.Vernemq.SslListener = true
+		astarteClusterProfile.DefaultSpec.Vernemq.SslListenerCertSecretName = vernemqTLSSecret
 		fmt.Println("VerneMQ SSL Listener will be activated.")
 	} else {
-		astarteDeployment.DefaultSpec.Vernemq.SslListener = false
+		astarteClusterProfile.DefaultSpec.Vernemq.SslListener = false
 		fmt.Println("VerneMQ SSL Listener will not be activated. Ensure your broker ingress will have PROXYv2 SSL Termination.")
 	}
 
 	storageClass := getStringFromSpecOrFlag(spec, "storageClassName", command, "storage-class-name")
 	if storageClass != "" {
-		astarteDeployment.DefaultSpec.StorageClassName = getStringFromSpecOrFlag(spec, "storageClassName", command, "storage-class-name")
+		astarteClusterProfile.DefaultSpec.StorageClassName = getStringFromSpecOrFlag(spec, "storageClassName", command, "storage-class-name")
 	}
 
 	// Ensure Storage and dependencies for all components.
-	if astarteDeployment.DefaultSpec.Cassandra.Deploy {
-		astarteDeployment.DefaultSpec.Cassandra.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "cassandra.storage.size", command, "cassandra-volume-size", "Please enter the Cassandra Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Cassandra.Storage.Size, false)
+	if astarteClusterProfile.DefaultSpec.Cassandra.Deploy {
+		astarteClusterProfile.DefaultSpec.Cassandra.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "cassandra.storage.size", command, "cassandra-volume-size", "Please enter the Cassandra Volume size for this Deployment:",
+			astarteClusterProfile.DefaultSpec.Cassandra.Storage.Size, false)
 	} else {
 		// Ask for nodes
-		astarteDeployment.DefaultSpec.Cassandra.Nodes = getStringFromSpecOrFlagOrPromptOrDie(spec, "cassandra.nodes", command, "cassandra-nodes", "Please enter a comma separated list of Cassandra Nodes the cluster will connect to:",
-			astarteDeployment.DefaultSpec.Cassandra.Nodes, false)
+		astarteClusterProfile.DefaultSpec.Cassandra.Nodes = getStringFromSpecOrFlagOrPromptOrDie(spec, "cassandra.nodes", command, "cassandra-nodes", "Please enter a comma separated list of Cassandra Nodes the cluster will connect to:",
+			astarteClusterProfile.DefaultSpec.Cassandra.Nodes, false)
 	}
-	if astarteDeployment.DefaultSpec.Rabbitmq.Deploy {
-		astarteDeployment.DefaultSpec.Rabbitmq.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "rabbitmq.storage.size", command, "rabbitmq-volume-size", "Please enter the RabbitMQ Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Rabbitmq.Storage.Size, false)
+	if astarteClusterProfile.DefaultSpec.Rabbitmq.Deploy {
+		astarteClusterProfile.DefaultSpec.Rabbitmq.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "rabbitmq.storage.size", command, "rabbitmq-volume-size", "Please enter the RabbitMQ Volume size for this Deployment:",
+			astarteClusterProfile.DefaultSpec.Rabbitmq.Storage.Size, false)
 	}
-	if astarteDeployment.DefaultSpec.Vernemq.Deploy {
-		astarteDeployment.DefaultSpec.Vernemq.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "vernemq.storage.size", command, "vernemq-volume-size", "Please enter the VerneMQ Volume size for this Deployment:",
-			astarteDeployment.DefaultSpec.Vernemq.Storage.Size, false)
+	if astarteClusterProfile.DefaultSpec.Vernemq.Deploy {
+		astarteClusterProfile.DefaultSpec.Vernemq.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "vernemq.storage.size", command, "vernemq-volume-size", "Please enter the VerneMQ Volume size for this Deployment:",
+			astarteClusterProfile.DefaultSpec.Vernemq.Storage.Size, false)
 	}
-	if astarteDeployment.DefaultSpec.Cfssl.Deploy {
+	if astarteClusterProfile.DefaultSpec.Cfssl.Deploy {
 		storageGate, _ := semver.NewConstraint("< 1.0.0")
 		if storageGate.Check(astarteVersion) {
-			astarteDeployment.DefaultSpec.Cfssl.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.storage.size", command, "cfssl-volume-size", "Please enter the CFSSL Volume size for this Deployment:",
-				astarteDeployment.DefaultSpec.Cfssl.Storage.Size, false)
+			astarteClusterProfile.DefaultSpec.Cfssl.Storage.Size = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.storage.size", command, "cfssl-volume-size", "Please enter the CFSSL Volume size for this Deployment:",
+				astarteClusterProfile.DefaultSpec.Cfssl.Storage.Size, false)
 		}
 		cfsslDBDriver := getStringFromSpecOrFlag(spec, "cfssl.dbConfig.driver", command, "cfssl-db-driver")
 		if cfsslDBDriver != "" && cfsslDBDriver != "sqlite3" {
-			astarteDeployment.DefaultSpec.Cfssl.DbConfig.Driver = cfsslDBDriver
-			astarteDeployment.DefaultSpec.Cfssl.DbConfig.DataSource = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.dbConfig.dataSource", command, "cfssl-db-datasource", "Please enter the CFSSL DB Datasource (Connection URL) for this Deployment:",
+			astarteClusterProfile.DefaultSpec.Cfssl.DbConfig.Driver = cfsslDBDriver
+			astarteClusterProfile.DefaultSpec.Cfssl.DbConfig.DataSource = getStringFromSpecOrFlagOrPromptOrDie(spec, "cfssl.dbConfig.dataSource", command, "cfssl-db-datasource", "Please enter the CFSSL DB Datasource (Connection URL) for this Deployment:",
 				"", false)
 		}
 	}
 
 	customFields := map[string]interface{}{}
 	// Now we go with the custom fields
-	for _, customizableField := range astarteDeployment.CustomizableFields {
+	for _, customizableField := range astarteClusterProfile.CustomizableFields {
 		stringValue := getFromSpecOrPromptOrDie(spec, customizableField.Field, command, customizableField.Question,
 			fmt.Sprintf("%v", customizableField.Default), customizableField.AllowEmpty)
 		switch customizableField.Type {
@@ -106,7 +106,7 @@ func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resource
 	}
 
 	// Assemble the Astarte resource
-	astarteK8sDeployment := deployment.GetBaseAstartev1alpha1Deployment()
+	astarteK8sDeployment := deployment.GetBaseAstarteDeployment(astarteVersion)
 	astarteK8sDeployment.Metadata.Name = resourceName
 	astarteK8sDeployment.Metadata.Namespace = resourceNamespace
 	astartectlAnnotations := map[string]string{
@@ -114,7 +114,7 @@ func createAstarteResourceFromExistingSpecOrDie(command *cobra.Command, resource
 		"astarte-platform.org/deployment-profile": profileName,
 	}
 	astarteK8sDeployment.Metadata.Annotations = astartectlAnnotations
-	astarteK8sDeployment.Spec = astarteDeployment.DefaultSpec
+	astarteK8sDeployment.Spec = astarteClusterProfile.DefaultSpec
 
 	astarteDeploymentYaml, err := yaml.Marshal(astarteK8sDeployment)
 	if err != nil {

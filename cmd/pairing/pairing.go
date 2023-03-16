@@ -17,8 +17,8 @@ package pairing
 import (
 	"errors"
 
+	"github.com/astarte-platform/astarte-go/astarteservices"
 	"github.com/astarte-platform/astarte-go/client"
-	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -44,13 +44,16 @@ func init() {
 	viper.BindPFlag("individual-urls.pairing", PairingCmd.PersistentFlags().Lookup("pairing-url"))
 	PairingCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
+	PairingCmd.PersistentFlags().Bool("to-curl", false,
+		"When set, display a command-line equivalent instead of running the command.")
+	viper.BindPFlag("pairing-to-curl", PairingCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
 	astarteAPIClient, err = utils.APICommandSetup(
-		map[misc.AstarteService]string{misc.Pairing: "individual-urls.pairing"}, "realm.key", "realm.key-file")
+		map[astarteservices.AstarteService]string{astarteservices.Pairing: "individual-urls.pairing"}, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}
@@ -60,6 +63,9 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	if realm == "" {
 		return errors.New("realm is required")
 	}
+
+	// if just --to-curl is given, default to true
+	cmd.Flags().Lookup("to-curl").NoOptDefVal = "true"
 
 	return nil
 }

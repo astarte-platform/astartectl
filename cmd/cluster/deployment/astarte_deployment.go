@@ -14,8 +14,10 @@
 
 package deployment
 
-// Astartev1alpha1GenericAPISpec represents a generic Astarte API Component in the Deployment spec
-type Astartev1alpha1GenericAPISpec struct {
+import "github.com/Masterminds/semver/v3"
+
+// AstarteGenericAPISpec represents a generic Astarte API Component in the Deployment spec
+type AstarteGenericAPISpec struct {
 	Replicas              int    `yaml:"replicas,omitempty"`
 	DisableAuthentication bool   `yaml:"disableAuthentication,omitempty"`
 	Version               string `yaml:"version,omitempty"`
@@ -31,8 +33,8 @@ type Astartev1alpha1GenericAPISpec struct {
 	} `yaml:"resources,omitempty"`
 }
 
-// Astartev1alpha1GenericBackendSpec represents a generic Astarte Backend Component in the Deployment spec
-type Astartev1alpha1GenericBackendSpec struct {
+// AstarteGenericBackendSpec represents a generic Astarte Backend Component in the Deployment spec
+type AstarteGenericBackendSpec struct {
 	Replicas  int    `yaml:"replicas,omitempty"`
 	Version   string `yaml:"version,omitempty"`
 	Resources struct {
@@ -47,8 +49,8 @@ type Astartev1alpha1GenericBackendSpec struct {
 	} `yaml:"resources,omitempty"`
 }
 
-// Astartev1alpha1DeploymentSpec represents the spec for Kubernetes API api.astarte-platform.org/v1alpha1/Astarte
-type Astartev1alpha1DeploymentSpec struct {
+// AstarteDeploymentSpec represents the spec for Kubernetes API api.astarte-platform.org/v1alpha*/Astarte
+type AstarteDeploymentSpec struct {
 	Version             string      `yaml:"version"`
 	ImagePullPolicy     string      `yaml:"imagePullPolicy,omitempty"`
 	ImagePullSecrets    []string    `yaml:"imagePullSecrets,omitempty"`
@@ -207,16 +209,16 @@ type Astartev1alpha1DeploymentSpec struct {
 			} `yaml:"limits"`
 		} `yaml:"resources,omitempty"`
 		Housekeeping struct {
-			API     Astartev1alpha1GenericAPISpec     `yaml:"api,omitempty"`
-			Backend Astartev1alpha1GenericBackendSpec `yaml:"backend,omitempty"`
+			API     AstarteGenericAPISpec     `yaml:"api,omitempty"`
+			Backend AstarteGenericBackendSpec `yaml:"backend,omitempty"`
 		} `yaml:"housekeeping,omitempty"`
 		RealmManagement struct {
-			API     Astartev1alpha1GenericAPISpec     `yaml:"api,omitempty"`
-			Backend Astartev1alpha1GenericBackendSpec `yaml:"backend,omitempty"`
+			API     AstarteGenericAPISpec     `yaml:"api,omitempty"`
+			Backend AstarteGenericBackendSpec `yaml:"backend,omitempty"`
 		} `yaml:"realmManagement,omitempty"`
 		Pairing struct {
-			API     Astartev1alpha1GenericAPISpec     `yaml:"api,omitempty"`
-			Backend Astartev1alpha1GenericBackendSpec `yaml:"backend,omitempty"`
+			API     AstarteGenericAPISpec     `yaml:"api,omitempty"`
+			Backend AstarteGenericBackendSpec `yaml:"backend,omitempty"`
 		} `yaml:"pairing,omitempty"`
 		DataUpdaterPlant struct {
 			Replicas       int    `yaml:"replicas,omitempty"`
@@ -291,8 +293,8 @@ type Astartev1alpha1DeploymentSpec struct {
 	} `yaml:"components"`
 }
 
-// Astartev1alpha1Deployment represents an Astarte Deployment object
-type Astartev1alpha1Deployment struct {
+// AstarteDeployment represents an Astarte Deployment object
+type AstarteDeployment struct {
 	APIVersion string `yaml:"apiVersion"`
 	Kind       string `yaml:"kind"`
 	Metadata   struct {
@@ -300,13 +302,21 @@ type Astartev1alpha1Deployment struct {
 		Namespace   string            `yaml:"namespace"`
 		Annotations map[string]string `yaml:"annotations,omitempty"`
 	} `yaml:"metadata"`
-	Spec Astartev1alpha1DeploymentSpec `yaml:"spec"`
+	Spec AstarteDeploymentSpec `yaml:"spec"`
 }
 
-// GetBaseAstartev1alpha1Deployment returns a ready to customise deployment spec for an Astarte v1alpha1 resource
-func GetBaseAstartev1alpha1Deployment() Astartev1alpha1Deployment {
-	return Astartev1alpha1Deployment{
-		APIVersion: "api.astarte-platform.org/v1alpha1",
+// GetBaseAstarteDeployment returns a ready to customise deployment spec for an Astarte resource.
+// The resource API version (v1alpha1 or v1alpha2) is determined by the Astarte version.
+func GetBaseAstarteDeployment(astarteVersion *semver.Version) AstarteDeployment {
+	oldAstarteAPIVersion, _ := semver.StrictNewVersion("1.0.0")
+	if astarteVersion.LessThan(oldAstarteAPIVersion) {
+		return AstarteDeployment{
+			APIVersion: "api.astarte-platform.org/v1alpha1",
+			Kind:       "Astarte",
+		}
+	}
+	return AstarteDeployment{
+		APIVersion: "api.astarte-platform.org/v1alpha2",
 		Kind:       "Astarte",
 	}
 }

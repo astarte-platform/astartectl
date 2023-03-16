@@ -17,9 +17,9 @@ package appengine
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 
+	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -71,11 +71,18 @@ func devicesCredentialsInhibitF(command *cobra.Command, args []string) error {
 		return errors.New("The second argument should be one of: [true false]")
 	}
 
-	err = astarteAPIClient.AppEngine.InhibitDevice(realm, deviceID, deviceIdentifierType, inhibit)
+	inhibitDeviceReq, err := astarteAPIClient.SetDeviceInhibited(realm, deviceID, deviceIdentifierType, inhibit)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err
 	}
+
+	utils.MaybeCurlAndExit(inhibitDeviceReq, astarteAPIClient)
+
+	inhibitDeviceRes, err := inhibitDeviceReq.Run(astarteAPIClient)
+	if err != nil {
+		return err
+	}
+	_, _ = inhibitDeviceRes.Parse()
 
 	fmt.Println("ok")
 	return nil

@@ -18,8 +18,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/astarte-platform/astarte-go/astarteservices"
 	"github.com/astarte-platform/astarte-go/client"
-	"github.com/astarte-platform/astarte-go/misc"
+	"github.com/astarte-platform/astarte-go/deviceid"
 	"github.com/astarte-platform/astartectl/utils"
 
 	"github.com/spf13/cobra"
@@ -48,6 +49,9 @@ func init() {
 		"Realm Management API base URL. Defaults to <astarte-url>/realmmanagement.")
 	AppEngineCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
+	AppEngineCmd.PersistentFlags().Bool("to-curl", false,
+		"When set, display a command-line equivalent instead of running the command.")
+	viper.BindPFlag("appengine-to-curl", AppEngineCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
@@ -59,9 +63,9 @@ func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("Either astarte-url or appengine-url have to be specified")
 	}
 
-	individualURLVariables := map[misc.AstarteService]string{
-		misc.AppEngine:       "individual-urls.appengine",
-		misc.RealmManagement: "individual-urls.realm-management",
+	individualURLVariables := map[astarteservices.AstarteService]string{
+		astarteservices.AppEngine:       "individual-urls.appengine",
+		astarteservices.RealmManagement: "individual-urls.realm-management",
 	}
 
 	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
@@ -77,6 +81,9 @@ func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return errors.New("realm is required")
 	}
 
+	// if just --to-curl is given, default to true
+	cmd.Flags().Lookup("to-curl").NoOptDefVal = "true"
+
 	return nil
 }
 
@@ -85,7 +92,7 @@ func deviceIdentifierTypeFromFlags(deviceIdentifier string, forceDeviceIdentifie
 	case "":
 		return client.AutodiscoverDeviceIdentifier, nil
 	case "device-id":
-		if !misc.IsValidAstarteDeviceID(deviceIdentifier) {
+		if !deviceid.IsValid(deviceIdentifier) {
 			return 0, fmt.Errorf("Required to evaluate the Device Identifier as an Astarte Device ID, but %v isn't a valid one", deviceIdentifier)
 		}
 		return client.AstarteDeviceID, nil
