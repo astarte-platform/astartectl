@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/astarte-platform/astarte-go/misc"
+	"github.com/astarte-platform/astarte-go/deviceid"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 )
@@ -68,11 +68,24 @@ func init() {
 func agentRegisterF(command *cobra.Command, args []string) error {
 	// TODO: add support for initial_introspection
 	deviceID := args[0]
-	if !misc.IsValidAstarteDeviceID(deviceID) {
+	if !deviceid.IsValid(deviceID) {
 		return errors.New("Invalid device id")
 	}
 
-	credentialsSecret, err := astarteAPIClient.Pairing.RegisterDevice(realm, deviceID)
+	registerDeviceCall, err := astarteAPIClient.RegisterDevice(realm, deviceID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	utils.MaybeCurlAndExit(registerDeviceCall, astarteAPIClient)
+
+	registerDeviceRes, err := registerDeviceCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	credentialsSecret, err := registerDeviceRes.Parse()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -98,7 +111,7 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 
 func agentUnregisterF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
-	if !misc.IsValidAstarteDeviceID(deviceID) {
+	if !deviceid.IsValid(deviceID) {
 		return errors.New("Invalid device id")
 	}
 
@@ -119,11 +132,20 @@ func agentUnregisterF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	err = astarteAPIClient.Pairing.UnregisterDevice(realm, deviceID)
+	unregisterDeviceCall, err := astarteAPIClient.UnregisterDevice(realm, deviceID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(unregisterDeviceCall, astarteAPIClient)
+
+	unregisterDeviceRes, err := unregisterDeviceCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	_, _ = unregisterDeviceRes.Parse()
 
 	fmt.Println("ok")
 	return nil

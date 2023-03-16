@@ -15,8 +15,8 @@
 package housekeeping
 
 import (
+	"github.com/astarte-platform/astarte-go/astarteservices"
 	"github.com/astarte-platform/astarte-go/client"
-	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
 
 	"github.com/spf13/cobra"
@@ -41,12 +41,18 @@ func init() {
 	HousekeepingCmd.PersistentFlags().String("housekeeping-url", "",
 		"Housekeeping API base URL. Defaults to <astarte-url>/housekeeping.")
 	viper.BindPFlag("individual-urls.housekeeping", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-url"))
+	HousekeepingCmd.PersistentFlags().Bool("to-curl", false,
+		"When set, display a command-line equivalent instead of running the command.")
+	viper.BindPFlag("housekeeping-to-curl", HousekeepingCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	var err error
-	astarteAPIClient, err = utils.APICommandSetup(map[misc.AstarteService]string{misc.Housekeeping: "individual-urls.housekeeping"},
+	astarteAPIClient, err = utils.APICommandSetup(map[astarteservices.AstarteService]string{astarteservices.Housekeeping: "individual-urls.housekeeping"},
 		"housekeeping.key", "housekeeping.key-file")
+
+	// if just --to-curl is given, default to true
+	cmd.Flags().Lookup("to-curl").NoOptDefVal = "true"
 
 	return err
 }

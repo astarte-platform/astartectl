@@ -32,7 +32,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/astarte-platform/astarte-go/misc"
+	"github.com/astarte-platform/astarte-go/auth"
+	"github.com/astarte-platform/astarte-go/client"
 	"github.com/astarte-platform/astartectl/config"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
@@ -104,12 +105,21 @@ You can also specify the flag multiple times instead of separating it with a com
 }
 
 func realmsListF(command *cobra.Command, args []string) error {
-	realms, err := astarteAPIClient.Housekeeping.ListRealms()
+	realmsCall, err := astarteAPIClient.ListRealms()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
+	utils.MaybeCurlAndExit(realmsCall, astarteAPIClient)
+
+	realmsRes, err := realmsCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	rawRealms, _ := realmsRes.Parse()
+	realms, _ := rawRealms.([]string)
 	fmt.Println(realms)
 	return nil
 }
@@ -117,11 +127,20 @@ func realmsListF(command *cobra.Command, args []string) error {
 func realmsShowF(command *cobra.Command, args []string) error {
 	realm := args[0]
 
-	realmDetails, err := astarteAPIClient.Housekeeping.GetRealm(realm)
+	getRealmDetailsCall, err := astarteAPIClient.GetRealm(realm)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(getRealmDetailsCall, astarteAPIClient)
+
+	getRealmDetailsRes, err := getRealmDetailsCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	realmDetails, _ := getRealmDetailsRes.Parse()
 
 	fmt.Printf("%+v\n", realmDetails)
 	return nil
@@ -258,7 +277,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		key, err := misc.ParsePrivateKeyFromPEM(privateKeyContent)
+		key, err := auth.ParsePrivateKeyFromPEM(privateKeyContent)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -286,19 +305,48 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		}
 	}
 
+	var createRealmReq client.AstarteRequest
+
 	if replicationFactor > 0 {
-		err = astarteAPIClient.Housekeeping.CreateRealmWithReplicationFactor(realm, string(publicKeyContent), replicationFactor)
+		createRealmReq, err = astarteAPIClient.CreateRealm(
+			client.WithRealmName(realm),
+			client.WithRealmPublicKey(string(publicKeyContent)),
+			client.WithReplicationFactor(replicationFactor),
+		)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	} else if len(datacenterReplicationFactors) > 0 {
-		err = astarteAPIClient.Housekeeping.CreateRealmWithDatacenterReplication(realm, string(publicKeyContent),
-			datacenterReplicationFactors)
+		createRealmReq, err = astarteAPIClient.CreateRealm(
+			client.WithRealmName(realm),
+			client.WithRealmPublicKey(string(publicKeyContent)),
+			client.WithDatacenterReplicationFactors(datacenterReplicationFactors),
+		)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	} else {
-		err = astarteAPIClient.Housekeeping.CreateRealm(realm, string(publicKeyContent))
+		// TODO check if this is enough or we need to default the replication
+		createRealmReq, err = astarteAPIClient.CreateRealm(
+			client.WithRealmName(realm),
+			client.WithRealmPublicKey(string(publicKeyContent)),
+		)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	}
 
+	utils.MaybeCurlAndExit(createRealmReq, astarteAPIClient)
+
+	createRealmRes, err := createRealmReq.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	_, _ = createRealmRes.Parse()
 
 	fmt.Printf("Realm %s created successfully!\n", realm)
 

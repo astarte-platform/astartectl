@@ -24,6 +24,7 @@ import (
 	"github.com/astarte-platform/astarte-go/interfaces"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // interfacesCmd represents the interfaces command
@@ -124,11 +125,25 @@ func init() {
 }
 
 func interfacesListF(command *cobra.Command, args []string) error {
-	realmInterfaces, err := astarteAPIClient.RealmManagement.ListInterfaces(realm)
+	listInterfacesCall, err := astarteAPIClient.ListInterfaces(realm)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(listInterfacesCall, astarteAPIClient)
+
+	listInterfacesRes, err := listInterfacesCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	rawListInterfaces, err := listInterfacesRes.Parse()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	realmInterfaces, _ := rawListInterfaces.([]string)
 
 	fmt.Println(realmInterfaces)
 	return nil
@@ -136,11 +151,25 @@ func interfacesListF(command *cobra.Command, args []string) error {
 
 func interfacesVersionsF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
-	interfaceVersions, err := astarteAPIClient.RealmManagement.ListInterfaceMajorVersions(realm, interfaceName)
+	interfaceVersionsCall, err := astarteAPIClient.ListInterfaceMajorVersions(realm, interfaceName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(interfaceVersionsCall, astarteAPIClient)
+
+	interfaceVersionsRes, err := interfaceVersionsCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	rawInterfaceVersions, err := interfaceVersionsRes.Parse()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	interfaceVersions, _ := rawInterfaceVersions.([]int)
 
 	fmt.Println(interfaceVersions)
 	return nil
@@ -153,8 +182,7 @@ func interfacesShowF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
-	interfaceDefinition, err := astarteAPIClient.RealmManagement.GetInterface(realm, interfaceName, interfaceMajor)
+	interfaceDefinition, err := getInterfaceDefinition(realm, interfaceName, interfaceMajor)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -180,7 +208,7 @@ func interfacesInstallF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = astarteAPIClient.RealmManagement.InstallInterface(realm, interfaceBody); err != nil {
+	if err = installInterface(realm, interfaceBody); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -193,10 +221,21 @@ func interfacesDeleteF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
 	interfaceMajor := 0
 
-	if err := astarteAPIClient.RealmManagement.DeleteInterface(realm, interfaceName, interfaceMajor); err != nil {
+	deleteInterfaceCall, err := astarteAPIClient.DeleteInterface(realm, interfaceName, interfaceMajor)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	utils.MaybeCurlAndExit(deleteInterfaceCall, astarteAPIClient)
+
+	deleteInterfaceRes, err := deleteInterfaceCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	_, _ = deleteInterfaceRes.Parse()
 
 	fmt.Println("ok")
 	return nil
@@ -213,8 +252,7 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err = astarteAPIClient.RealmManagement.UpdateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion,
-		astarteInterface); err != nil {
+	if err := updateInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion, astarteInterface); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -224,6 +262,13 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 }
 
 func interfacesSyncF(command *cobra.Command, args []string) error {
+	// `interface sync` is unnatural btw
+	if viper.GetBool("to-curl") {
+		fmt.Println(`'interfaces sync' does not support the --to-curl option.
+Install or update your interfaces one by one with 'interfaces install' or 'interface update'.`)
+		os.Exit(1)
+	}
+
 	interfacesToInstall := []interfaces.AstarteInterface{}
 	interfacesToUpdate := []interfaces.AstarteInterface{}
 
@@ -238,7 +283,7 @@ func interfacesSyncF(command *cobra.Command, args []string) error {
 			return err
 		}
 
-		if interfaceDefinition, err := astarteAPIClient.RealmManagement.GetInterface(realm, astarteInterface.Name, astarteInterface.MajorVersion); err != nil {
+		if interfaceDefinition, err := getInterfaceDefinition(realm, astarteInterface.Name, astarteInterface.MajorVersion); err != nil {
 			// The interface does not exist
 			interfacesToInstall = append(interfacesToInstall, astarteInterface)
 		} else {
@@ -281,19 +326,82 @@ func interfacesSyncF(command *cobra.Command, args []string) error {
 
 	// Start syncing.
 	for _, v := range interfacesToInstall {
-		if err := astarteAPIClient.RealmManagement.InstallInterface(realm, v); err != nil {
+		if err := installInterface(realm, v); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not install interface %s: %s\n", v.Name, err)
 		} else {
 			fmt.Printf("Interface %s installed successfully\n", v.Name)
 		}
 	}
 	for _, v := range interfacesToUpdate {
-		if err := astarteAPIClient.RealmManagement.UpdateInterface(realm, v.Name, v.MajorVersion, v); err != nil {
+		if err := updateInterface(realm, v.Name, v.MajorVersion, v); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not update interface %s: %s\n", v.Name, err)
 		} else {
 			fmt.Printf("Interface %s updated successfully to version %d.%d\n", v.Name, v.MajorVersion, v.MinorVersion)
 		}
 	}
 
+	return nil
+}
+
+func getInterfaceDefinition(realm, interfaceName string, interfaceMajor int) (interfaces.AstarteInterface, error) {
+	getInterfaceCall, err := astarteAPIClient.GetInterface(realm, interfaceName, interfaceMajor)
+	if err != nil {
+		return interfaces.AstarteInterface{}, err
+	}
+
+	// When we're here in the context of `interfaces sync`, the to-curl flag
+	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// and thus the call will never exit unexpectedly
+	utils.MaybeCurlAndExit(getInterfaceCall, astarteAPIClient)
+
+	getInterfaceRes, err := getInterfaceCall.Run(astarteAPIClient)
+	if err != nil {
+		return interfaces.AstarteInterface{}, err
+	}
+	rawInterface, err := getInterfaceRes.Parse()
+	if err != nil {
+		return interfaces.AstarteInterface{}, err
+	}
+	interfaceDefinition, _ := rawInterface.(interfaces.AstarteInterface)
+	return interfaceDefinition, nil
+}
+
+func installInterface(realm string, iface interfaces.AstarteInterface) error {
+	installInterfaceCall, err := astarteAPIClient.InstallInterface(realm, iface)
+	if err != nil {
+		return err
+	}
+
+	// When we're here in the context of `interfaces sync`, the to-curl flag
+	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// and thus the call will never exit unexpectedly
+	utils.MaybeCurlAndExit(installInterfaceCall, astarteAPIClient)
+
+	installInterfaceRes, err := installInterfaceCall.Run(astarteAPIClient)
+	if err != nil {
+		return err
+	}
+
+	_, _ = installInterfaceRes.Parse()
+	return nil
+}
+
+func updateInterface(realm string, interfaceName string, interfaceMajor int, newInterface interfaces.AstarteInterface) error {
+	updateInterfaceCall, err := astarteAPIClient.UpdateInterface(realm, interfaceName, interfaceMajor, newInterface)
+	if err != nil {
+		return err
+	}
+
+	// When we're here in the context of `interfaces sync`, the to-curl flag
+	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// and thus the call will never exit unexpectedly
+	utils.MaybeCurlAndExit(updateInterfaceCall, astarteAPIClient)
+
+	updateInterfaceRes, err := updateInterfaceCall.Run(astarteAPIClient)
+	if err != nil {
+		return err
+	}
+
+	_, _ = updateInterfaceRes.Parse()
 	return nil
 }

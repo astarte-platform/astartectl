@@ -49,7 +49,7 @@ type AstarteClusterProfile struct {
 	Description        string                            `yaml:"description"`
 	Compatibility      AstarteProfileCompatibility       `yaml:"compatibility"`
 	Requirements       AstarteProfileRequirements        `yaml:"requirements"`
-	DefaultSpec        Astartev1alpha1DeploymentSpec     `yaml:"defaultSpec"`
+	DefaultSpec        AstarteDeploymentSpec             `yaml:"defaultSpec"`
 	CustomizableFields []AstarteProfileCustomizableField `yaml:"customizableFields"`
 }
 

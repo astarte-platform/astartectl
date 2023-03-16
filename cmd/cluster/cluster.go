@@ -68,6 +68,11 @@ var (
 		Version:  "v1alpha1",
 		Resource: "astartes",
 	}
+	astarteV1Alpha2 = schema.GroupVersionResource{
+		Group:    "api.astarte-platform.org",
+		Version:  "v1alpha2",
+		Resource: "astartes",
+	}
 	aviV1Alpha1 = schema.GroupVersionResource{
 		Group:    "api.astarte-platform.org",
 		Version:  "v1alpha1",
@@ -85,6 +90,7 @@ var (
 	}
 	astarteOperatorVersions = map[string]schema.GroupVersionResource{
 		"v1alpha1": astarteV1Alpha1,
+		"v1alpha2": astarteV1Alpha2,
 	}
 
 	astarteResourceClients map[string]dynamic.NamespaceableResourceInterface = make(map[string]dynamic.NamespaceableResourceInterface)

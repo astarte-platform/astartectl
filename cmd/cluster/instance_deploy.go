@@ -27,6 +27,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var deployCmd = &cobra.Command{
@@ -148,7 +149,9 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	_, err = kubernetesDynamicClient.Resource(astarteV1Alpha1).Namespace(resourceNamespace).Create(
+	astarteGroupVersionResource := getAstarteGroupVersionResource(astarteVersion)
+
+	_, err = kubernetesDynamicClient.Resource(astarteGroupVersionResource).Namespace(resourceNamespace).Create(
 		context.TODO(), &unstructured.Unstructured{Object: astarteDeploymentResource}, metav1.CreateOptions{})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error while deploying Astarte Resource.")
@@ -172,4 +175,12 @@ func clusterDeployF(command *cobra.Command, args []string) error {
 	// We timed out. However, don't fail
 	fmt.Fprintln(os.Stderr, "Could not fetch Housekeeping key! A context wasn't created, and you should check your deployment - something might be off")
 	return nil
+}
+
+func getAstarteGroupVersionResource(astarteVersion *semver.Version) schema.GroupVersionResource {
+	oldAstarteAPIVersion, _ := semver.StrictNewVersion("1.0.0")
+	if astarteVersion.LessThan(oldAstarteAPIVersion) {
+		return astarteV1Alpha1
+	}
+	return astarteV1Alpha2
 }

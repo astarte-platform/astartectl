@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/astarte-platform/astarte-go/client"
+	"github.com/spf13/viper"
 )
 
 // AskForConfirmation asks the user if he wants to continue.
@@ -69,4 +72,15 @@ func PromptChoice(question string, defaultValue string, allowEmpty, nonInteracti
 
 		return response, nil
 	}
+}
+
+func MaybeCurlAndExit(req client.AstarteRequest, client *client.Client) {
+	if ShouldCurl() {
+		fmt.Println(req.ToCurl(client))
+		os.Exit(0)
+	}
+}
+
+func ShouldCurl() bool {
+	return viper.GetBool("appengine-to-curl") || viper.GetBool("housekeeping-to-curl") || viper.GetBool("pairing-to-curl") || viper.GetBool("realmmanagement-to-curl")
 }

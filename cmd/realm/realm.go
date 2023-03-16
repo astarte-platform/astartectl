@@ -17,8 +17,8 @@ package realm
 import (
 	"errors"
 
+	"github.com/astarte-platform/astarte-go/astarteservices"
 	"github.com/astarte-platform/astarte-go/client"
-	"github.com/astarte-platform/astarte-go/misc"
 	"github.com/astarte-platform/astartectl/utils"
 
 	"github.com/spf13/cobra"
@@ -44,6 +44,8 @@ func init() {
 		"Realm Management API base URL. Defaults to <astarte-url>/realmmanagement.")
 	RealmManagementCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
+	RealmManagementCmd.PersistentFlags().Bool("to-curl", false, "When set, display a command-line equivalent instead of running the command.")
+	viper.BindPFlag("realmmanagement-to-curl", RealmManagementCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
@@ -51,7 +53,7 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
 	astarteAPIClient, err = utils.APICommandSetup(
-		map[misc.AstarteService]string{misc.RealmManagement: "individual-urls.realm-management"}, "realm.key", "realm.key-file")
+		map[astarteservices.AstarteService]string{astarteservices.RealmManagement: "individual-urls.realm-management"}, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}
@@ -61,6 +63,9 @@ func realmManagementPersistentPreRunE(cmd *cobra.Command, args []string) error {
 	if realm == "" {
 		return errors.New("realm is required")
 	}
+
+	// if just --to-curl is given, default to true
+	cmd.Flags().Lookup("to-curl").NoOptDefVal = "true"
 
 	return nil
 }

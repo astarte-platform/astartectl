@@ -4,7 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [22.11.00] - Unreleased
+## [22.11.01] - 2023-03-15
+### Added
+- Add support for ignoring SSL errors while interacting with the Astarte APIs.
+- Add the `--to-curl` flag to print a command-line equivalent of a command instead
+  of running it.
+### Changed
+- `cluster instance deploy`: Astarte >= `v1.0.0` is deployed using the
+  `api.astarte-platform.org/v1alpha2` API.
+- Require at least Go 1.18 (due to astarte-go dep).
+- Use Go 1.18 for releases.
+
+### Fixed
+- `appengine devices send-data` correctly parses integers as int32 instead of in64.
+  Fix [#176](https://github.com/astarte-platform/astartectl/issues/176).
+
+## [22.11.00] - 2022-12-06
 ### Added
 - `cluster instances migrate storage-version` allows to migrate CRDs with `[v1alpha1, v1alpha2]`
   stored versions to just `[v1alpha2]`.
