@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
+## [22.11.02] - Unreleased
+### Changed
+- `appengine device`: print a parametric command rather than a partial one with
+  `--to-curl`when multiple API calls are involved (e.g. `send-data`).
+
 ## [22.11.01] - 2023-03-15
 ### Added
 - Add support for ignoring SSL errors while interacting with the Astarte APIs.
