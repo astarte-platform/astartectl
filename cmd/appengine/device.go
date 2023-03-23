@@ -592,6 +592,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		case interfaces.PropertiesType:
 			t.AppendHeader(table.Row{"Interface", "Path", "Value"})
 		}
+		interfacesToFetch = append(interfacesToFetch, iface)
 	}
 	jsonOutput := make(map[string]interface{})
 
@@ -617,6 +618,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					} else {
 						for _, k := range aggregate.Values.Keys() {
 							v, _ := aggregate.Values.Get(k)
+							// object aggregated values are the only ones that can have unset paths
 							if v == nil {
 								v = "(null)"
 							}
@@ -639,30 +641,23 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 
 				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
 				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
-				rawVal, _ := snapshotRes.Parse()
-				val, _ := rawVal.(map[string]client.DatastreamIndividualValue)
-				if err != nil {
 					warnOrFail(snapshotInterface, i.Name, err)
 				}
+				rawVal, _ := snapshotRes.Parse()
+				val, _ := rawVal.(map[string]interface{})
 				jsonRepresentation := make(map[string]interface{})
 				for k, v := range val {
+					item, _ := v.(client.DatastreamIndividualValue)
 					jsonRepresentation[k] = v
-					if v.Value == nil {
-						v.Value = "(null)"
-					}
 					if snapshotInterface == "" {
-						t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership,
-							timestampForOutput(v.Timestamp, outputType)})
+						t.AppendRow([]interface{}{i.Name, k, item.Value, i.Ownership,
+							timestampForOutput(item.Timestamp, outputType)})
 					} else {
-						t.AppendRow([]interface{}{i.Name, k, v.Value,
-							timestampForOutput(v.Timestamp, outputType)})
+						t.AppendRow([]interface{}{i.Name, k, item.Value,
+							timestampForOutput(item.Timestamp, outputType)})
 					}
 				}
 				jsonOutput[i.Name] = jsonRepresentation
-
 			}
 		case interfaces.PropertiesType:
 			snapshotCall, err := astarteAPIClient.GetAllProperties(realm, deviceID, deviceIdentifierType, i.Name)
@@ -672,8 +667,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 
 			snapshotRes, err := snapshotCall.Run(astarteAPIClient)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
+				warnOrFail(snapshotInterface, i.Name, err)
 			}
 			rawVal, _ := snapshotRes.Parse()
 			val, _ := rawVal.(map[string]client.PropertyValue)
@@ -683,17 +677,13 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 			jsonRepresentation := make(map[string]interface{})
 			for k, v := range val {
 				jsonRepresentation[k] = v
-				if v == nil {
-					v = "(null)"
-				}
 				if snapshotInterface == "" {
 					t.AppendRow([]interface{}{i.Name, k, v, i.Ownership, ""})
 				} else {
-					t.AppendRow([]interface{}{i.Name, k, v})
+					t.AppendRow([]interface{}{i.Name, k, v, ""})
 				}
 			}
 			jsonOutput[i.Name] = jsonRepresentation
-
 		}
 	}
 
