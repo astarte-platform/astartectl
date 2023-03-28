@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20211005130812-5bb3c17173e5
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
-	github.com/astarte-platform/astarte-go v0.90.5-0.20230309151903-983400c3076d
+	github.com/astarte-platform/astarte-go v0.90.5-0.20230323110518-62761dbc87f2
 	github.com/go-openapi/strfmt v0.21.1 // indirect
 	github.com/google/go-cmp v0.5.8
 	github.com/google/go-github/v30 v30.1.0
