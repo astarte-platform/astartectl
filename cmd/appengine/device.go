@@ -43,17 +43,17 @@ const (
 	dataSnapshotCurl = `curl -X GET -H "Accept: application/json" -H "Content-Type: application/json" \
 	-H "User-Agent: astarte-go" \
 	-H "Authorization: Bearer $TOKEN" \
-	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/$INTERFACE/$PATH?limit=1`
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH?limit=1`
 
 	getSamplesCurl = `curl -X GET -H "Accept: application/json" -H "Content-Type: application/json" \
 	-H "User-Agent: astarte-go" \
 	-H "Authorization: Bearer $TOKEN" \
-	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/$INTERFACE/$PATH`
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH`
 
 	sendDataCurl = `curl -X POST -H "Accept: application/json" -H "Content-Type: application/json" \
 	-H "User-Agent: astarte-go" \
 	-H "Authorization: Bearer $TOKEN" \
-	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/$INTERFACE/$PATH
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH
 	-data '{"data" : $DATA}'`
 )
 
