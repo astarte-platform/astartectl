@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - `appengine data-snapshot` properly gathers and shows data snapshots from a device.
+- context: do not warn when config is missing. Users will have to provide parameters by hand.
 
 ## [22.11.01] - 2023-03-15
 ### Added
