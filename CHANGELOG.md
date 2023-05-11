@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - `appengine device`: print a parametric command rather than a partial one with
   `--to-curl`when multiple API calls are involved (e.g. `send-data`).
+- `appengine device send-data` returns a clear error when an interface is not found.
+  See [#132](https://github.com/astarte-platform/astartectl/issues/132).
 
 ### Fixed
 - `appengine data-snapshot` properly gathers and shows data snapshots from a device.
