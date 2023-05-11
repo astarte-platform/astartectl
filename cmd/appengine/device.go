@@ -1148,6 +1148,7 @@ func getProtoInterface(deviceID string, deviceIdentifierType client.DeviceIdenti
 			return iface, err
 		}
 
+		found := false
 		for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
 			if astarteInterface != interfaceName {
 				continue
@@ -1160,10 +1161,13 @@ func getProtoInterface(deviceID string, deviceIdentifierType client.DeviceIdenti
 				// Die here, given we really can't recover further
 				return iface, err
 			}
+			found = true
 			break
 		}
+		if !found {
+			return iface, fmt.Errorf("interface %s not found in device introspection", interfaceName)
+		}
 	}
-
 	return iface, nil
 }
 
