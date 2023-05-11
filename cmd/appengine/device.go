@@ -240,7 +240,7 @@ func devicesListF(command *cobra.Command, args []string) error {
 }
 
 func printSimpleDevicesList(realm string) {
-	paginator, err := astarteAPIClient.GetDeviceListPaginator(realm, 100, client.DeviceDetailsFormat)
+	paginator, err := astarteAPIClient.GetDeviceListPaginator(realm, 100, client.DeviceIDFormat)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
