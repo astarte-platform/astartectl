@@ -825,13 +825,14 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 		isAggregate = forceAggregate
 	}
 
+	// prepare some helper variables, they will come handy for data visualization
+	sliceAcc := []any{}
+	mapAcc := map[string]any{}
+
 	// We are good to go.
 	t := tableWriterForOutputType(outputType)
 	if !isAggregate {
-		// Go with the table header
-		t.AppendHeader(table.Row{"Timestamp", "Value"})
 		printedValues := 0
-		jsonOutput := []client.DatastreamIndividualValue{}
 		datastreamPaginator, err := astarteAPIClient.GetDatastreamIndividualTimeWindowPaginator(realm, deviceID,
 			deviceIdentifierType, interfaceName, interfacePath, sinceTime, toTime, resultSetOrder, 100)
 		if err != nil {
@@ -849,32 +850,58 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
+
 			rawPage, err := nextPageRes.Parse()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			page, _ := rawPage.([]client.DatastreamIndividualValue)
 
-			if outputType == "json" {
-				jsonOutput = append(jsonOutput, page...)
-			} else {
+			switch rawPage.(type) {
+			case []client.DatastreamIndividualValue:
+				page, _ := rawPage.([]client.DatastreamIndividualValue)
+
+				// Go with the table header regardless of the requested output type
+				t.AppendHeader(table.Row{"Timestamp", "Value"})
+
+				// and start appending values
 				for _, v := range page {
-					t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+					if outputType != "json" {
+						t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+					} else {
+						sliceAcc = append(sliceAcc, v)
+					}
 					printedValues++
 					if printedValues >= limit && limit > 0 {
-						renderOutput(t, jsonOutput, outputType)
+						renderOutput(t, sliceAcc, outputType)
 						return nil
 					}
 				}
+				renderOutput(t, sliceAcc, outputType)
+
+			case map[string]client.DatastreamIndividualValue:
+				page, _ := rawPage.(map[string]client.DatastreamIndividualValue)
+
+				// Go with the table header regardless of the requested output type
+				t.AppendHeader(table.Row{"Path", "Timestamp", "Value"})
+
+				// and start appending values
+				for k, v := range page {
+					if outputType != "json" {
+						t.AppendRow([]interface{}{k, timestampForOutput(v.Timestamp, outputType), v.Value})
+					} else {
+						mapAcc[k] = v
+					}
+					printedValues++
+					if printedValues >= limit && limit > 0 {
+						renderOutput(t, mapAcc, outputType)
+						return nil
+					}
+				}
+				renderOutput(t, mapAcc, outputType)
 			}
 		}
-		renderOutput(t, jsonOutput, outputType)
 	} else {
-		headerRow := table.Row{"Timestamp"}
-		headerPrinted := false
-
-		jsonOutput := []client.DatastreamObjectValue{}
 		printedValues := 0
 		datastreamPaginator, err := astarteAPIClient.GetDatastreamObjectTimeWindowPaginator(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath,
 			sinceTime, toTime, resultSetOrder, 100)
@@ -898,42 +925,90 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			page, _ := rawPage.([]client.DatastreamObjectValue)
 
-			if outputType == "json" {
-				jsonOutput = append(jsonOutput, page...)
-			} else {
+			switch rawPage.(type) {
+			case []client.DatastreamObjectValue:
+				headerRow := table.Row{"Timestamp"}
+				headerPrinted := false
+
+				page, _ := rawPage.([]client.DatastreamObjectValue)
+
 				for _, v := range page {
-					// Iterate the aggregate
-					line := []interface{}{}
-					line = append(line, timestampForOutput(v.Timestamp, outputType))
-					for _, path := range v.Values.Keys() {
-						value, _ := v.Values.Get(path)
+					if outputType != "json" {
+						// Iterate the aggregate
+						line := []interface{}{}
+						line = append(line, timestampForOutput(v.Timestamp, outputType))
+						for _, path := range v.Values.Keys() {
+							value, _ := v.Values.Get(path)
+							if !headerPrinted {
+								headerRow = append(headerRow, path)
+							}
+							if value != nil {
+								line = append(line, value)
+							} else {
+								line = append(line, "(null)")
+							}
+						}
 						if !headerPrinted {
-							headerRow = append(headerRow, path)
+							t.AppendHeader(headerRow)
+							headerPrinted = true
 						}
-						if value != nil {
-							line = append(line, value)
-						} else {
-							line = append(line, "(null)")
-						}
+						t.AppendRow(line)
+					} else {
+						sliceAcc = append(sliceAcc, v)
 					}
-					if !headerPrinted {
-						t.AppendHeader(headerRow)
-						headerPrinted = true
-					}
-					t.AppendRow(line)
 					printedValues++
 					if printedValues >= limit && limit > 0 {
-						renderOutput(t, jsonOutput, outputType)
+						renderOutput(t, sliceAcc, outputType)
 						return nil
 					}
 				}
+				renderOutput(t, sliceAcc, outputType)
+
+			case map[string][]client.DatastreamObjectValue:
+				headerRow := table.Row{"Base path", "Timestamp"}
+				headerPrinted := false
+
+				page, _ := rawPage.(map[string][]client.DatastreamObjectValue)
+
+				keys := []string{}
+				for k, v := range page {
+					for _, item := range v {
+						if outputType != "json" {
+							line := []interface{}{}
+							if !headerPrinted {
+								for _, path := range item.Values.Keys() {
+									keys = append(keys, path)
+									headerRow = append(headerRow, path)
+								}
+								t.AppendHeader(headerRow)
+								headerPrinted = true
+							}
+							line = append(line, k)
+							line = append(line, timestampForOutput(item.Timestamp, outputType))
+							for _, key := range keys {
+								value, _ := item.Values.Get(key)
+								if value != nil {
+									line = append(line, value)
+								} else {
+									line = append(line, "(null)")
+								}
+							}
+							t.AppendRow(line)
+						} else {
+							mapAcc[k] = v
+						}
+						printedValues++
+						if printedValues >= limit && limit > 0 {
+							renderOutput(t, mapAcc, outputType)
+							return nil
+						}
+					}
+				}
+				renderOutput(t, mapAcc, outputType)
 			}
 		}
-		renderOutput(t, jsonOutput, outputType)
 	}
-
 	return nil
 }
 
@@ -1183,15 +1258,15 @@ func timestampForOutput(timestamp time.Time, outputType string) string {
 	return ""
 }
 
-func renderOutput(t table.Writer, jsonOutput interface{}, outputType string) {
+func renderOutput(t table.Writer, accumulator interface{}, outputType string) {
 	switch outputType {
 	case "default":
 		t.Render()
 	case "csv":
 		t.RenderCSV()
 	case "json":
-		respJSON, _ := json.MarshalIndent(jsonOutput, "", "  ")
-		fmt.Println(string(respJSON))
+		marshaledOutput, _ := json.MarshalIndent(accumulator, "", "    ")
+		fmt.Println(string(marshaledOutput))
 	}
 }
 
