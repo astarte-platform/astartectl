@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [22.11.02] - Unreleased
+## [22.11.02] - 23/05/2023
 ### Changed
 - `appengine device`: print a parametric command rather than a partial one with
   `--to-curl`when multiple API calls are involved (e.g. `send-data`).
