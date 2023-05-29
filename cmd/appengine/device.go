@@ -39,6 +39,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	dataSnapshotCurl = `curl -X GET -H "Accept: application/json" -H "Content-Type: application/json" \
+	-H "User-Agent: astarte-go" \
+	-H "Authorization: Bearer $TOKEN" \
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH?limit=1`
+
+	getSamplesCurl = `curl -X GET -H "Accept: application/json" -H "Content-Type: application/json" \
+	-H "User-Agent: astarte-go" \
+	-H "Authorization: Bearer $TOKEN" \
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH`
+
+	sendDataCurl = `curl -X POST -H "Accept: application/json" -H "Content-Type: application/json" \
+	-H "User-Agent: astarte-go" \
+	-H "Authorization: Bearer $TOKEN" \
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH
+	-data '{"data" : $DATA}'`
+)
+
 // DevicesCmd represents the devices command
 var devicesCmd = &cobra.Command{
 	Use:     "devices",
@@ -222,7 +240,7 @@ func devicesListF(command *cobra.Command, args []string) error {
 }
 
 func printSimpleDevicesList(realm string) {
-	paginator, err := astarteAPIClient.GetDeviceListPaginator(realm, 100, client.DeviceDetailsFormat)
+	paginator, err := astarteAPIClient.GetDeviceListPaginator(realm, 100, client.DeviceIDFormat)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -492,6 +510,11 @@ func tableWriterForOutputType(outputType string) table.Writer {
 }
 
 func devicesDataSnapshotF(command *cobra.Command, args []string) error {
+	if utils.ShouldCurl() {
+		fmt.Println(dataSnapshotCurl)
+		os.Exit(0)
+	}
+
 	deviceID := args[0]
 	forceIDType, err := command.Flags().GetString("force-id-type")
 	if err != nil {
@@ -569,6 +592,7 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 		case interfaces.PropertiesType:
 			t.AppendHeader(table.Row{"Interface", "Path", "Value"})
 		}
+		interfacesToFetch = append(interfacesToFetch, iface)
 	}
 	jsonOutput := make(map[string]interface{})
 
@@ -581,32 +605,29 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					warnOrFail(snapshotInterface, i.Name, err)
 				}
 
-				if utils.ShouldCurl() {
-					fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
-				} else {
-					snapshotRes, err := snapshotCall.Run(astarteAPIClient)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-						os.Exit(1)
-					}
-					rawVal, _ := snapshotRes.Parse()
-					val, _ := rawVal.(map[string]client.DatastreamObjectValue)
-					for path, aggregate := range val {
-						if outputType == "json" {
-							jsonOutput[i.Name] = val
-						} else {
-							for _, k := range aggregate.Values.Keys() {
-								v, _ := aggregate.Values.Get(k)
-								if v == nil {
-									v = "(null)"
-								}
-								if snapshotInterface == "" {
-									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership,
-										timestampForOutput(aggregate.Timestamp, outputType)})
-								} else {
-									t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v,
-										timestampForOutput(aggregate.Timestamp, outputType)})
-								}
+				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
+				rawVal, _ := snapshotRes.Parse()
+				val, _ := rawVal.(map[string]client.DatastreamObjectValue)
+				for path, aggregate := range val {
+					if outputType == "json" {
+						jsonOutput[i.Name] = val
+					} else {
+						for _, k := range aggregate.Values.Keys() {
+							v, _ := aggregate.Values.Get(k)
+							// object aggregated values are the only ones that can have unset paths
+							if v == nil {
+								v = "(null)"
+							}
+							if snapshotInterface == "" {
+								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v, i.Ownership,
+									timestampForOutput(aggregate.Timestamp, outputType)})
+							} else {
+								t.AppendRow([]interface{}{i.Name, fmt.Sprintf("%s/%s", path, k), v,
+									timestampForOutput(aggregate.Timestamp, outputType)})
 							}
 						}
 					}
@@ -618,35 +639,25 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 					warnOrFail(snapshotInterface, i.Name, err)
 				}
 
-				if utils.ShouldCurl() {
-					fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
-				} else {
-					snapshotRes, err := snapshotCall.Run(astarteAPIClient)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-						os.Exit(1)
-					}
-					rawVal, _ := snapshotRes.Parse()
-					val, _ := rawVal.(map[string]client.DatastreamIndividualValue)
-					if err != nil {
-						warnOrFail(snapshotInterface, i.Name, err)
-					}
-					jsonRepresentation := make(map[string]interface{})
-					for k, v := range val {
-						jsonRepresentation[k] = v
-						if v.Value == nil {
-							v.Value = "(null)"
-						}
-						if snapshotInterface == "" {
-							t.AppendRow([]interface{}{i.Name, k, v.Value, i.Ownership,
-								timestampForOutput(v.Timestamp, outputType)})
-						} else {
-							t.AppendRow([]interface{}{i.Name, k, v.Value,
-								timestampForOutput(v.Timestamp, outputType)})
-						}
-					}
-					jsonOutput[i.Name] = jsonRepresentation
+				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
+				if err != nil {
+					warnOrFail(snapshotInterface, i.Name, err)
 				}
+				rawVal, _ := snapshotRes.Parse()
+				val, _ := rawVal.(map[string]interface{})
+				jsonRepresentation := make(map[string]interface{})
+				for k, v := range val {
+					item, _ := v.(client.DatastreamIndividualValue)
+					jsonRepresentation[k] = v
+					if snapshotInterface == "" {
+						t.AppendRow([]interface{}{i.Name, k, item.Value, i.Ownership,
+							timestampForOutput(item.Timestamp, outputType)})
+					} else {
+						t.AppendRow([]interface{}{i.Name, k, item.Value,
+							timestampForOutput(item.Timestamp, outputType)})
+					}
+				}
+				jsonOutput[i.Name] = jsonRepresentation
 			}
 		case interfaces.PropertiesType:
 			snapshotCall, err := astarteAPIClient.GetAllProperties(realm, deviceID, deviceIdentifierType, i.Name)
@@ -654,39 +665,26 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 				warnOrFail(snapshotInterface, i.Name, err)
 			}
 
-			if utils.ShouldCurl() {
-				fmt.Println(snapshotCall.ToCurl(astarteAPIClient))
-			} else {
-				snapshotRes, err := snapshotCall.Run(astarteAPIClient)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
-				rawVal, _ := snapshotRes.Parse()
-				val, _ := rawVal.(map[string]client.PropertyValue)
-				if err != nil {
-					warnOrFail(snapshotInterface, i.Name, err)
-				}
-				jsonRepresentation := make(map[string]interface{})
-				for k, v := range val {
-					jsonRepresentation[k] = v
-					if v == nil {
-						v = "(null)"
-					}
-					if snapshotInterface == "" {
-						t.AppendRow([]interface{}{i.Name, k, v, i.Ownership, ""})
-					} else {
-						t.AppendRow([]interface{}{i.Name, k, v})
-					}
-				}
-				jsonOutput[i.Name] = jsonRepresentation
+			snapshotRes, err := snapshotCall.Run(astarteAPIClient)
+			if err != nil {
+				warnOrFail(snapshotInterface, i.Name, err)
 			}
+			rawVal, _ := snapshotRes.Parse()
+			val, _ := rawVal.(map[string]client.PropertyValue)
+			if err != nil {
+				warnOrFail(snapshotInterface, i.Name, err)
+			}
+			jsonRepresentation := make(map[string]interface{})
+			for k, v := range val {
+				jsonRepresentation[k] = v
+				if snapshotInterface == "" {
+					t.AppendRow([]interface{}{i.Name, k, v, i.Ownership, ""})
+				} else {
+					t.AppendRow([]interface{}{i.Name, k, v, ""})
+				}
+			}
+			jsonOutput[i.Name] = jsonRepresentation
 		}
-	}
-
-	if utils.ShouldCurl() {
-		// Do not print the table if user wants just a curl
-		return nil
 	}
 
 	// Done
@@ -707,6 +705,11 @@ func warnOrFail(snapshotInterface, interfaceName string, err error) {
 }
 
 func devicesGetSamplesF(command *cobra.Command, args []string) error {
+	if utils.ShouldCurl() {
+		fmt.Println(getSamplesCurl)
+		os.Exit(0)
+	}
+
 	deviceID := args[0]
 	interfaceName := args[1]
 	var interfacePath string
@@ -822,13 +825,14 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 		isAggregate = forceAggregate
 	}
 
+	// prepare some helper variables, they will come handy for data visualization
+	sliceAcc := []any{}
+	mapAcc := map[string]any{}
+
 	// We are good to go.
 	t := tableWriterForOutputType(outputType)
 	if !isAggregate {
-		// Go with the table header
-		t.AppendHeader(table.Row{"Timestamp", "Value"})
 		printedValues := 0
-		jsonOutput := []client.DatastreamIndividualValue{}
 		datastreamPaginator, err := astarteAPIClient.GetDatastreamIndividualTimeWindowPaginator(realm, deviceID,
 			deviceIdentifierType, interfaceName, interfacePath, sinceTime, toTime, resultSetOrder, 100)
 		if err != nil {
@@ -841,40 +845,63 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-
-			utils.MaybeCurlAndExit(nextPageCall, astarteAPIClient)
-
 			nextPageRes, err := nextPageCall.Run(astarteAPIClient)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
+
 			rawPage, err := nextPageRes.Parse()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			page, _ := rawPage.([]client.DatastreamIndividualValue)
 
-			if outputType == "json" {
-				jsonOutput = append(jsonOutput, page...)
-			} else {
+			switch rawPage.(type) {
+			case []client.DatastreamIndividualValue:
+				page, _ := rawPage.([]client.DatastreamIndividualValue)
+
+				// Go with the table header regardless of the requested output type
+				t.AppendHeader(table.Row{"Timestamp", "Value"})
+
+				// and start appending values
 				for _, v := range page {
-					t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+					if outputType != "json" {
+						t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+					} else {
+						sliceAcc = append(sliceAcc, v)
+					}
 					printedValues++
 					if printedValues >= limit && limit > 0 {
-						renderOutput(t, jsonOutput, outputType)
+						renderOutput(t, sliceAcc, outputType)
 						return nil
 					}
 				}
+				renderOutput(t, sliceAcc, outputType)
+
+			case map[string]client.DatastreamIndividualValue:
+				page, _ := rawPage.(map[string]client.DatastreamIndividualValue)
+
+				// Go with the table header regardless of the requested output type
+				t.AppendHeader(table.Row{"Path", "Timestamp", "Value"})
+
+				// and start appending values
+				for k, v := range page {
+					if outputType != "json" {
+						t.AppendRow([]interface{}{k, timestampForOutput(v.Timestamp, outputType), v.Value})
+					} else {
+						mapAcc[k] = v
+					}
+					printedValues++
+					if printedValues >= limit && limit > 0 {
+						renderOutput(t, mapAcc, outputType)
+						return nil
+					}
+				}
+				renderOutput(t, mapAcc, outputType)
 			}
 		}
-		renderOutput(t, jsonOutput, outputType)
 	} else {
-		headerRow := table.Row{"Timestamp"}
-		headerPrinted := false
-
-		jsonOutput := []client.DatastreamObjectValue{}
 		printedValues := 0
 		datastreamPaginator, err := astarteAPIClient.GetDatastreamObjectTimeWindowPaginator(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath,
 			sinceTime, toTime, resultSetOrder, 100)
@@ -888,9 +915,6 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-
-			utils.MaybeCurlAndExit(nextPageCall, astarteAPIClient)
-
 			nextPageRes, err := nextPageCall.Run(astarteAPIClient)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -901,46 +925,99 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			page, _ := rawPage.([]client.DatastreamObjectValue)
 
-			if outputType == "json" {
-				jsonOutput = append(jsonOutput, page...)
-			} else {
+			switch rawPage.(type) {
+			case []client.DatastreamObjectValue:
+				headerRow := table.Row{"Timestamp"}
+				headerPrinted := false
+
+				page, _ := rawPage.([]client.DatastreamObjectValue)
+
 				for _, v := range page {
-					// Iterate the aggregate
-					line := []interface{}{}
-					line = append(line, timestampForOutput(v.Timestamp, outputType))
-					for _, path := range v.Values.Keys() {
-						value, _ := v.Values.Get(path)
+					if outputType != "json" {
+						// Iterate the aggregate
+						line := []interface{}{}
+						line = append(line, timestampForOutput(v.Timestamp, outputType))
+						for _, path := range v.Values.Keys() {
+							value, _ := v.Values.Get(path)
+							if !headerPrinted {
+								headerRow = append(headerRow, path)
+							}
+							if value != nil {
+								line = append(line, value)
+							} else {
+								line = append(line, "(null)")
+							}
+						}
 						if !headerPrinted {
-							headerRow = append(headerRow, path)
+							t.AppendHeader(headerRow)
+							headerPrinted = true
 						}
-						if value != nil {
-							line = append(line, value)
-						} else {
-							line = append(line, "(null)")
-						}
+						t.AppendRow(line)
+					} else {
+						sliceAcc = append(sliceAcc, v)
 					}
-					if !headerPrinted {
-						t.AppendHeader(headerRow)
-						headerPrinted = true
-					}
-					t.AppendRow(line)
 					printedValues++
 					if printedValues >= limit && limit > 0 {
-						renderOutput(t, jsonOutput, outputType)
+						renderOutput(t, sliceAcc, outputType)
 						return nil
 					}
 				}
+				renderOutput(t, sliceAcc, outputType)
+
+			case map[string][]client.DatastreamObjectValue:
+				headerRow := table.Row{"Base path", "Timestamp"}
+				headerPrinted := false
+
+				page, _ := rawPage.(map[string][]client.DatastreamObjectValue)
+
+				keys := []string{}
+				for k, v := range page {
+					for _, item := range v {
+						if outputType != "json" {
+							line := []interface{}{}
+							if !headerPrinted {
+								for _, path := range item.Values.Keys() {
+									keys = append(keys, path)
+									headerRow = append(headerRow, path)
+								}
+								t.AppendHeader(headerRow)
+								headerPrinted = true
+							}
+							line = append(line, k)
+							line = append(line, timestampForOutput(item.Timestamp, outputType))
+							for _, key := range keys {
+								value, _ := item.Values.Get(key)
+								if value != nil {
+									line = append(line, value)
+								} else {
+									line = append(line, "(null)")
+								}
+							}
+							t.AppendRow(line)
+						} else {
+							mapAcc[k] = v
+						}
+						printedValues++
+						if printedValues >= limit && limit > 0 {
+							renderOutput(t, mapAcc, outputType)
+							return nil
+						}
+					}
+				}
+				renderOutput(t, mapAcc, outputType)
 			}
 		}
-		renderOutput(t, jsonOutput, outputType)
 	}
-
 	return nil
 }
 
 func devicesSendDataF(command *cobra.Command, args []string) error {
+	if utils.ShouldCurl() {
+		fmt.Println(sendDataCurl)
+		os.Exit(0)
+	}
+
 	deviceID := args[0]
 	interfaceName := args[1]
 	interfacePath := args[2]
@@ -1062,8 +1139,6 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	utils.MaybeCurlAndExit(sendDataCall, astarteAPIClient)
-
 	sendDataRes, err := sendDataCall.Run(astarteAPIClient)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -1148,6 +1223,7 @@ func getProtoInterface(deviceID string, deviceIdentifierType client.DeviceIdenti
 			return iface, err
 		}
 
+		found := false
 		for astarteInterface, interfaceIntrospection := range deviceDetails.Introspection {
 			if astarteInterface != interfaceName {
 				continue
@@ -1160,10 +1236,13 @@ func getProtoInterface(deviceID string, deviceIdentifierType client.DeviceIdenti
 				// Die here, given we really can't recover further
 				return iface, err
 			}
+			found = true
 			break
 		}
+		if !found {
+			return iface, fmt.Errorf("interface %s not found in device introspection", interfaceName)
+		}
 	}
-
 	return iface, nil
 }
 
@@ -1179,15 +1258,15 @@ func timestampForOutput(timestamp time.Time, outputType string) string {
 	return ""
 }
 
-func renderOutput(t table.Writer, jsonOutput interface{}, outputType string) {
+func renderOutput(t table.Writer, accumulator interface{}, outputType string) {
 	switch outputType {
 	case "default":
 		t.Render()
 	case "csv":
 		t.RenderCSV()
 	case "json":
-		respJSON, _ := json.MarshalIndent(jsonOutput, "", "  ")
-		fmt.Println(string(respJSON))
+		marshaledOutput, _ := json.MarshalIndent(accumulator, "", "    ")
+		fmt.Println(string(marshaledOutput))
 	}
 }
 

@@ -4,11 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [22.11.02] - 23/05/2023
+### Changed
+- `appengine device`: print a parametric command rather than a partial one with
+  `--to-curl`when multiple API calls are involved (e.g. `send-data`).
+- `appengine device send-data` returns a clear error when an interface is not found.
+  See [#132](https://github.com/astarte-platform/astartectl/issues/132).
+
+### Fixed
+- `appengine data-snapshot` properly gathers and shows data snapshots from a device.
+- context: do not warn when config is missing. Users will have to provide parameters by hand.
+- `appengine get-samples` properly gathers and show samples from a device.
+
 ## [22.11.01] - 2023-03-15
 ### Added
 - Add support for ignoring SSL errors while interacting with the Astarte APIs.
 - Add the `--to-curl` flag to print a command-line equivalent of a command instead
   of running it.
+
 ### Changed
 - `cluster instance deploy`: Astarte >= `v1.0.0` is deployed using the
   `api.astarte-platform.org/v1alpha2` API.

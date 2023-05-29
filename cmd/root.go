@@ -17,7 +17,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 
 	"github.com/astarte-platform/astartectl/cmd/appengine"
@@ -96,9 +95,11 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	// If the config does not exist, do not warn - it's simply not there.
-	if err := config.ConfigureViper(cfgContext); err != nil && reflect.TypeOf(viper.ConfigFileNotFoundError{}) != reflect.TypeOf(err) {
-		fmt.Fprintf(os.Stderr, "warn: Error while loading configuration: %s\n", err.Error())
+	if err := config.ConfigureViper(cfgContext); err != nil {
+		// If the config does not exist, do not warn - it's simply not there.
+		if _, ok := err.(*os.PathError); !ok {
+			fmt.Fprintf(os.Stderr, "warn: Error while loading configuration: %s\n", err.Error())
+		}
 	}
 
 	replacer := strings.NewReplacer(".", "_")
