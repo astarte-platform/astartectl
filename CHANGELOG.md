@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- `realm-management interfaces {install,upgrade}` commands are run synchronously.
 
 ## [22.11.02] - 23/05/2023
 ### Changed
