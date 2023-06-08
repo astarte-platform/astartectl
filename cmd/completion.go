@@ -1,4 +1,4 @@
-// Copyright © 2019 Ispirata Srl
+// Copyright © 2019-2023 SECO Mind Srl
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,9 +58,23 @@ autoload -U compinit && compinit
 	},
 }
 
+var completionFishCmd = &cobra.Command{
+	Use:   "fish",
+	Short: "Generate fish completions",
+	Long: `
+To setup your completions, run
+
+astartectl completion fish > ~/.config/fish/completions/astartectl.fish
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		rootCmd.GenFishCompletion(os.Stdout, true)
+	},
+}
+
 func init() {
 	completionCmd.AddCommand(completionBashCmd)
 	completionCmd.AddCommand(completionZshCmd)
+	completionCmd.AddCommand(completionFishCmd)
 
 	rootCmd.AddCommand(completionCmd)
 }
