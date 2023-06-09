@@ -54,7 +54,7 @@ const (
 	-H "User-Agent: astarte-go" \
 	-H "Authorization: Bearer $TOKEN" \
 	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH
-	-data '{"data" : $DATA}'`
+	--data '{"data" : $DATA}'`
 )
 
 // DevicesCmd represents the devices command
