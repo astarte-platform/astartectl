@@ -4,3 +4,7 @@ astartectl
 astartectl_*
 .gobuild
 dist/
+
+# Direnv
+.direnv/
+.envrc
