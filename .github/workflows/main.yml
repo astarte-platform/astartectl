@@ -16,16 +16,16 @@ jobs:
     strategy:
       matrix:
         go: [1.19.x, 1.20.x]
-        os: [ubuntu-20.04, macos-latest, windows-latest]
+        os: [ubuntu-22.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
+    - uses: actions/checkout@v3
+
     - name: Set up Go ${{ matrix.go }}
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
       id: go
-
-    - uses: actions/checkout@v2
 
     - name: Check gofmt
       run: diff -u <(echo -n) <(gofmt -d .)
