@@ -40,7 +40,7 @@ To configure your bash shell to load completions for each session add to your .b
 source ~/bash_completion.d/astartectl
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd.GenBashCompletion(os.Stdout)
+		_ = rootCmd.GenBashCompletion(os.Stdout)
 	},
 }
 
@@ -54,7 +54,7 @@ astartectl completion zsh > ~/.zsh/completion/_astartectl
 autoload -U compinit && compinit
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd.GenZshCompletion(os.Stdout)
+		_ = rootCmd.GenZshCompletion(os.Stdout)
 	},
 }
 
@@ -67,7 +67,7 @@ To setup your completions, run
 astartectl completion fish > ~/.config/fish/completions/astartectl.fish
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd.GenFishCompletion(os.Stdout, true)
+		_ = rootCmd.GenFishCompletion(os.Stdout, true)
 	},
 }
 

@@ -266,9 +266,7 @@ func printSimpleDevicesList(realm string) {
 		rawPage, _ := deviceListRes.Parse()
 		page, _ := rawPage.([]string)
 
-		for _, deviceID := range page {
-			deviceIDList = append(deviceIDList, deviceID)
-		}
+		deviceIDList = append(deviceIDList, page...)
 	}
 
 	fmt.Println(deviceIDList)
@@ -857,10 +855,8 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				os.Exit(1)
 			}
 
-			switch rawPage.(type) {
+			switch page := rawPage.(type) {
 			case []client.DatastreamIndividualValue:
-				page, _ := rawPage.([]client.DatastreamIndividualValue)
-
 				// Go with the table header regardless of the requested output type
 				t.AppendHeader(table.Row{"Timestamp", "Value"})
 
@@ -880,8 +876,6 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				renderOutput(t, sliceAcc, outputType)
 
 			case map[string]client.DatastreamIndividualValue:
-				page, _ := rawPage.(map[string]client.DatastreamIndividualValue)
-
 				// Go with the table header regardless of the requested output type
 				t.AppendHeader(table.Row{"Path", "Timestamp", "Value"})
 
@@ -926,12 +920,10 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				os.Exit(1)
 			}
 
-			switch rawPage.(type) {
+			switch page := rawPage.(type) {
 			case []client.DatastreamObjectValue:
 				headerRow := table.Row{"Timestamp"}
 				headerPrinted := false
-
-				page, _ := rawPage.([]client.DatastreamObjectValue)
 
 				for _, v := range page {
 					if outputType != "json" {
@@ -968,8 +960,6 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 			case map[string][]client.DatastreamObjectValue:
 				headerRow := table.Row{"Base path", "Timestamp"}
 				headerPrinted := false
-
-				page, _ := rawPage.(map[string][]client.DatastreamObjectValue)
 
 				keys := []string{}
 				for k, v := range page {

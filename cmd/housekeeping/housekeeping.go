@@ -36,14 +36,14 @@ var astarteAPIClient *client.Client
 func init() {
 	HousekeepingCmd.PersistentFlags().StringP("housekeeping-key", "k", "",
 		"Path to housekeeping private key to generate JWT for authentication")
-	HousekeepingCmd.MarkPersistentFlagFilename("housekeeping-key")
-	viper.BindPFlag("housekeeping.key-file", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-key"))
+	_ = HousekeepingCmd.MarkPersistentFlagFilename("housekeeping-key")
+	_ = viper.BindPFlag("housekeeping.key-file", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-key"))
 	HousekeepingCmd.PersistentFlags().String("housekeeping-url", "",
 		"Housekeeping API base URL. Defaults to <astarte-url>/housekeeping.")
-	viper.BindPFlag("individual-urls.housekeeping", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-url"))
+	_ = viper.BindPFlag("individual-urls.housekeeping", HousekeepingCmd.PersistentFlags().Lookup("housekeeping-url"))
 	HousekeepingCmd.PersistentFlags().Bool("to-curl", false,
 		"When set, display a command-line equivalent instead of running the command.")
-	viper.BindPFlag("housekeeping-to-curl", HousekeepingCmd.PersistentFlags().Lookup("to-curl"))
+	_ = viper.BindPFlag("housekeeping-to-curl", HousekeepingCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func housekeepingPersistentPreRunE(cmd *cobra.Command, args []string) error {

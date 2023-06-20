@@ -25,7 +25,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"strconv"
@@ -266,13 +265,13 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 	var privateKeyContent []byte
 	switch {
 	case publicKey != "":
-		publicKeyContent, err = ioutil.ReadFile(publicKey)
+		publicKeyContent, err = os.ReadFile(publicKey)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	case privateKey != "":
-		privateKeyContent, err = ioutil.ReadFile(privateKey)
+		privateKeyContent, err = os.ReadFile(privateKey)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)

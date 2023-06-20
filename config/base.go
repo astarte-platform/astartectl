@@ -15,7 +15,7 @@
 package config
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 
 	"gopkg.in/yaml.v2"
@@ -58,5 +58,5 @@ func SaveBaseConfiguration(configDir string, configuration BaseConfigFile) error
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path.Join(configDir, baseConfigName+".yaml"), contents, 0644)
+	return os.WriteFile(path.Join(configDir, baseConfigName+".yaml"), contents, 0644)
 }

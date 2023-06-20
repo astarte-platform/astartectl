@@ -59,10 +59,6 @@ var (
 	kubernetesAPIExtensionsClient *apiextensions.Clientset
 	kubernetesDynamicClient       dynamic.Interface
 
-	astarteGroupResource = schema.GroupResource{
-		Group:    "api.astarte-platform.org",
-		Resource: "Astarte",
-	}
 	astarteV1Alpha1 = schema.GroupVersionResource{
 		Group:    "api.astarte-platform.org",
 		Version:  "v1alpha1",
@@ -83,11 +79,6 @@ var (
 		Version:  "v1alpha1",
 		Resource: "astartedefaultingresses",
 	}
-	crdResource = schema.GroupVersionResource{
-		Group:    "apiextensions.k8s.io",
-		Version:  "v1beta1",
-		Resource: "customresourcedefinitions",
-	}
 	astarteOperatorVersions = map[string]schema.GroupVersionResource{
 		"v1alpha1": astarteV1Alpha1,
 		"v1alpha2": astarteV1Alpha2,
@@ -105,7 +96,7 @@ func init() {
 
 	ClusterCmd.PersistentFlags().StringP("kubeconfig", "k", defaultKubeconfigPath,
 		"(optional) absolute path to the kubeconfig file")
-	viper.BindPFlag("kubeconfig", ClusterCmd.PersistentFlags().Lookup("kubeconfig"))
+	_ = viper.BindPFlag("kubeconfig", ClusterCmd.PersistentFlags().Lookup("kubeconfig"))
 
 	// Add flags which are common to all instances commands
 	InstancesCmd.PersistentFlags().StringP("namespace", "n", "astarte", "Namespace of the Astarte resource. Defaults to 'astarte'")

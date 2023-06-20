@@ -17,7 +17,6 @@ package realm
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/astarte-platform/astartectl/utils"
@@ -126,7 +125,7 @@ func triggersShowF(command *cobra.Command, args []string) error {
 }
 
 func triggersInstallF(command *cobra.Command, args []string) error {
-	triggerFile, err := ioutil.ReadFile(args[0])
+	triggerFile, err := os.ReadFile(args[0])
 	if err != nil {
 		return err
 	}

@@ -69,7 +69,7 @@ func clusterDestroyF(command *cobra.Command, args []string) error {
 
 	fmt.Printf("Will destroy Astarte instance %s in namespace %s.\n", resourceName, resourceNamespace)
 	fmt.Println("WARNING: This operation is NOT REVERSIBLE and ALL DATA WILL BE LOST!!!")
-	confirmation, err := utils.PromptChoice("To continue, please enter the exact name of the Astarte instance you are deleting:", "", true, y)
+	confirmation, _ := utils.PromptChoice("To continue, please enter the exact name of the Astarte instance you are deleting:", "", true, y)
 	if confirmation != resourceName {
 		fmt.Fprintln(os.Stderr, "Aborting.")
 		os.Exit(1)

@@ -13,6 +13,9 @@ func UnmarshalYAMLToJSON(content []byte) (map[string]interface{}, error) {
 		return nil, err
 	}
 	var jsonStruct map[string]interface{}
-	json.Unmarshal(j2, &jsonStruct)
+	err = json.Unmarshal(j2, &jsonStruct)
+	if err != nil {
+		return nil, err
+	}
 	return jsonStruct, nil
 }
