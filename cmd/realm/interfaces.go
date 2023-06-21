@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/astarte-platform/astarte-go/interfaces"
@@ -108,6 +109,18 @@ realm, depending on the realm's state.`,
 	RunE:    interfacesSyncF,
 }
 
+var interfacesSaveCmd = &cobra.Command{
+	Use:   "save [destination-path]",
+	Short: "Save interfaces to a local folder",
+	Long: `Save each interface in a realm to a local folder. Each interface will
+be saved in a dedicated file whose name will be in the form '<interface_name>_v<version>.json'.
+When no destination path is set, interfaces will be saved in the current working directory.
+This command does not support the --to-curl flag.`,
+	Example: `  astartectl realm-management interfaces save`,
+	Args:    cobra.MaximumNArgs(1),
+	RunE:    interfacesSaveF,
+}
+
 func init() {
 	RealmManagementCmd.AddCommand(interfacesCmd)
 
@@ -121,29 +134,16 @@ func init() {
 		interfacesDeleteCmd,
 		interfacesUpdateCmd,
 		interfacesSyncCmd,
+		interfacesSaveCmd,
 	)
 }
 
 func interfacesListF(command *cobra.Command, args []string) error {
-	listInterfacesCall, err := astarteAPIClient.ListInterfaces(realm)
+	realmInterfaces, err := listInterfaces(realm)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
-	utils.MaybeCurlAndExit(listInterfacesCall, astarteAPIClient)
-
-	listInterfacesRes, err := listInterfacesCall.Run(astarteAPIClient)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	rawListInterfaces, err := listInterfacesRes.Parse()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	realmInterfaces, _ := rawListInterfaces.([]string)
 
 	fmt.Println(realmInterfaces)
 	return nil
@@ -151,25 +151,12 @@ func interfacesListF(command *cobra.Command, args []string) error {
 
 func interfacesVersionsF(command *cobra.Command, args []string) error {
 	interfaceName := args[0]
-	interfaceVersionsCall, err := astarteAPIClient.ListInterfaceMajorVersions(realm, interfaceName)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 
-	utils.MaybeCurlAndExit(interfaceVersionsCall, astarteAPIClient)
-
-	interfaceVersionsRes, err := interfaceVersionsCall.Run(astarteAPIClient)
+	interfaceVersions, err := interfaceVersions(interfaceName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	rawInterfaceVersions, err := interfaceVersionsRes.Parse()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	interfaceVersions, _ := rawInterfaceVersions.([]int)
 
 	fmt.Println(interfaceVersions)
 	return nil
@@ -404,4 +391,110 @@ func updateInterface(realm string, interfaceName string, interfaceMajor int, new
 
 	_, _ = updateInterfaceRes.Parse()
 	return nil
+}
+
+func interfacesSaveF(command *cobra.Command, args []string) error {
+	if viper.GetBool("realmmanagement-to-curl") {
+		fmt.Println(`'interfaces save' does not support the --to-curl option. Use 'interfaces list' to get the interfaces in your realm, 'interfaces versions' to get their versions, and 'interfaces show' to get the content of an interface.`)
+		os.Exit(1)
+	}
+
+	var targetPath string
+	var err error
+	if len(args) == 0 {
+		targetPath, _ = filepath.Abs(".")
+	} else {
+		targetPath, err = filepath.Abs(args[0])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
+	// retrieve interfaces list
+	realmInterfaces, err := listInterfaces(realm)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	ifaceNameAndVersions := map[string][]int{}
+
+	// and the versions for each interface
+	for _, ifaceName := range realmInterfaces {
+		interfaceVersions, err := interfaceVersions(ifaceName)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		ifaceNameAndVersions[ifaceName] = interfaceVersions
+	}
+
+	for name, versions := range ifaceNameAndVersions {
+		for _, v := range versions {
+			interfaceDefinition, err := getInterfaceDefinition(realm, name, v)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+
+			respJSON, err := json.MarshalIndent(interfaceDefinition, "", "  ")
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+
+			filename := fmt.Sprintf("/%s/%s_v%d.json", targetPath, name, v)
+			outFile, err := os.Create(filename)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			defer outFile.Close()
+
+			if _, err := outFile.Write(respJSON); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+		}
+	}
+	return nil
+}
+
+func listInterfaces(realm string) ([]string, error) {
+	listInterfacesCall, err := astarteAPIClient.ListInterfaces(realm)
+	if err != nil {
+		return []string{}, err
+	}
+
+	utils.MaybeCurlAndExit(listInterfacesCall, astarteAPIClient)
+
+	listInterfacesRes, err := listInterfacesCall.Run(astarteAPIClient)
+	if err != nil {
+		return []string{}, err
+	}
+	rawListInterfaces, err := listInterfacesRes.Parse()
+	if err != nil {
+		return []string{}, err
+	}
+	return rawListInterfaces.([]string), nil
+}
+
+func interfaceVersions(interfaceName string) ([]int, error) {
+	interfaceVersionsCall, err := astarteAPIClient.ListInterfaceMajorVersions(realm, interfaceName)
+	if err != nil {
+		return []int{}, err
+	}
+
+	utils.MaybeCurlAndExit(interfaceVersionsCall, astarteAPIClient)
+
+	interfaceVersionsRes, err := interfaceVersionsCall.Run(astarteAPIClient)
+	if err != nil {
+		return []int{}, err
+	}
+	rawInterfaceVersions, err := interfaceVersionsRes.Parse()
+	if err != nil {
+		return []int{}, err
+	}
+	return rawInterfaceVersions.([]int), nil
 }
