@@ -206,9 +206,7 @@ func groupsDevicesListF(command *cobra.Command, args []string) error {
 
 		rawDevices, _ := deviceListRes.Parse()
 		devices, _ := rawDevices.([]string)
-		for _, v := range devices {
-			deviceList = append(deviceList, v)
-		}
+		deviceList = append(deviceList, devices...)
 	}
 
 	fmt.Println(deviceList)

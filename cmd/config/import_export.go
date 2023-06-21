@@ -17,7 +17,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/astarte-platform/astartectl/config"
@@ -75,7 +74,7 @@ func configImportF(command *cobra.Command, args []string) error {
 	}
 
 	// First of all, read the file content
-	contents, err := ioutil.ReadFile(args[0])
+	contents, err := os.ReadFile(args[0])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -129,7 +128,7 @@ func configExportF(command *cobra.Command, args []string) error {
 	if output == "" {
 		fmt.Println(string(jsonBytes))
 	} else {
-		if err := ioutil.WriteFile(output, jsonBytes, 0644); err != nil {
+		if err := os.WriteFile(output, jsonBytes, 0644); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

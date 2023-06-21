@@ -17,7 +17,6 @@ package realm
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -185,7 +184,7 @@ func interfacesShowF(command *cobra.Command, args []string) error {
 }
 
 func interfacesInstallF(command *cobra.Command, args []string) error {
-	interfaceFile, err := ioutil.ReadFile(args[0])
+	interfaceFile, err := os.ReadFile(args[0])
 	if err != nil {
 		return err
 	}
@@ -229,7 +228,7 @@ func interfacesDeleteF(command *cobra.Command, args []string) error {
 }
 
 func interfacesUpdateF(command *cobra.Command, args []string) error {
-	interfaceFile, err := ioutil.ReadFile(args[0])
+	interfaceFile, err := os.ReadFile(args[0])
 	if err != nil {
 		return err
 	}
@@ -260,7 +259,7 @@ Install or update your interfaces one by one with 'interfaces install' or 'inter
 	interfacesToUpdate := []interfaces.AstarteInterface{}
 
 	for _, f := range args {
-		interfaceFile, err := ioutil.ReadFile(f)
+		interfaceFile, err := os.ReadFile(f)
 		if err != nil {
 			return err
 		}

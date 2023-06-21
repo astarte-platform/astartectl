@@ -49,7 +49,7 @@ func PromptChoice(question string, defaultValue string, allowEmpty, nonInteracti
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Printf(question)
+		fmt.Print(question)
 		if defaultValue != "" {
 			fmt.Printf(" [%s]", defaultValue)
 		}

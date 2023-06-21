@@ -38,19 +38,19 @@ var astarteAPIClient *client.Client
 func init() {
 	PairingCmd.PersistentFlags().StringP("realm-key", "k", "",
 		"Path to realm private key used to generate JWT for authentication")
-	PairingCmd.MarkPersistentFlagFilename("realm-key")
+	_ = PairingCmd.MarkPersistentFlagFilename("realm-key")
 	PairingCmd.PersistentFlags().String("pairing-url", "",
 		"Pairing API base URL. Defaults to <astarte-url>/pairing.")
-	viper.BindPFlag("individual-urls.pairing", PairingCmd.PersistentFlags().Lookup("pairing-url"))
+	_ = viper.BindPFlag("individual-urls.pairing", PairingCmd.PersistentFlags().Lookup("pairing-url"))
 	PairingCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
 	PairingCmd.PersistentFlags().Bool("to-curl", false,
 		"When set, display a command-line equivalent instead of running the command.")
-	viper.BindPFlag("pairing-to-curl", PairingCmd.PersistentFlags().Lookup("to-curl"))
+	_ = viper.BindPFlag("pairing-to-curl", PairingCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
-	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
+	_ = viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
 	astarteAPIClient, err = utils.APICommandSetup(
 		map[astarteservices.AstarteService]string{astarteservices.Pairing: "individual-urls.pairing"}, "realm.key", "realm.key-file")
@@ -58,7 +58,7 @@ func pairingPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
+	_ = viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
 	realm = viper.GetString("realm.name")
 	if realm == "" {
 		return errors.New("realm is required")

@@ -41,22 +41,22 @@ var astarteAPIClient *client.Client
 func init() {
 	AppEngineCmd.PersistentFlags().StringP("realm-key", "k", "",
 		"Path to realm private key used to generate JWT for authentication")
-	AppEngineCmd.MarkPersistentFlagFilename("realm-key")
+	_ = AppEngineCmd.MarkPersistentFlagFilename("realm-key")
 	AppEngineCmd.PersistentFlags().String("appengine-url", "",
 		"AppEngine API base URL. Defaults to <astarte-url>/appengine.")
-	viper.BindPFlag("individual-urls.appengine", AppEngineCmd.PersistentFlags().Lookup("appengine-url"))
+	_ = viper.BindPFlag("individual-urls.appengine", AppEngineCmd.PersistentFlags().Lookup("appengine-url"))
 	AppEngineCmd.PersistentFlags().String("realm-management-url", "",
 		"Realm Management API base URL. Defaults to <astarte-url>/realmmanagement.")
 	AppEngineCmd.PersistentFlags().StringP("realm-name", "r", "",
 		"The name of the realm that will be queried")
 	AppEngineCmd.PersistentFlags().Bool("to-curl", false,
 		"When set, display a command-line equivalent instead of running the command.")
-	viper.BindPFlag("appengine-to-curl", AppEngineCmd.PersistentFlags().Lookup("to-curl"))
+	_ = viper.BindPFlag("appengine-to-curl", AppEngineCmd.PersistentFlags().Lookup("to-curl"))
 }
 
 func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 	appEngineURLOverride := viper.GetString("individual-urls.appengine")
-	viper.BindPFlag("individual-urls.realm-management", cmd.Flags().Lookup("realm-management-url"))
+	_ = viper.BindPFlag("individual-urls.realm-management", cmd.Flags().Lookup("realm-management-url"))
 	realmManagementURLOverride := viper.GetString("individual-urls.realm-management")
 	// Handle a special failure case, if realm-management is provided but appengine isn't
 	if appEngineURLOverride == "" && realmManagementURLOverride != "" {
@@ -68,14 +68,14 @@ func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 		astarteservices.RealmManagement: "individual-urls.realm-management",
 	}
 
-	viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
+	_ = viper.BindPFlag("realm.key-file", cmd.Flags().Lookup("realm-key"))
 	var err error
 	astarteAPIClient, err = utils.APICommandSetup(individualURLVariables, "realm.key", "realm.key-file")
 	if err != nil {
 		return err
 	}
 
-	viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
+	_ = viper.BindPFlag("realm.name", cmd.Flags().Lookup("realm-name"))
 	realm = viper.GetString("realm.name")
 	if realm == "" {
 		return errors.New("realm is required")

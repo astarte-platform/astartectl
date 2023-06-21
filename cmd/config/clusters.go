@@ -17,7 +17,6 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"text/tabwriter"
 
@@ -224,7 +223,7 @@ func clustersGetHousekeepingKeyF(command *cobra.Command, args []string) error {
 
 	if output != "" {
 		// Save to file
-		if err := ioutil.WriteFile(output, decoded, 0644); err != nil {
+		if err := os.WriteFile(output, decoded, 0644); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -348,7 +347,7 @@ func performClusterCreation(clusterName string, isUpdate bool, command *cobra.Co
 		}
 	}
 	if housekeepingKey != "" {
-		contents, err := ioutil.ReadFile(housekeepingKey)
+		contents, err := os.ReadFile(housekeepingKey)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)

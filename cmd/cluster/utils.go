@@ -15,7 +15,6 @@
 package cluster
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -37,52 +36,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/yaml"
 )
 
 func init() {
 	apiextensions.Install(scheme.Scheme)
-}
-
-func unmarshalYAML(res string, version string) runtime.Object {
-	content, err := getOperatorContent(res, version)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	decode := scheme.Codecs.UniversalDeserializer().Decode
-	obj, _, err := decode([]byte(content), nil, nil)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	return obj
-}
-
-func runtimeObjectToJSON(object runtime.Object) ([]byte, error) {
-	serializer := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
-	buffer := bytes.NewBuffer([]byte{})
-	err := serializer.Encode(object, buffer)
-	return buffer.Bytes(), err
-}
-
-func unmarshalOperatorContentYAMLToJSON(res string, version string) map[string]interface{} {
-	content, err := getOperatorContent(res, version)
-	jsonStruct, err := utils.UnmarshalYAMLToJSON([]byte(content))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error while parsing Kubernetes Resources. Your deployment might be incomplete.")
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	return jsonStruct
 }
 
 func listAstartes(namespace string) (map[string]*unstructured.UnstructuredList, error) {
@@ -139,16 +98,8 @@ func getHousekeepingKey(name, namespace string, checkFirst bool) ([]byte, error)
 	return secret.Data["private-key"], nil
 }
 
-func getAstarte(astarteCRD dynamic.NamespaceableResourceInterface, name string, namespace string) (*unstructured.Unstructured, error) {
-	return astarteCRD.Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-}
-
 func getAstarteOperator(operatorName, operatorNamespace string) (*appsv1.Deployment, error) {
 	return kubernetesClient.AppsV1().Deployments(operatorNamespace).Get(context.TODO(), operatorName, metav1.GetOptions{})
-}
-
-func getLastOperatorRelease() (string, error) {
-	return getLastReleaseForAstarteRepo("astarte-kubernetes-operator")
 }
 
 func getLastAstarteRelease() (string, error) {
@@ -181,30 +132,6 @@ func getLastReleaseForAstarteRepo(repo string) (string, error) {
 	sort.Sort(collection)
 
 	return collection[len(collection)-1].Original(), nil
-}
-
-func getOperatorContent(path string, tag string) (string, error) {
-	return getContentFromAstarteRepo("astarte-kubernetes-operator", path, tag)
-}
-
-func getContentFromAstarteRepo(repo string, path string, tag string) (string, error) {
-	ctx := context.Background()
-	client := github.NewClient(nil)
-
-	ref := "v" + tag
-	if strings.Contains(tag, "-snapshot") {
-		// In this case, we want to fetch from the latest release branch.
-		ref = "release-" + strings.Replace(tag, "-snapshot", "", -1)
-	}
-
-	content, _, _, err := client.Repositories.GetContents(ctx, "astarte-platform", repo,
-		path, &github.RepositoryContentGetOptions{Ref: ref})
-
-	if err != nil {
-		return "", nil
-	}
-
-	return content.GetContent()
 }
 
 func getClusterAllocatableResources() (int, int64, int64, error) {
@@ -259,86 +186,6 @@ func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, str
 
 func isUnstableVersion(version string) bool {
 	return strings.HasSuffix(version, "-snapshot") || version == "snapshot"
-}
-
-func getBaseVersionFromUnstable(version string) (string, error) {
-	if !isUnstableVersion(version) {
-		return "", fmt.Errorf("%v is not an unstable version", version)
-	}
-
-	if version == "snapshot" {
-		return "", errors.New("You are running on snapshot - I have no way of reconciling you from here")
-	}
-
-	// Get the base version, and add a .0.
-	baseVersion := strings.Replace(version, "-snapshot", "", 1)
-	baseVersion += ".0"
-
-	return baseVersion, nil
-}
-
-func promptForProfileExcluding(command *cobra.Command, astarteVersion *semver.Version, excluding []string) (string, deployment.AstarteClusterProfile, error) {
-	nodes, allocatableCPU, allocatableMemory, err := getClusterAllocatableResources()
-	if err != nil {
-		return "", deployment.AstarteClusterProfile{}, err
-	}
-
-	fmt.Printf("Cluster has %v nodes\n", nodes)
-	fmt.Printf("Allocatable CPU is %vm\n", allocatableCPU)
-	fmt.Printf("Allocatable Memory is %v\n", bytefmt.ByteSize(uint64(allocatableMemory)))
-	fmt.Println()
-
-	clusterRequirements := deployment.AstarteProfileRequirements{
-		CPUAllocation:    allocatableCPU,
-		MemoryAllocation: allocatableMemory,
-		MinNodes:         nodes,
-		MaxNodes:         nodes,
-	}
-	availableProfiles := deployment.GetProfilesForVersionAndRequirements(astarteVersion, clusterRequirements)
-
-	if len(availableProfiles) == 0 {
-		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("Unfortunately, your cluster allocatable resources do not allow for any profile to be deployed")
-	}
-
-	unexcludedAvailableProfiles := map[string]deployment.AstarteClusterProfile{}
-	// Handle exclusion list
-	for k, v := range availableProfiles {
-		exclude := false
-		for _, s := range excluding {
-			if s == k {
-				exclude = true
-				break
-			}
-		}
-		if exclude {
-			continue
-		}
-
-		unexcludedAvailableProfiles[k] = v
-	}
-
-	if len(unexcludedAvailableProfiles) == 0 {
-		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("There are no other profiles which can be deployed on this cluster besides %s", excluding)
-	}
-
-	fmt.Println("You can safely deploy the following Profiles on this cluster:")
-	for _, v := range unexcludedAvailableProfiles {
-		fmt.Printf("%s: %s\n", v.Name, v.Description)
-	}
-
-	fmt.Println()
-	profile := getStringFlagFromPromptOrDie(command, "profile", "Which profile would you like to deploy?", "", false)
-
-	if _, ok := unexcludedAvailableProfiles[profile]; !ok {
-		fmt.Fprintf(os.Stderr, "Profile %s does not exist! Aborting.\n", profile)
-		os.Exit(1)
-	}
-
-	return profile, availableProfiles[profile], nil
-}
-
-func promptForProfile(command *cobra.Command, astarteVersion *semver.Version) (string, deployment.AstarteClusterProfile, error) {
-	return promptForProfileExcluding(command, astarteVersion, []string{})
 }
 
 func getProfile(command *cobra.Command, astarteVersion *semver.Version, burst bool) (string, deployment.AstarteClusterProfile, error) {

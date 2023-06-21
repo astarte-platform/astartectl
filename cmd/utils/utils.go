@@ -53,14 +53,6 @@ The keypair will be saved in the current directory with names <realm_name>_priva
 	RunE:    genKeypairF,
 }
 
-var jwtTypesToClaim = map[string]string{
-	"housekeeping":     "a_ha",
-	"realm-management": "a_rma",
-	"pairing":          "a_pa",
-	"appengine":        "a_aea",
-	"channels":         "a_ch",
-}
-
 var jwtTypes = []string{"housekeeping", "realm-management", "pairing", "appengine", "channels"}
 
 var genJwtCmd = &cobra.Command{
@@ -127,7 +119,7 @@ Astarte specific token claims are:
 func init() {
 	genJwtCmd.Flags().StringP("private-key", "k", "", `Path to PEM encoded private key.
 Should be Housekeeping key to generate an housekeeping token, Realm key for everything else.`)
-	genJwtCmd.MarkFlagFilename("private-key")
+	_ = genJwtCmd.MarkFlagFilename("private-key")
 	genJwtCmd.Flags().StringSliceP("claims", "c", nil, `The list of claims to be added in the JWT. Defaults to all-access claims.
 You can specify the flag multiple times or separate the claims with a comma.`)
 	genJwtCmd.Flags().Int64P("expiry", "e", 28800, "Expiration time of the token in seconds. Defaults to 8h. 0 means the token will never expire.")
@@ -155,15 +147,6 @@ func genKeypairF(command *cobra.Command, args []string) error {
 	savePublicPEMKey(realm+"_public.pem", publicKey)
 
 	return nil
-}
-
-func validJwtType(t string) bool {
-	for _, validType := range jwtTypes {
-		if t == validType {
-			return true
-		}
-	}
-	return false
 }
 
 func genJwtF(command *cobra.Command, args []string) error {

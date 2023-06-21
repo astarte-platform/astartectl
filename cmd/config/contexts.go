@@ -17,7 +17,6 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"text/tabwriter"
 
@@ -224,7 +223,7 @@ func contextsGetRealmKeyF(command *cobra.Command, args []string) error {
 
 	if output != "" {
 		// Save to file
-		if err := ioutil.WriteFile(output, decoded, 0644); err != nil {
+		if err := os.WriteFile(output, decoded, 0644); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -322,7 +321,7 @@ func performContextCreation(contextName string, isUpdate bool, command *cobra.Co
 		context.Realm.Name = realmName
 	}
 	if realmPrivateKey != "" {
-		contents, err := ioutil.ReadFile(realmPrivateKey)
+		contents, err := os.ReadFile(realmPrivateKey)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
