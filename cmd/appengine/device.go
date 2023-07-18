@@ -1094,14 +1094,54 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 		// correctly, we should convert to int every payload for which an integer conversion does not lose
 		// in precision
 		for k, v := range aggrPayload {
+			// since we're dealing with object aggregation, we need to reconstruct
+			// the full path to get the mapping and its type
+			fullPath := fmt.Sprintf("%s/%s", interfacePath, k)
+			mapping, err := interfaces.InterfaceMappingFromPath(iface, fullPath)
+			if err != nil {
+				return err
+			}
+
+			// now we have a mapping type
+			payloadType = mapping.Type
+
 			switch val := v.(type) {
 			case float64:
 				if val == math.Trunc(val) {
 					aggrPayload[k] = int(val)
 				}
+			case string:
+				// in case the type is binaryblob, we want the value as []byte
+				if payloadType == interfaces.BinaryBlob {
+					decoded, err := base64.StdEncoding.DecodeString(string(val))
+					if err != nil {
+						fmt.Fprintln(os.Stderr, "Input string is not base64 encoded.", err)
+						os.Exit(1)
+					}
+					aggrPayload[k] = decoded
+				}
+			case []interface{}:
+				// in case the type is binaryblobarray, we want the values as [][]byte
+				if payloadType == interfaces.BinaryBlobArray {
+					acc := [][]byte{}
+					for _, item := range val {
+						theString, ok := item.(string)
+						if !ok {
+							fmt.Fprintf(os.Stderr, "Invalid item while handling endpoint %s\n", mapping.Endpoint)
+							os.Exit(1)
+						}
+						decoded, err := base64.StdEncoding.DecodeString(theString)
+						if err != nil {
+							fmt.Fprintln(os.Stderr, "Input string is not base64 encoded.")
+							os.Exit(1)
+						}
+
+						acc = append(acc, decoded)
+					}
+					aggrPayload[k] = acc
+				}
 			}
 		}
-
 		parsedPayloadData = aggrPayload
 	}
 
@@ -1284,8 +1324,8 @@ func parseSendDataPayload(payload string, mappingType interfaces.AstarteMappingT
 			return nil, err
 		}
 	case interfaces.BinaryBlob:
-		// We have to verify base64 decoding works
-		if _, err := base64.StdEncoding.DecodeString(payload); err != nil {
+		// if we're dealing with binaryblobs, we want to return a []byte
+		if ret, err = base64.StdEncoding.DecodeString(payload); err != nil {
 			return nil, err
 		}
 	case interfaces.DateTime:

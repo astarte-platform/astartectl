@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `realm-management interfaces {install,upgrade}` commands are run synchronously.
 - Use Go 1.20 for releases.
 
+### Fixed
+- `appengine send-data`: fix the encoding of binaryblob and binaryblobarray data.
+
 ## [22.11.02] - 23/05/2023
 ### Changed
 - `appengine device`: print a parametric command rather than a partial one with
