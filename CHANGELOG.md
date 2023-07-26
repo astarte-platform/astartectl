@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [22.11.03] - Unreleased
 ### Added
 - `cluster instance deploy`: Allow to deploy Astarte >= `v1.1.0`.
+
 ### Fixed
 - `appengine device send-data`: fix `--to-curl` representation to return a valid command.
+- `housekeeping realms create`: allow the creation of a realm when explicitly setting a topology
+  strategy.
 
 ## [22.11.02] - 23/05/2023
 ### Changed
