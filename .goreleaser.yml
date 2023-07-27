@@ -39,8 +39,8 @@ nfpms:
   # note that this is an array of nfpm configs
   - id: astartectl
     package_name: astartectl
-    name_template: >-
-      {{ .ProjectName }}_
+    file_name_template: >-
+      {{ .PackageName }}_
       {{ .Tag}}_
       {{- if eq .Os "darwin" }}macOS_
       {{- else }}{{ .Os }}_
