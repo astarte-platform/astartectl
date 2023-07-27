@@ -8,21 +8,23 @@ on:
 jobs:
   release:
     name: Release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-    - name: Set up Go 1.18
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.18.x
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
+
+    - name: Set up Go 1.18
+      uses: actions/setup-go@v4
+      with:
+        go-version: 1.18.x
+
     - name: Run GoReleaser
-      uses: goreleaser/goreleaser-action@v2
+      uses: goreleaser/goreleaser-action@v4
       with:
         distribution: goreleaser
         version: latest
-        args: release --rm-dist
+        args: release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
