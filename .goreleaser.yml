@@ -22,7 +22,7 @@ archives:
 
     name_template: >-
       {{ .ProjectName }}_
-      {{ .Tag}}_
+      {{ trimprefix .Version "v" }}_
       {{- if eq .Os "darwin" }}macOS
       {{- else }}{{ .Os }}
       {{ end }}_
@@ -42,7 +42,7 @@ nfpms:
     package_name: astartectl
     file_name_template: >-
       {{ .PackageName }}_
-      {{ .Tag}}_
+      {{ trimprefix .Version "v" }}_
       {{- if eq .Os "darwin" }}macOS
       {{- else }}{{ .Os }}
       {{ end }}_
