@@ -20,10 +20,15 @@ archives:
     files:
     - none*
 
-    replacements:
-      amd64: x86_64
-      386: i386
-      darwin: macOS
+    name_template: >-
+      {{ .ProjectName }}_
+      {{ .Tag}}_
+      {{- if eq .Os "darwin" }}macOS_
+      {{- else }}{{ .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}
+      {{ end }}
 
     # Deliver as a zip file on Windows
     format_overrides:
@@ -34,16 +39,17 @@ nfpms:
   # note that this is an array of nfpm configs
   - id: astartectl
     package_name: astartectl
+    name_template: >-
+      {{ .ProjectName }}_
+      {{ .Tag}}_
+      {{- if eq .Os "darwin" }}macOS_
+      {{- else }}{{ .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}
+      {{ end }}
 
-    # Replacements for GOOS and GOARCH in the package name.
-    # Keys should be valid GOOSs or GOARCHs.
-    # Values are the respective replacements.
-    # Default is empty.
-    replacements:
-      amd64: x86_64
-      386: i386
-
-    vendor: Ispirata
+    vendor: SECO Mind
     # Your app's homepage.
     # Default is empty.
     homepage: https://github.com/astarte-platform/astartectl
