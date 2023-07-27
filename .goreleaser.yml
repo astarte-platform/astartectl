@@ -23,8 +23,9 @@ archives:
     name_template: >-
       {{ .ProjectName }}_
       {{ .Tag}}_
-      {{- if eq .Os "darwin" }}macOS_
-      {{- else }}{{ .Os }}_
+      {{- if eq .Os "darwin" }}macOS
+      {{- else }}{{ .Os }}
+      {{ end }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}
@@ -42,8 +43,9 @@ nfpms:
     file_name_template: >-
       {{ .PackageName }}_
       {{ .Tag}}_
-      {{- if eq .Os "darwin" }}macOS_
-      {{- else }}{{ .Os }}_
+      {{- if eq .Os "darwin" }}macOS
+      {{- else }}{{ .Os }}
+      {{ end }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}
