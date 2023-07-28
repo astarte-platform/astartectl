@@ -21,15 +21,7 @@ archives:
     - none*
 
     name_template: >-
-      {{ .ProjectName }}_
-      {{ trimprefix .Version "v" }}_
-      {{- if eq .Os "darwin" }}macOS
-      {{- else }}{{ .Os }}
-      {{ end }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}
-      {{ end }}
+      {{ .ProjectName }}_{{ trimprefix .Version "v" }}_{{- if eq .Os "darwin" }}macOS{{- else }}{{ .Os }}{{ end }}_{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "386" }}i386{{- else }}{{ .Arch }}{{ end }}
 
     # Deliver as a zip file on Windows
     format_overrides:
@@ -41,15 +33,7 @@ nfpms:
   - id: astartectl
     package_name: astartectl
     file_name_template: >-
-      {{ .PackageName }}_
-      {{ trimprefix .Version "v" }}_
-      {{- if eq .Os "darwin" }}macOS
-      {{- else }}{{ .Os }}
-      {{ end }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}
-      {{ end }}
+      {{ .PackageName }}_{{ trimprefix .Version "v" }}_{{- if eq .Os "darwin" }}macOS{{- else }}{{ .Os }}{{ end }}_{{- if eq .Arch "amd64" }}x86_64{{- else if eq .Arch "386" }}i386{{- else }}{{ .Arch }}{{ end }}
 
     vendor: SECO Mind
     # Your app's homepage.
