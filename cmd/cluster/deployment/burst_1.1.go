@@ -34,11 +34,7 @@ func init() {
 	astarteBurstProfile11.Compatibility.MaxAstarteVersion, _ = semver.NewVersion("1.1.99")
 	astarteBurstProfile11.Compatibility.MinAstarteVersion, _ = semver.NewVersion("1.1.0")
 
-	// Let components burst only
-	astarteBurstProfile11.DefaultSpec.Components.Resources.Requests.CPU = "0m"
-	astarteBurstProfile11.DefaultSpec.Components.Resources.Requests.Memory = "2048M"
-	astarteBurstProfile11.DefaultSpec.Components.Resources.Limits.CPU = "0m"
-	astarteBurstProfile11.DefaultSpec.Components.Resources.Limits.Memory = "3072M"
+	// Do not set resources, this will let components burst
 
 	// Queue size to a minimum, decent amount
 	astarteBurstProfile11.DefaultSpec.Components.DataUpdaterPlant.DataQueueCount = 128
