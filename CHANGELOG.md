@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - `appengine send-data`: fix the encoding of binaryblob and binaryblobarray data.
 
+## [22.11.04] - 2023-09-22
+### Fixed
+- `cluster instance deploy`: Allow real burst instances to be deployed for Astarte >= `v1.1.0`.
+
+## [22.11.03] - 2023-07-27
+### Added
+- `cluster instance deploy`: Allow to deploy Astarte >= `v1.1.0`.
+
+### Fixed
+- `appengine device send-data`: fix `--to-curl` representation to return a valid command.
+- `housekeeping realms create`: allow the creation of a realm when explicitly setting a topology
+  strategy.
+
 ## [22.11.02] - 23/05/2023
 ### Changed
 - `appengine device`: print a parametric command rather than a partial one with
