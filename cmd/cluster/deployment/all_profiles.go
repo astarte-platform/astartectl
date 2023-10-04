@@ -1,4 +1,4 @@
-// Copyright © 2019 Ispirata Srl
+// Copyright © 2019 - 23 SECO Mind Srl
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,5 +25,8 @@ func GetAllBuiltinAstarteClusterProfiles() []AstarteClusterProfile {
 		// 1.0 profiles (good for 1.0 for now)
 		astarteBasicProfile10,
 		astarteBurstProfile10,
+		// 1.1 profiles
+		astarteBasicProfile11,
+		astarteBurstProfile11,
 	}
 }
