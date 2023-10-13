@@ -15,7 +15,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -75,7 +74,7 @@ func SaveContextConfiguration(configDir, contextName string, configuration Conte
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(configPath, contents, 0644)
+	return os.WriteFile(configPath, contents, 0644)
 }
 
 // DeleteContextConfiguration deletes a context configuration in the config directory. It will return

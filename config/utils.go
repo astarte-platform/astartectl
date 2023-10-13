@@ -16,7 +16,6 @@ package config
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -162,7 +161,7 @@ func loadYamlFile(dirName, fileName string) ([]byte, error) {
 	}
 
 	// Read file contents and return it
-	return ioutil.ReadFile(yamlFileName)
+	return os.ReadFile(yamlFileName)
 }
 
 func ensureConfigDirectoryStructure(configDir string) error {

@@ -1,4 +1,4 @@
-// Copyright © 2019 Ispirata Srl
+// Copyright © 2019-2023 SECO Mind Srl
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ To configure your bash shell to load completions for each session add to your .b
 source ~/bash_completion.d/astartectl
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd.GenBashCompletion(os.Stdout)
+		_ = rootCmd.GenBashCompletion(os.Stdout)
 	},
 }
 
@@ -54,13 +54,27 @@ astartectl completion zsh > ~/.zsh/completion/_astartectl
 autoload -U compinit && compinit
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd.GenZshCompletion(os.Stdout)
+		_ = rootCmd.GenZshCompletion(os.Stdout)
+	},
+}
+
+var completionFishCmd = &cobra.Command{
+	Use:   "fish",
+	Short: "Generate fish completions",
+	Long: `
+To setup your completions, run
+
+astartectl completion fish > ~/.config/fish/completions/astartectl.fish
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		_ = rootCmd.GenFishCompletion(os.Stdout, true)
 	},
 }
 
 func init() {
 	completionCmd.AddCommand(completionBashCmd)
 	completionCmd.AddCommand(completionZshCmd)
+	completionCmd.AddCommand(completionFishCmd)
 
 	rootCmd.AddCommand(completionCmd)
 }

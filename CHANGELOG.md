@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [23.5.0] - 2023-10-04
+### Added
+- Add fish shell completions generator command
+- `realm-management interfaces save` allows to save interfaces to disk.
+
+### Changed
+- `realm-management interfaces {install,upgrade}` commands are run synchronously.
+- Use Go 1.20 for releases.
+
+### Fixed
+- `appengine send-data`: fix the encoding of binaryblob and binaryblobarray data.
+
+## [22.11.04] - 2023-09-22
+### Fixed
+- `cluster instance deploy`: Allow real burst instances to be deployed for Astarte >= `v1.1.0`.
+
+## [22.11.03] - 2023-07-27
+### Added
+- `cluster instance deploy`: Allow to deploy Astarte >= `v1.1.0`.
+
+### Fixed
+- `appengine device send-data`: fix `--to-curl` representation to return a valid command.
+- `housekeeping realms create`: allow the creation of a realm when explicitly setting a topology
+  strategy.
+
 ## [22.11.02] - 23/05/2023
 ### Changed
 - `appengine device`: print a parametric command rather than a partial one with

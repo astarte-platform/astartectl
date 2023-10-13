@@ -15,7 +15,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -92,7 +91,7 @@ func SaveClusterConfiguration(configDir, clusterName string, configuration Clust
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(configPath, contents, 0644)
+	return os.WriteFile(configPath, contents, 0644)
 }
 
 // DeleteClusterConfiguration deletes a cluster configuration in the config directory. It will return
