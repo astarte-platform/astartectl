@@ -109,43 +109,15 @@ func init() {
 }
 
 func triggersListF(command *cobra.Command, args []string) error {
-	realmTriggersCall, err := astarteAPIClient.ListTriggers(realm)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	utils.MaybeCurlAndExit(realmTriggersCall, astarteAPIClient)
-
-	realmTriggersRes, err := realmTriggersCall.Run(astarteAPIClient)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	rawRealmTriggers, _ := realmTriggersRes.Parse()
-	realmTriggers, _ := rawRealmTriggers.([]string)
+	realmTriggers, _ := listTriggers(realm)
 	fmt.Println(realmTriggers)
 	return nil
 }
 
 func triggersShowF(command *cobra.Command, args []string) error {
+
 	triggerName := args[0]
-
-	getTriggerCall, err := astarteAPIClient.GetTrigger(realm, triggerName)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	utils.MaybeCurlAndExit(getTriggerCall, astarteAPIClient)
-
-	getTriggerRes, err := getTriggerCall.Run(astarteAPIClient)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	triggerDefinition, _ := getTriggerRes.Parse()
+	triggerDefinition, _ := getTriggerDefinition(realm, triggerName)
 	respJSON, _ := json.MarshalIndent(triggerDefinition, "", "  ")
 	fmt.Println(string(respJSON))
 
@@ -164,21 +136,7 @@ func triggersInstallF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	installTriggerCall, err := astarteAPIClient.InstallTrigger(realm, triggerBody)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	utils.MaybeCurlAndExit(installTriggerCall, astarteAPIClient)
-
-	installTriggerRes, err := installTriggerCall.Run(astarteAPIClient)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	_, _ = installTriggerRes.Parse()
+	_ = installTrigger(realm, triggerBody)
 
 	fmt.Println("ok")
 	return nil
@@ -208,7 +166,7 @@ func triggersDeleteF(command *cobra.Command, args []string) error {
 
 func triggersSaveF(command *cobra.Command, args []string) error {
 	if viper.GetBool("realmmanagement-to-curl") {
-		fmt.Println(`'triggers save' does not support the --to-curl option. Use 'triggers list' to get the triggers in your realm, 'triggers versions' to get their versions, and 'triggers show' to get the content of an interface.`)
+		fmt.Println(`'triggers save' does not support the --to-curl option. Use 'triggers list' to get the triggers in your realm, 'triggers versions' to get their versions, and 'triggers show' to get the content of a trigger.`)
 		os.Exit(1)
 	}
 
@@ -264,7 +222,7 @@ func triggersSaveF(command *cobra.Command, args []string) error {
 
 func triggersSyncF(command *cobra.Command, args []string) error {
 	if viper.GetBool("to-curl") {
-		fmt.Println(`'triggers sync' does not support the --to-curl option. Install or update your triggers one by one with 'triggers install' or 'interface update'.`)
+		fmt.Println(`'triggers sync' does not support the --to-curl option. Install your triggers one by one with 'triggers install'.`)
 		os.Exit(1)
 	}
 
@@ -283,7 +241,7 @@ func triggersSyncF(command *cobra.Command, args []string) error {
 		}
 
 		if _, err := getTriggerDefinition(realm, astarteTrigger["name"].(string)); err != nil {
-			// The interface does not exist
+			// The trigger does not exist
 			triggerToInstall = append(triggerToInstall, astarteTrigger)
 		} else {
 			triggerToUpdate = append(triggerToUpdate, astarteTrigger)
@@ -295,9 +253,8 @@ func triggersSyncF(command *cobra.Command, args []string) error {
 			return nil
 		}
 
-		// Notify the user about what we're about to do
 	}
-
+	// Notify the user about what we're about to do
 	list := []string{}
 
 	for _, v := range triggerToInstall {
@@ -379,8 +336,8 @@ func installTrigger(realm string, trigger map[string]interface{}) error {
 		return err
 	}
 
-	// When we're here in the context of `interfaces sync`, the to-curl flag
-	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// When we're here in the context of `triggers sync`, the to-curl flag
+	// is always false (`triggers sync` has no `--to-curl` flag)
 	// and thus the call will never exit unexpectedly
 	utils.MaybeCurlAndExit(installTriggerCall, astarteAPIClient)
 
@@ -411,8 +368,8 @@ func updateTrigger(realm string, triggername string, newtrig map[string]interfac
 		return err
 	}
 
-	// When we're here in the context of `interfaces sync`, the to-curl flag
-	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// When we're here in the context of `triggers sync`, the to-curl flag
+	// is always false (`triggers sync` has no `--to-curl` flag)
 	// and thus the call will never exit unexpectedly
 	utils.MaybeCurlAndExit(updateTriggerCall, astarteAPIClient)
 
