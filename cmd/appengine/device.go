@@ -124,6 +124,7 @@ var devicesSendDataCmd = &cobra.Command{
 	Use:   "send-data <device_id_or_alias> <interface_name> <path> <data>",
 	Short: "Sends data to a given interface path",
 	Long: `Sends data to a given interface path. This works both for datastream with individual and properties.
+Send nil as data to unset property (if enabled)
 
 When dealing with an aggregate, non parametric interface, path must still be provided, adhering to the
 interface structure. In that case, <data> should be a JSON string which contains a key/value dictionary,
@@ -1079,14 +1080,22 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	}
 
 	var parsedPayloadData interface{}
+
 	if err := payloadType.IsValid(); err == nil {
-		if parsedPayloadData, err = parseSendDataPayload(payloadData, payloadType); err != nil {
-			return err
+
+		if payloadData == "nil" {
+			parsedPayloadData = nil
+		} else {
+			if parsedPayloadData, err = parseSendDataPayload(payloadData, payloadType); err != nil {
+				return err
+			}
 		}
+
 	} else {
 		// We have to treat it as an aggregate.
 		aggrPayload := map[string]interface{}{}
 		if err := json.Unmarshal([]byte(payloadData), &aggrPayload); err != nil {
+			fmt.Println("A")
 			return err
 		}
 
@@ -1099,6 +1108,7 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 			fullPath := fmt.Sprintf("%s/%s", interfacePath, k)
 			mapping, err := interfaces.InterfaceMappingFromPath(iface, fullPath)
 			if err != nil {
+				fmt.Println("B")
 				return err
 			}
 
@@ -1148,8 +1158,15 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	var sendDataCall client.AstarteRequest
 
 	if !skipRealmManagementChecks {
-		// We can delegate the entirety of this to astarte-go
-		sendDataCall, err = astarteAPIClient.SendData(realm, deviceID, deviceIdentifierType, iface, interfacePath, parsedPayloadData)
+
+		if parsedPayloadData == nil {
+			// We can delegate the entirety of this to astarte-go
+			sendDataCall, err = astarteAPIClient.UnsetProperty(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath)
+		} else {
+			// We can delegate the entirety of this to astarte-go
+			sendDataCall, err = astarteAPIClient.SendData(realm, deviceID, deviceIdentifierType, iface, interfacePath, parsedPayloadData)
+		}
+
 	} else {
 		// Don't risk it. Use raw functions and trust the server to fail, in case.
 		switch interfaceTypeString {
@@ -1241,7 +1258,7 @@ func getProtoInterface(deviceID string, deviceIdentifierType client.DeviceIdenti
 		// Just a trick to trick the parser into doing the right thing.
 		if isParametricInterface {
 			iface.Mappings = []interfaces.AstarteInterfaceMapping{
-				interfaces.AstarteInterfaceMapping{
+				{
 					Endpoint: "/it/%{is}/parametric",
 				},
 			}
