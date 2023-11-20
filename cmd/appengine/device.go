@@ -1241,7 +1241,7 @@ func getProtoInterface(deviceID string, deviceIdentifierType client.DeviceIdenti
 		// Just a trick to trick the parser into doing the right thing.
 		if isParametricInterface {
 			iface.Mappings = []interfaces.AstarteInterfaceMapping{
-				interfaces.AstarteInterfaceMapping{
+				{
 					Endpoint: "/it/%{is}/parametric",
 				},
 			}
