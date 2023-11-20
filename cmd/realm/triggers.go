@@ -17,12 +17,12 @@ package realm
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-
+	"github.com/astarte-platform/astarte-go/triggers"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
+	"path/filepath"
 )
 
 // triggersCmd represents the triggers command
@@ -72,10 +72,10 @@ var triggersDeleteCmd = &cobra.Command{
 }
 
 var triggersSaveCmd = &cobra.Command{
-	Use:   "save [destination-path]",
+	Use:   "save <destination-path>",
 	Short: "Save triggers to a local folder",
 	Long: `Save each trigger in a realm to a local folder. Each trigger will
-be saved in a dedicated file whose name will be in the form '<trigger_name>_v<version>.json'.
+be saved in a dedicated file whose name will be in the form '<trigger_name>.json'.
 When no destination path is set, triggers will be saved in the current working directory.
 This command does not support the --to-curl flag.`,
 	Example: `  astartectl realm-management triggers save`,
@@ -84,11 +84,11 @@ This command does not support the --to-curl flag.`,
 }
 
 var triggersSyncCmd = &cobra.Command{
-	Use:   "sync <interface_files> [...]",
+	Use:   "sync <trigger_files> [...]",
 	Short: "Synchronize triggers",
 	Long: `Synchronize triggers in the realm with the given files.
 All given files will be parsed, and only new triggers will be installed in the
-realm, depending on the realm's state. In order to force triggers update, use --force flag`,
+realm, depending on the realm's state. In order to force triggers update, use --force flag.`,
 	Example: `  astartectl realm-management triggers sync triggers/*.json`,
 	Args:    cobra.MinimumNArgs(1),
 	RunE:    triggersSyncF,
@@ -115,12 +115,10 @@ func triggersListF(command *cobra.Command, args []string) error {
 }
 
 func triggersShowF(command *cobra.Command, args []string) error {
-
 	triggerName := args[0]
 	triggerDefinition, _ := getTriggerDefinition(realm, triggerName)
 	respJSON, _ := json.MarshalIndent(triggerDefinition, "", "  ")
 	fmt.Println(string(respJSON))
-
 	return nil
 }
 
@@ -130,7 +128,7 @@ func triggersInstallF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	var triggerBody map[string]interface{}
+	var triggerBody triggers.AstarteTrigger
 	err = json.Unmarshal(triggerFile, &triggerBody)
 	if err != nil {
 		return err
@@ -197,7 +195,8 @@ func triggersSaveF(command *cobra.Command, args []string) error {
 			os.Exit(1)
 		}
 
-		respJSON, err := json.MarshalIndent(triggerDefinition, "", "  ")
+		respJSON, err := json.MarshalIndent(*triggerDefinition, "", "  ")
+
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -226,28 +225,33 @@ func triggersSyncF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	triggerToInstall := []map[string]interface{}{}
-	triggerToUpdate := []map[string]interface{}{}
+	triggersToInstall := []triggers.AstarteTrigger{}
+	triggersToUpdate := []triggers.AstarteTrigger{}
+	invalidTriggers := []string{}
 
 	for _, f := range args {
 		triggerFile, err := os.ReadFile(f)
 		if err != nil {
 			return err
 		}
+		if !validateTrigger(f) {
+			invalidTriggers = append(invalidTriggers, f)
+			continue
+		}
 
-		var astarteTrigger map[string]interface{}
+		var astarteTrigger triggers.AstarteTrigger
 		if err = json.Unmarshal(triggerFile, &astarteTrigger); err != nil {
 			return err
 		}
 
-		if _, err := getTriggerDefinition(realm, astarteTrigger["name"].(string)); err != nil {
+		if _, err := getTriggerDefinition(realm, astarteTrigger.Name); err != nil {
 			// The trigger does not exist
-			triggerToInstall = append(triggerToInstall, astarteTrigger)
+			triggersToInstall = append(triggersToInstall, astarteTrigger)
 		} else {
-			triggerToUpdate = append(triggerToUpdate, astarteTrigger)
+			triggersToUpdate = append(triggersToUpdate, astarteTrigger)
 		}
 
-		if len(triggerToInstall) == 0 && len(triggerToUpdate) == 0 {
+		if len(triggersToInstall) == 0 && len(triggersToUpdate) == 0 {
 			// All good in the hood
 			fmt.Println("Your realm is in sync with the provided triggers files")
 			return nil
@@ -257,80 +261,63 @@ func triggersSyncF(command *cobra.Command, args []string) error {
 	// Notify the user about what we're about to do
 	list := []string{}
 
-	for _, v := range triggerToInstall {
-		list = append(list, v["name"].(string))
+	for _, trigger := range triggersToInstall {
+		list = append(list, trigger.Name)
 	}
 
-	list_existing := []string{}
+	listExisting := []string{}
 
-	for _, v := range triggerToUpdate {
-		list_existing = append(list_existing, v["name"].(string))
+	for _, trigger := range triggersToUpdate {
+		listExisting = append(listExisting, trigger.Name)
 	}
 
-	// Start syncing.
+	fmt.Printf("The following triggers are invalid and thus will not be processed: %+q \n", invalidTriggers)
 
 	//install new triggers
-	if len(triggerToInstall) > 0 {
+	if len(triggersToInstall) > 0 {
 
-		fmt.Printf("\n")
 		fmt.Printf("The following new triggers will be installed: %+q \n", list)
-		fmt.Printf("\n")
 
 		if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
 			fmt.Printf("aborting")
 			return nil
 		}
 
-		for _, v := range triggerToInstall {
-			if err := installTrigger(realm, v); err != nil {
-				fmt.Fprintf(os.Stderr, "Could not install trigger %s: %s\n", v["name"].(string), err)
+		for _, trigger := range triggersToInstall {
+			if err := installTrigger(realm, trigger); err != nil {
+				fmt.Fprintf(os.Stderr, "Could not install trigger %s: %s\n", trigger.Name, err)
 			} else {
-				fmt.Printf("trigger %s installed successfully\n", v["name"].(string))
+				fmt.Printf("trigger %s installed successfully\n", trigger.Name)
 			}
 		}
 
-		fmt.Printf("\n")
-
 	}
-
-	if len(triggerToUpdate) > 0 {
-
+	if len(triggersToUpdate) > 0 {
 		y, err := command.Flags().GetBool("force")
 		if err != nil {
 			return err
 		}
-
 		if y {
-			fmt.Printf("The following triggers already exists and WILL be DELETED and RECREATED: %+q \n", list_existing)
-			fmt.Printf("\n")
+			fmt.Printf("The following triggers already exists and WILL be DELETED and RECREATED: %+q \n", listExisting)
 			if ok, err := utils.AskForConfirmation("Do you want to continue?"); !ok || err != nil {
 				fmt.Printf("aborting")
 				return nil
 			}
-
-			for _, v := range triggerToUpdate {
-				if err := updateTrigger(realm, v["name"].(string), v); err != nil {
-					fmt.Fprintf(os.Stderr, "Could not update trigger %s: %s\n", v["name"].(string), err)
+			for _, trigger := range triggersToUpdate {
+				if err := updateTrigger(realm, trigger.Name, trigger); err != nil {
+					fmt.Fprintf(os.Stderr, "Could not update trigger %s: %s\n", trigger.Name, err)
 				} else {
-					fmt.Printf("trigger %s updated successfully\n", v["name"].(string))
+					fmt.Printf("trigger %s updated successfully\n", trigger.Name)
 				}
 			}
-			fmt.Printf("\n")
-			fmt.Printf("\n")
-
 		} else {
-
-			// Start syncing.
-			fmt.Printf("The following triggers already exists and WILL NOT be updated: %+q \n", list_existing)
-			fmt.Printf("\n")
-
+			fmt.Printf("The following triggers already exists and WILL NOT be updated: %+q \n", listExisting)
 		}
 	}
-
 	return nil
 }
 
-func installTrigger(realm string, trigger map[string]interface{}) error {
+func installTrigger(realm string, trigger triggers.AstarteTrigger) error {
 	installTriggerCall, err := astarteAPIClient.InstallTrigger(realm, trigger)
 	if err != nil {
 		return err
@@ -350,8 +337,7 @@ func installTrigger(realm string, trigger map[string]interface{}) error {
 	return nil
 }
 
-func updateTrigger(realm string, triggername string, newtrig map[string]interface{}) error {
-
+func updateTrigger(realm string, triggername string, newtrig triggers.AstarteTrigger) error {
 	deleteTriggercall, err := astarteAPIClient.DeleteTrigger(realm, triggername)
 	if err != nil {
 		return err
@@ -401,14 +387,14 @@ func listTriggers(realm string) ([]string, error) {
 	return rawlistTriggers.([]string), nil
 }
 
-func getTriggerDefinition(realm, triggerName string) (map[string]interface{}, error) {
+func getTriggerDefinition(realm, triggerName string) (*triggers.AstarteTrigger, error) {
 	getTriggerCall, err := astarteAPIClient.GetTrigger(realm, triggerName)
 	if err != nil {
 		return nil, err
 	}
 
-	// When we're here in the context of `interfaces sync`, the to-curl flag
-	// is always false (`interfaces sync` has no `--to-curl` flag)
+	// When we're here in the context of `trigger sync`, the to-curl flag
+	// is always false (`trigger sync` has no `--to-curl` flag)
 	// and thus the call will never exit unexpectedly
 	utils.MaybeCurlAndExit(getTriggerCall, astarteAPIClient)
 
@@ -420,6 +406,22 @@ func getTriggerDefinition(realm, triggerName string) (map[string]interface{}, er
 	if err != nil {
 		return nil, err
 	}
-	triggerDefinition, _ := rawTRigger.(map[string]interface{})
-	return triggerDefinition, nil
+
+	var triggerDefinition triggers.AstarteTrigger
+
+	UnmarshalledTrigger, _ := json.Marshal(rawTRigger.(map[string]interface{}))
+
+	if err := json.Unmarshal(UnmarshalledTrigger, &triggerDefinition); err != nil {
+		return nil, err
+	}
+
+	return &triggerDefinition, nil
+}
+
+func validateTrigger(path string) bool {
+	if _, err := triggers.ParseTriggerFrom(path); err != nil {
+		return false
+	} else {
+		return true
+	}
 }
