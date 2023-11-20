@@ -5,6 +5,7 @@ astartectl_*
 .gobuild
 dist/
 /result
+.idea/
 
 # Direnv
 .direnv/
