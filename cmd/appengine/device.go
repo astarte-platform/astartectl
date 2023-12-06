@@ -122,8 +122,8 @@ this is automatically determined - however, you can tweak this behavior by using
 
 var devicesSendDataCmd = &cobra.Command{
 	Use:   "send-data <device_id_or_alias> <interface_name> <path> <data>",
-	Short: "Sends data to a given interface path",
-	Long: `Sends data to a given interface path. This works both for datastream with individual and properties.
+	Short: "(deprecated) Sends data to a given interface path",
+	Long: `(deprecated) Sends data to a given interface path. This works both for datastream with individual and properties.
 
 When dealing with an aggregate, non parametric interface, path must still be provided, adhering to the
 interface structure. In that case, <data> should be a JSON string which contains a key/value dictionary,
@@ -136,6 +136,47 @@ this is automatically determined - however, you can tweak this behavior by using
 	Example: `  astartectl appengine devices send-data 2TBn-jNESuuHamE2Zo1anA com.my.interface /my/path "value"`,
 	Args:    cobra.ExactArgs(4),
 	RunE:    devicesSendDataF,
+}
+var devicesPublishDatastreamCmd = &cobra.Command{
+	Use:   "publish-datastream <device_id_or_alias> <interface_name> <path> <data>",
+	Short: "Publish datastream to a given interface path",
+	Long: `Publish datastream to a given interface path. This works only for datastreams.
+
+When dealing with an aggregate, non parametric interface, path must still be provided, adhering to the
+interface structure. In that case, <data> should be a JSON string which contains a key/value dictionary,
+with key bearing the name (without trailing slashes) of the tip of the endpoint, and value being the
+value of that specific endpoint, correctly typed.
+
+<device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
+this is automatically determined - however, you can tweak this behavior by using --force-device-id or
+--force-id-type={device-id,alias}.`,
+	Example: `  astartectl appengine devices publish-datastream 2TBn-jNESuuHamE2Zo1anA com.my.interface /my/path "value"`,
+	Args:    cobra.ExactArgs(4),
+	RunE:    devicesPublishDataStreamF,
+}
+var devicesSetPropertyCmd = &cobra.Command{
+	Use:   "set-property <device_id_or_alias> <interface_name> <path> <data>",
+	Short: "Set property on a given interface path",
+	Long: `Set property on a given interface path. This works only for properties.
+
+<device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
+this is automatically determined - however, you can tweak this behavior by using --force-device-id or
+--force-id-type={device-id,alias}.`,
+	Example: `  astartectl appengine devices set-property 2TBn-jNESuuHamE2Zo1anA com.my.interface /my/path "value"`,
+	Args:    cobra.ExactArgs(4),
+	RunE:    devicesSetPropertyF,
+}
+var devicesUnSetPropertyCmd = &cobra.Command{
+	Use:   "unset-property <device_id_or_alias> <interface_name> <path>",
+	Short: "Unset property on a given interface path",
+	Long: `Unset property on a given interface path. This works only for properties.
+
+<device_id_or_alias> can be either a valid Astarte Device ID, or a Device Alias. In most cases,
+this is automatically determined - however, you can tweak this behavior by using --force-device-id or
+--force-id-type={device-id,alias}.`,
+	Example: `  astartectl appengine devices unset-property 2TBn-jNESuuHamE2Zo1anA com.my.interface /my/path `,
+	Args:    cobra.ExactArgs(3),
+	RunE:    devicesUnSetPropertyF,
 }
 
 var supportedOutputTypes = []string{"default", "csv", "json"}
@@ -202,6 +243,19 @@ connected: allows filtering devices that are currently connected/disconnected. I
 	devicesSendDataCmd.Flags().String("interface-type", "", "When set, if Realm Management checks are disabled, it forces resolution of the interface as the specified type. Valid options are: properties, individual-datastream, aggregate-datastream, individual-parametric-datastream, aggregate-parametric-datastream.")
 	devicesSendDataCmd.Flags().String("payload-type", "", "When set, forces the conversion of the given payload into the given type. Valid values are any value in Astarte interfaces.")
 
+	devicesPublishDatastreamCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	devicesPublishDatastreamCmd.Flags().Bool("skip-realm-management-checks", false, "When set, it skips any consistency checks on Realm Management before performing the Query. This might lead to unexpected errors. This has effect only if data-snapshot is invoked for a specific interface.")
+	devicesPublishDatastreamCmd.Flags().String("interface-type", "", "When set, if Realm Management checks are disabled, it forces resolution of the interface as the specified type. Valid options are: individual-datastream, aggregate-datastream, individual-parametric-datastream, aggregate-parametric-datastream.")
+	devicesPublishDatastreamCmd.Flags().String("payload-type", "", "When set, forces the conversion of the given payload into the given type. Valid values are any value in Astarte interfaces.")
+
+	devicesSetPropertyCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	devicesSetPropertyCmd.Flags().Bool("skip-realm-management-checks", false, "When set, it skips any consistency checks on Realm Management before performing the Query. This might lead to unexpected errors. This has effect only if data-snapshot is invoked for a specific interface.")
+	devicesSetPropertyCmd.Flags().String("payload-type", "", "When set, forces the conversion of the given payload into the given type. Valid values are any value in Astarte interfaces.")
+
+	devicesUnSetPropertyCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
+	devicesUnSetPropertyCmd.Flags().Bool("skip-realm-management-checks", false, "When set, it skips any consistency checks on Realm Management before performing the Query. This might lead to unexpected errors. This has effect only if data-snapshot is invoked for a specific interface.")
+	devicesUnSetPropertyCmd.Flags().String("payload-type", "", "When set, forces the conversion of the given payload into the given type. Valid values are any value in Astarte interfaces.")
+
 	devicesShowCmd.Flags().String("force-id-type", "", "When set, rather than autodetecting, it forces the device ID to be evaluated as a (device-id,alias).")
 
 	devicesCmd.AddCommand(
@@ -210,6 +264,9 @@ connected: allows filtering devices that are currently connected/disconnected. I
 		devicesDataSnapshotCmd,
 		devicesGetSamplesCmd,
 		devicesSendDataCmd,
+		devicesPublishDatastreamCmd,
+		devicesSetPropertyCmd,
+		devicesUnSetPropertyCmd,
 	)
 }
 
@@ -1003,6 +1060,54 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 }
 
 func devicesSendDataF(command *cobra.Command, args []string) error {
+	fmt.Println("This command is deprecated, use publish-datastream, set-property or unset-property instead")
+	fmt.Println("Cannot unset property with this command")
+
+	if utils.ShouldCurl() {
+		fmt.Println(sendDataCurl)
+		os.Exit(0)
+	}
+
+	deviceID := args[0]
+	interfaceName := args[1]
+	forceIDType, err := command.Flags().GetString("force-id-type")
+	if err != nil {
+		return err
+	}
+	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceID, forceIDType)
+	if err != nil {
+		return err
+	}
+
+	interfaceTypeString, err := command.Flags().GetString("interface-type")
+	if err != nil {
+		return err
+	}
+
+	skipRealmManagementChecks, err := shouldSkipRealmManagementChecks(*command)
+	if err != nil {
+		return err
+	}
+
+	if skipRealmManagementChecks && interfaceTypeString == "" {
+		return fmt.Errorf("When not using Realm Management checks, --interface-type should always be specified")
+	}
+
+	iface, err := getProtoInterface(deviceID, deviceIdentifierType, interfaceName, interfaceTypeString, skipRealmManagementChecks)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	// redirecting to right function
+	if iface.Type == interfaces.PropertiesType {
+		return devicesSetPropertyF(command, args)
+	} else {
+		return devicesPublishDataStreamF(command, args)
+	}
+
+}
+
+func devicesPublishDataStreamF(command *cobra.Command, args []string) error {
 	if utils.ShouldCurl() {
 		fmt.Println(sendDataCurl)
 		os.Exit(0)
@@ -1029,6 +1134,12 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	// exclusion of property set/unset
+	if skipRealmManagementChecks && interfaceTypeString == "properties" {
+		return fmt.Errorf("Invalid command, use set-property or unset-property")
+	}
+
 	if skipRealmManagementChecks && interfaceTypeString == "" {
 		return fmt.Errorf("When not using Realm Management checks, --interface-type should always be specified")
 	}
@@ -1040,9 +1151,14 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	}
 	if !skipRealmManagementChecks {
 		if iface.Ownership != interfaces.ServerOwnership {
-			fmt.Fprintln(os.Stderr, "send-data makes sense only for server-owned interfaces")
+			fmt.Fprintln(os.Stderr, "publish-datastream makes sense only for server-owned interfaces")
 			os.Exit(1)
 		}
+	}
+
+	// exclusion of property set/unset
+	if iface.Type == interfaces.PropertiesType {
+		return fmt.Errorf("Invalid command, use set-property or unset-property")
 	}
 
 	// Time to understand the payload type
@@ -1153,15 +1269,179 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	} else {
 		// Don't risk it. Use raw functions and trust the server to fail, in case.
 		switch interfaceTypeString {
-		case "properties":
-			sendDataCall, err = astarteAPIClient.SetProperty(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath, parsedPayloadData)
 		case "individual-datastream", "individual-parametric-datastream":
 			sendDataCall, err = astarteAPIClient.SendDatastream(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath, parsedPayloadData)
 		case "aggregate-datastream", "aggregate-parametric-datastream":
 			sendDataCall, err = astarteAPIClient.SendDatastream(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath, parsedPayloadData)
 		default:
-			err = fmt.Errorf("%s is not a valid Interface Type. Valid interface types are: properties, individual-datastream, aggregate-datastream, individual-parametric-datastream, aggregate-parametric-datastream", interfaceTypeString)
+			err = fmt.Errorf("%s is not a valid Interface Type. Valid interface types are: individual-datastream, aggregate-datastream, individual-parametric-datastream, aggregate-parametric-datastream", interfaceTypeString)
 		}
+	}
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	sendDataRes, err := sendDataCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	_, _ = sendDataRes.Parse()
+
+	// Done
+	fmt.Println("ok")
+	return nil
+}
+
+func devicesSetPropertyF(command *cobra.Command, args []string) error {
+	if utils.ShouldCurl() {
+		fmt.Println(sendDataCurl)
+		os.Exit(0)
+	}
+
+	deviceID := args[0]
+	interfaceName := args[1]
+	interfacePath := args[2]
+	payloadData := args[3]
+	forceIDType, err := command.Flags().GetString("force-id-type")
+	if err != nil {
+		return err
+	}
+	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceID, forceIDType)
+	if err != nil {
+		return err
+	}
+	skipRealmManagementChecks, err := shouldSkipRealmManagementChecks(*command)
+	if err != nil {
+		return err
+	}
+
+	iface, err := getProtoInterface(deviceID, deviceIdentifierType, interfaceName, "properties", skipRealmManagementChecks)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	// exclusion of datastream
+	if iface.Type != interfaces.PropertiesType {
+		return fmt.Errorf("Invalid command, use publish-datastream")
+	}
+
+	if !skipRealmManagementChecks {
+		if iface.Ownership != interfaces.ServerOwnership {
+			fmt.Fprintln(os.Stderr, "set-property makes sense only for server-owned interfaces")
+			os.Exit(1)
+		}
+	}
+
+	// Time to understand the payload type
+	payloadTypeString, err := command.Flags().GetString("payload-type")
+	if err != nil {
+		return err
+	}
+
+	// Assign a payload Type only if it's not an aggregate
+	var payloadType interfaces.AstarteMappingType
+	if payloadTypeString != "" {
+		payloadType = interfaces.AstarteMappingType(payloadTypeString)
+		if err := payloadType.IsValid(); err != nil {
+			// It's an input error, so return err
+			return err
+		}
+	} else if !skipRealmManagementChecks && iface.Aggregation == interfaces.IndividualAggregation {
+		if payloadType == "" {
+			mapping, err := interfaces.InterfaceMappingFromPath(iface, interfacePath)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			payloadType = mapping.Type
+		}
+	}
+
+	var parsedPayloadData interface{}
+	if err := payloadType.IsValid(); err == nil {
+		if parsedPayloadData, err = parseSendDataPayload(payloadData, payloadType); err != nil {
+			return err
+		}
+	}
+
+	var sendDataCall client.AstarteRequest
+	if iface.Type == interfaces.PropertiesType {
+		if !skipRealmManagementChecks {
+			// We can delegate the entirety of this to astarte-go
+			sendDataCall, err = astarteAPIClient.SendData(realm, deviceID, deviceIdentifierType, iface, interfacePath, parsedPayloadData)
+		} else {
+			// Don't risk it. Use raw functions and trust the server to fail, in case.
+			sendDataCall, err = astarteAPIClient.SetProperty(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath, parsedPayloadData)
+		}
+	} else {
+		err = fmt.Errorf("The provided interface type is not 'properties'. If you want to send data to a 'datastream' interface, please use publish-datastream.")
+	}
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	sendDataRes, err := sendDataCall.Run(astarteAPIClient)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	_, _ = sendDataRes.Parse()
+
+	// Done
+	fmt.Println("ok")
+	return nil
+}
+
+func devicesUnSetPropertyF(command *cobra.Command, args []string) error {
+	if utils.ShouldCurl() {
+		fmt.Println(sendDataCurl)
+		os.Exit(0)
+	}
+
+	deviceID := args[0]
+	interfaceName := args[1]
+	interfacePath := args[2]
+	forceIDType, err := command.Flags().GetString("force-id-type")
+	if err != nil {
+		return err
+	}
+	deviceIdentifierType, err := deviceIdentifierTypeFromFlags(deviceID, forceIDType)
+	if err != nil {
+		return err
+	}
+	skipRealmManagementChecks, err := shouldSkipRealmManagementChecks(*command)
+	if err != nil {
+		return err
+	}
+
+	iface, err := getProtoInterface(deviceID, deviceIdentifierType, interfaceName, "properties", skipRealmManagementChecks)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if iface.Type != interfaces.PropertiesType {
+		return fmt.Errorf("Invalid command, use publish-datastream")
+	}
+
+	if !skipRealmManagementChecks {
+		if iface.Ownership != interfaces.ServerOwnership {
+			fmt.Fprintln(os.Stderr, "unset-property makes sense only for server-owned interfaces")
+			os.Exit(1)
+		}
+	}
+
+	var sendDataCall client.AstarteRequest
+	if iface.Type == interfaces.PropertiesType {
+		sendDataCall, err = astarteAPIClient.UnsetProperty(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath)
+	} else {
+		err = fmt.Errorf("The provided interface type is not 'properties'. If you want to send data to a 'datastream' interface, please use publish-datastream.")
 	}
 
 	if err != nil {
