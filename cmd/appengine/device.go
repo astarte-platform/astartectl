@@ -808,6 +808,7 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				fmt.Fprintf(os.Stderr, "You need to specify a valid path for interface %s\n", interfaceName)
 				os.Exit(1)
 			default:
+
 				if err := interfaces.ValidateQuery(interfaceDescription, interfacePath); err != nil {
 					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
@@ -863,7 +864,12 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				// and start appending values
 				for _, v := range page {
 					if outputType != "json" {
-						t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+						if v.Value != nil {
+							t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+						} else {
+							t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), []string{}})
+						}
+
 					} else {
 						sliceAcc = append(sliceAcc, v)
 					}
@@ -880,9 +886,15 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				t.AppendHeader(table.Row{"Path", "Timestamp", "Value"})
 
 				// and start appending values
+
 				for k, v := range page {
 					if outputType != "json" {
-						t.AppendRow([]interface{}{k, timestampForOutput(v.Timestamp, outputType), v.Value})
+						if v.Value != nil {
+							t.AppendRow([]interface{}{k, timestampForOutput(v.Timestamp, outputType), v.Value})
+						} else {
+							t.AppendRow([]interface{}{k, timestampForOutput(v.Timestamp, outputType), []string{}})
+						}
+
 					} else {
 						mapAcc[k] = v
 					}
