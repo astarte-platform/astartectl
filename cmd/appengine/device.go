@@ -920,7 +920,12 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				// and start appending values
 				for _, v := range page {
 					if outputType != "json" {
-						t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+						if v.Value != nil {
+							t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), v.Value})
+						} else {
+							t.AppendRow([]interface{}{timestampForOutput(v.Timestamp, outputType), []string{}})
+						}
+
 					} else {
 						sliceAcc = append(sliceAcc, v)
 					}
@@ -937,9 +942,15 @@ func devicesGetSamplesF(command *cobra.Command, args []string) error {
 				t.AppendHeader(table.Row{"Path", "Timestamp", "Value"})
 
 				// and start appending values
+
 				for k, v := range page {
 					if outputType != "json" {
-						t.AppendRow([]interface{}{k, timestampForOutput(v.Timestamp, outputType), v.Value})
+						if v.Value != nil {
+							t.AppendRow([]interface{}{k, timestampForOutput(v.Timestamp, outputType), v.Value})
+						} else {
+							t.AppendRow([]interface{}{k, timestampForOutput(v.Timestamp, outputType), []string{}})
+						}
+
 					} else {
 						mapAcc[k] = v
 					}
@@ -1289,7 +1300,6 @@ func devicesPublishDataStreamF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 	_, _ = sendDataRes.Parse()
-
 	// Done
 	fmt.Println("ok")
 	return nil
@@ -1614,10 +1624,18 @@ func parseSendDataPayload(payload string, mappingType interfaces.AstarteMappingT
 		}
 	case interfaces.BinaryBlobArray, interfaces.BooleanArray, interfaces.DateTimeArray, interfaces.DoubleArray,
 		interfaces.IntegerArray, interfaces.LongIntegerArray, interfaces.StringArray:
-		var jsonOut []interface{}
-		if err := json.Unmarshal([]byte(payload), &jsonOut); err != nil {
-			return nil, err
+
+		//wait it's all string?
+		payload = strings.Replace(payload, "[", "", -1)
+		payload = strings.Replace(payload, "]", "", -1)
+		payload_parsed := strings.Split(payload, ",")
+		//always has been
+
+		jsonOut := make([]interface{}, len(payload_parsed))
+		for i, v := range payload_parsed {
+			jsonOut[i] = v
 		}
+
 		retArray := []interface{}{}
 		// Do a smarter conversion here.
 		for _, v := range jsonOut {
