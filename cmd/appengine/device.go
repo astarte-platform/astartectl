@@ -43,18 +43,24 @@ const (
 	dataSnapshotCurl = `curl -X GET -H "Accept: application/json" -H "Content-Type: application/json" \
 	-H "User-Agent: astarte-go" \
 	-H "Authorization: Bearer $TOKEN" \
-	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH?limit=1`
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$INTERFACE_PATH?limit=1`
 
 	getSamplesCurl = `curl -X GET -H "Accept: application/json" -H "Content-Type: application/json" \
 	-H "User-Agent: astarte-go" \
 	-H "Authorization: Bearer $TOKEN" \
-	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH`
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$INTERFACE_PATH`
 
-	sendDataCurl = `curl -X POST -H "Accept: application/json" -H "Content-Type: application/json" \
+	setPropertyCurl = `curl -X PUT -H "Accept: application/json" -H "Content-Type: application/json" \
 	-H "User-Agent: astarte-go" \
 	-H "Authorization: Bearer $TOKEN" \
-	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$PATH
-	--data '{"data" : $DATA}'`
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$INTERFACE_PATH
+	--data "{\"data\" : $DATA}" `
+
+	sendDataStreamCurl = `curl -X POST -H "Accept: application/json" -H "Content-Type: application/json" \
+	-H "User-Agent: astarte-go" \
+	-H "Authorization: Bearer $TOKEN" \
+	"https://$ASTARTE_BASE_URL/appengine/v1/$REALM/devices/$DEVICE_ID/interfaces/$INTERFACE/$INTERFACE_PATH
+	--data "{\"data\" : $DATA}" `
 )
 
 // DevicesCmd represents the devices command
@@ -1075,7 +1081,10 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	fmt.Println("Cannot unset property with this command")
 
 	if utils.ShouldCurl() {
-		fmt.Println(sendDataCurl)
+		fmt.Println("Use the following curl command to set a property")
+		fmt.Println(setPropertyCurl)
+		fmt.Println("Use the following curl command to publish into a datastream")
+		fmt.Println(sendDataStreamCurl)
 		os.Exit(0)
 	}
 
@@ -1120,7 +1129,7 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 
 func devicesPublishDataStreamF(command *cobra.Command, args []string) error {
 	if utils.ShouldCurl() {
-		fmt.Println(sendDataCurl)
+		fmt.Println(sendDataStreamCurl)
 		os.Exit(0)
 	}
 
@@ -1307,7 +1316,7 @@ func devicesPublishDataStreamF(command *cobra.Command, args []string) error {
 
 func devicesSetPropertyF(command *cobra.Command, args []string) error {
 	if utils.ShouldCurl() {
-		fmt.Println(sendDataCurl)
+		fmt.Println(setPropertyCurl)
 		os.Exit(0)
 	}
 
@@ -1410,7 +1419,7 @@ func devicesSetPropertyF(command *cobra.Command, args []string) error {
 
 func devicesUnSetPropertyF(command *cobra.Command, args []string) error {
 	if utils.ShouldCurl() {
-		fmt.Println(sendDataCurl)
+		fmt.Println(setPropertyCurl)
 		os.Exit(0)
 	}
 
