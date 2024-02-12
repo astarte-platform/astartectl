@@ -12,17 +12,18 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, go-utils, ... }:
-    flake-utils.lib.eachSystem go-utils.lib.defaultSystems (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ self.overlays.${system}.default ];
-        };
-      in
-      {
-        overlays.default = go-utils.lib.asdfOverlay { src = ./.; };
-        overlay = self.overlays.default;
-        devShells.default = pkgs.simpleGoShell;
-      }
-    );
+    flake-utils.lib.eachSystem go-utils.lib.defaultSystems
+      (system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ self.overlays.default ];
+          };
+        in
+        {
+          devShells.default = pkgs.simpleGoShell;
+        }
+      ) // {
+      overlays.default = go-utils.lib.asdfOverlay { src = ./.; };
+    };
 }
