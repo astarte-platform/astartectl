@@ -1650,7 +1650,7 @@ func parseSendDataPayload(payload string, mappingType interfaces.AstarteMappingT
 		for _, v := range jsonOut {
 			switch val := v.(type) {
 			case string:
-				p, err := parseSendDataPayload(val, interfaces.AstarteMappingType(strings.TrimSuffix(string(mappingType), "array")))
+				p, err := parseSendDataPayload(strings.TrimSpace(val), interfaces.AstarteMappingType(strings.TrimSuffix(string(mappingType), "array")))
 				if err != nil {
 					return nil, err
 				}
