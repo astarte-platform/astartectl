@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Backport deprecation of `appengine device send-data`, use
   `{publish-datastream, set-property, unset-property}` instead.
 
+### Fixed
+- `appengine send-data`: fix the encoding of longinteger and longintegerarray data.
+
 ## [23.5.0] - 2023-10-04
 ### Added
 - Add fish shell completions generator command
