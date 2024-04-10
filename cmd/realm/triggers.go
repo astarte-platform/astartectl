@@ -220,7 +220,7 @@ func triggersSaveF(command *cobra.Command, args []string) error {
 }
 
 func triggersSyncF(command *cobra.Command, args []string) error {
-	if viper.GetBool("to-curl") {
+	if viper.GetBool("realmmanagement-to-curl") {
 		fmt.Println(`'triggers sync' does not support the --to-curl option. Install your triggers one by one with 'triggers install'.`)
 		os.Exit(1)
 	}

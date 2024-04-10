@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [23.5.2] - Unreleased
+### Fixed
+- `realm-management {interfaces, triggers} sync`: do not show a wrong curl
+  command when using `--to-curl`. Reference individual commands instead.
+
 ## [23.5.1] - 2024-04-05
 ### Added
 - Backport addition of `realm-management interfaces {sync, save}` to batch
