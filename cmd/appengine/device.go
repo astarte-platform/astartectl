@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -1649,34 +1650,34 @@ func parseSendDataPayload(payload string, mappingType interfaces.AstarteMappingT
 	case interfaces.BinaryBlobArray, interfaces.BooleanArray, interfaces.DateTimeArray, interfaces.DoubleArray,
 		interfaces.IntegerArray, interfaces.LongIntegerArray, interfaces.StringArray:
 
-		//wait it's all string?
-		payload = strings.Replace(payload, "[", "", -1)
-		payload = strings.Replace(payload, "]", "", -1)
-		payload_parsed := strings.Split(payload, ",")
-		//always has been
-
-		jsonOut := make([]interface{}, len(payload_parsed))
-		for i, v := range payload_parsed {
-			jsonOut[i] = v
-		}
-
-		retArray := []interface{}{}
-		// Do a smarter conversion here.
-		for _, v := range jsonOut {
-			switch val := v.(type) {
-			case string:
-				p, err := parseSendDataPayload(strings.TrimSpace(val), interfaces.AstarteMappingType(strings.TrimSuffix(string(mappingType), "array")))
+		//check if payload is an empty array, bypass conversions and just return an empty array
+		// if it is not, proceed as usual
+		if payload == "[]" {
+			ret = make([]interface{}, 0)
+		} else {
+			retArray := []interface{}{}
+			payload = strings.TrimSpace(payload)
+			if pass, err := regexp.MatchString(`^\[.*\]$`, payload); !pass {
+				return nil, err
+			}
+			payload = regexp.MustCompile(`^\[`).ReplaceAllString(payload, "")
+			payload = regexp.MustCompile(`\]$`).ReplaceAllString(payload, "")
+			payload_parsed := strings.Split(payload, ",")
+			jsonOut := make([]interface{}, len(payload_parsed))
+			for i, v := range payload_parsed {
+				jsonOut[i] = v
+			}
+			// Do a smarter conversion here.
+			for _, v := range jsonOut {
+				p, err := parseSendDataPayload(strings.TrimSpace(v.(string)), interfaces.AstarteMappingType(strings.TrimSuffix(string(mappingType), "array")))
 				if err != nil {
 					return nil, err
 				}
 				retArray = append(retArray, p)
-			default:
-				retArray = append(retArray, val)
 			}
+			ret = retArray
 		}
-		ret = retArray
 	}
-
 	return ret, nil
 }
 
