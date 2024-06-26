@@ -1,5 +1,6 @@
 project_name: astartectl
 
+version: 2
 before:
   hooks:
     - go mod download
@@ -75,4 +76,4 @@ release:
   draft: true
 changelog:
   # We have our own way to track changes
-  skip: true
+  disable: true
