@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - `realm-management {interfaces, triggers} sync`: do not show a wrong curl
   command when using `--to-curl`. Reference individual commands instead.
+- `appengine publish-datastream`: fix the decoding of longinteger
+  and longintegerarray before sending to astarte.
 
 ## [23.5.1] - 2024-04-05
 ### Added
