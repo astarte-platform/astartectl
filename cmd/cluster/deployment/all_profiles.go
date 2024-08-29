@@ -17,11 +17,6 @@ package deployment
 // GetAllBuiltinAstarteClusterProfiles returns all the bundled Cluster profiles.
 func GetAllBuiltinAstarteClusterProfiles() []AstarteClusterProfile {
 	return []AstarteClusterProfile{
-		// 0.10 profiles
-		astarteBasicProfile010,
-		// 0.11 profiles
-		astarteBasicProfile011,
-		astarteBurstProfile011,
 		// 1.0 profiles (good for 1.0 for now)
 		astarteBasicProfile10,
 		astarteBurstProfile10,
