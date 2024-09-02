@@ -68,7 +68,7 @@ nfpms:
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 release:
   prerelease: auto
   name_template: "astartectl {{.Version}}"
@@ -76,4 +76,4 @@ release:
   draft: true
 changelog:
   # We have our own way to track changes
-  skip: true
+  disable: true
