@@ -1,5 +1,6 @@
 project_name: astartectl
 
+version: 2
 before:
   hooks:
     - go mod download
