@@ -14,6 +14,27 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - `cluster instance deploy`: remove profiles for Astarte v0.10 and v0.11.
 
+## [23.5.2] - 2024-09-02
+### Fixed
+- `realm-management {interfaces, triggers} sync`: do not show a wrong curl
+  command when using `--to-curl`. Reference individual commands instead.
+- `appengine publish-datastream`: fix the decoding of longinteger
+  and longintegerarray before sending to astarte.
+
+## [23.5.1] - 2024-04-05
+### Added
+- Backport addition of `realm-management interfaces {sync, save}` to batch
+  install or download triggers.
+- Backport addition of `appengine device {publish-datastream,
+  set-property, unset-property}` to send data to Astarte.
+
+### Changed
+- Backport deprecation of `appengine device send-data`, use
+  `{publish-datastream, set-property, unset-property}` instead.
+
+### Fixed
+- `appengine send-data`: fix the encoding of longinteger and longintegerarray data.
+
 ## [23.5.0] - 2023-10-04
 ### Added
 - Add fish shell completions generator command
