@@ -249,7 +249,7 @@ func interfacesUpdateF(command *cobra.Command, args []string) error {
 
 func interfacesSyncF(command *cobra.Command, args []string) error {
 	// `interface sync` is unnatural btw
-	if viper.GetBool("to-curl") {
+	if viper.GetBool("realmmanagement-to-curl") {
 		fmt.Println(`'interfaces sync' does not support the --to-curl option.
 Install or update your interfaces one by one with 'interfaces install' or 'interface update'.`)
 		os.Exit(1)

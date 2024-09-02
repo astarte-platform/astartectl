@@ -1276,6 +1276,21 @@ func devicesPublishDataStreamF(command *cobra.Command, args []string) error {
 					}
 					aggrPayload[k] = acc
 				}
+				if payloadType == interfaces.IntegerArray {
+					acc := make([]int32, 0)
+
+					for _, item := range val {
+						acc = append(acc, int32(item.(float64)))
+					}
+					aggrPayload[k] = acc
+				}
+				if payloadType == interfaces.LongIntegerArray {
+					acc := make([]int64, 0)
+					for _, item := range val {
+						acc = append(acc, int64(item.(float64)))
+					}
+					aggrPayload[k] = acc
+				}
 			}
 		}
 		parsedPayloadData = aggrPayload
@@ -1650,7 +1665,7 @@ func parseSendDataPayload(payload string, mappingType interfaces.AstarteMappingT
 		for _, v := range jsonOut {
 			switch val := v.(type) {
 			case string:
-				p, err := parseSendDataPayload(val, interfaces.AstarteMappingType(strings.TrimSuffix(string(mappingType), "array")))
+				p, err := parseSendDataPayload(strings.TrimSpace(val), interfaces.AstarteMappingType(strings.TrimSuffix(string(mappingType), "array")))
 				if err != nil {
 					return nil, err
 				}
