@@ -16,6 +16,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -43,7 +44,13 @@ func ConfigureViper(contextOverride string) error {
 	}
 
 	// Now, get the current context
-	currentContext := viper.Get("context").(string)
+	currentContextInterface := viper.Get("context")
+	currentContext := ""
+	//in case of empty file, the following check used to fail, now it defaults to empty context and enable file rewrite
+	if currentContextInterface != nil {
+		currentContext = currentContextInterface.(string)
+	}
+
 	// Check overrides
 	if contextOverride != "" {
 		currentContext = contextOverride
@@ -118,7 +125,16 @@ func contextsDirFromConfigDir(configDir string) string {
 
 func listYamlNames(dirName string) ([]string, error) {
 	file, err := os.Open(dirName)
-	if err != nil {
+
+	if os.IsNotExist(err) {
+		//if we cannot open the directory, create it and open again
+		_ = os.MkdirAll(dirName, 0600)
+		file, err = os.Open(dirName)
+		if err != nil {
+			return nil, err
+		}
+
+	} else if err != nil {
 		return nil, err
 	}
 	defer file.Close()
@@ -177,4 +193,39 @@ func ensureConfigDirectoryStructure(configDir string) error {
 		}
 	}
 	return nil
+}
+
+func GetBaseConfig(configDir string) BaseConfigFile {
+
+	baseConfig, err := LoadBaseConfiguration(configDir)
+	if err != nil {
+		// Shoot out a warning, but don't fail
+		baseConfig = BaseConfigFile{}
+		fmt.Fprintf(os.Stderr, "warn: Could not load configuration file: %s. Will proceed creating a new one\n", err.Error())
+		// Now set the current context to the new one
+		baseConfig.CurrentContext = ""
+
+		if err := SaveBaseConfiguration(configDir, baseConfig); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+	return baseConfig
+}
+func UpdateBaseConfigWithContext(configDir, context string) BaseConfigFile {
+	baseConfig, err := LoadBaseConfiguration(configDir)
+	if err != nil {
+		// Shoot out a warning, but don't fail
+		baseConfig = BaseConfigFile{}
+		fmt.Fprintf(os.Stderr, "warn: Could not load configuration file: %s. Will proceed creating a new one\n", err.Error())
+		// Now set the current context to the new one
+	}
+
+	baseConfig.CurrentContext = context
+
+	if err := SaveBaseConfiguration(configDir, baseConfig); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	return baseConfig
 }
