@@ -29,6 +29,9 @@ var instanceShowCmd = &cobra.Command{
 	Example: `  astartectl cluster instances show astarte`,
 	RunE:    instanceShowF,
 	Args:    cobra.ExactArgs(1),
+	Deprecated: `This command is deprecated and will be removed in future releases.
+Refer to the Astarte documentation on how to interact with Astarte:
+https://docs.astarte-platform.org/astarte-kubernetes-operator/latest`,
 }
 
 func init() {
