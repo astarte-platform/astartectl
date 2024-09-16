@@ -37,6 +37,9 @@ var deployCmd = &cobra.Command{
 kubectl mentions. If no versions are specified, the last stable version is deployed. This should only be used for testing purposes.`,
 	Example: `  astartectl cluster instances deploy`,
 	RunE:    clusterDeployF,
+	Deprecated: `This command is deprecated and will be removed in future releases.
+Refer to the Astarte documentation on how to install Astarte on your cluster:
+https://docs.astarte-platform.org/astarte-kubernetes-operator/latest`,
 }
 
 func init() {
