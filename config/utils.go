@@ -128,7 +128,7 @@ func listYamlNames(dirName string) ([]string, error) {
 
 	if os.IsNotExist(err) {
 		//if we cannot open the directory, create it and open again
-		_ = os.MkdirAll(dirName, 0600)
+		_ = os.MkdirAll(dirName, 0755)
 		file, err = os.Open(dirName)
 		if err != nil {
 			return nil, err
