@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - `cluster instance` {`deploy` | `destroy` | `show`} are deprecated and
   will be removed from v24.11.
+
 ### Fixed
 - Create configuration files and folders if required, instead of just crashing.
 - Fixed empty array sent as empty string for array payload.
+- Allow the management of triggers containing Mustache templates.
 
 ## [24.5.0] - 2024-09-03
 ### Added
