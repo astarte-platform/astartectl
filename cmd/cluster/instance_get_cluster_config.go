@@ -103,18 +103,7 @@ func doGetClusterConfig(resourceName, resourceNamespace string) error {
 	fmt.Printf("Created new Context %s\n", contextName)
 
 	// Now set the current context to the new one
-	baseConfig, err := config.LoadBaseConfiguration(configDir)
-	if err != nil {
-		// Shoot out a warning, but don't fail
-		baseConfig = config.BaseConfigFile{}
-		fmt.Fprintf(os.Stderr, "warn: Could not load configuration file: %s. Will proceed creating a new one\n", err.Error())
-	}
-
-	baseConfig.CurrentContext = contextName
-	if err := config.SaveBaseConfiguration(configDir, baseConfig); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	config.UpdateBaseConfigWithContext(configDir, contextName)
 	fmt.Printf("Context switched to %s\n", contextName)
 
 	return nil

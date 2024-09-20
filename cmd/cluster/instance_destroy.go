@@ -33,6 +33,9 @@ kubectl mentions. Please be aware of the fact that when an Astarte instance is d
 	Example: `  astartectl cluster instances destroy astarte`,
 	RunE:    clusterDestroyF,
 	Args:    cobra.ExactArgs(1),
+	Deprecated: `This command is deprecated and will be removed in future releases.
+Refer to the Astarte documentation on how to remove Astarte from your cluster:
+https://docs.astarte-platform.org/astarte-kubernetes-operator/latest`,
 }
 
 func init() {
