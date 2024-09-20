@@ -135,11 +135,7 @@ func contextsListF(command *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	baseConfig, err := config.LoadBaseConfiguration(config.GetConfigDir())
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	baseConfig := config.GetBaseConfig(configDir)
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.DiscardEmptyColumns)
 	// header

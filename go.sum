@@ -94,8 +94,8 @@ github.com/armon/go-radix v1.0.0/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgI
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef h1:46PFijGLmAjMPwCCCo7Jf0W6f9slllCkkv7vyc1yOSg=
 github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
-github.com/astarte-platform/astarte-go v0.92.1-0.20240405095359-2af3738f0d84 h1:E6l76r5aVFdXe5y0Oe0WxriXFletTz+RPVTiZlci1aQ=
-github.com/astarte-platform/astarte-go v0.92.1-0.20240405095359-2af3738f0d84/go.mod h1:JY2jLeZoUP9o8+IZSIR595FgdjBj1vdYv4KuJ+tmq1U=
+github.com/astarte-platform/astarte-go v0.92.1 h1:9zUiw1E4uj2wBDeszxGh/IAnVFg7BDKhRWqioksG0WA=
+github.com/astarte-platform/astarte-go v0.92.1/go.mod h1:JY2jLeZoUP9o8+IZSIR595FgdjBj1vdYv4KuJ+tmq1U=
 github.com/benbjohnson/clock v1.0.3/go.mod h1:bGMdMPoPVvcYyt1gHDf4J2KE153Yf9BuiUKYMaxlTDM=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
