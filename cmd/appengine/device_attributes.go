@@ -111,8 +111,12 @@ func attributesListF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 	attributes, _ := attributesRes.Parse()
+	attributesMap, _ := attributes.(map[string]string)
 
-	fmt.Printf("%v\n", attributes)
+	for k, v := range attributesMap {
+		fmt.Printf("%v: %v\n", k, v)
+	}
+
 	return nil
 }
 
