@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [24.5.3] - Unreleased
+### Fixed
+- `appengine device alias list`: show aliases as a map instead of a list.
+  Fix [#275](https://github.com/astarte-platform/astartectl/issues/275).
+
 ## [24.5.2] - 2024-09-20
 ### Fixed
 - Allow a larger set of permissions for configuration files and folders.
