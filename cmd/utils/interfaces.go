@@ -35,7 +35,7 @@ var validateInterfaceCmd = &cobra.Command{
 Note that the checks performed by this function are not as thorough as the ones performed by Astarte, so there could be false positives (but no false negatives).
 This command is thought to be used in CI pipelines to validate that new interfaces are "reasonable enough".
 
-Returns 0 and does not print anything if the interface is valid, returns 1 and prints an error message if it isn't.`,
+Returns 0 and print message if the interface is valid, returns 1 and prints an error message if it isn't.`,
 	Example: `  astartectl utils interfaces validate com.my.Interface.json`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    validateInterfaceF,
@@ -56,6 +56,8 @@ func validateInterfaceF(command *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "%s is not a valid Astarte Interface: %s\n", interfacePath, err)
 		os.Exit(1)
 	}
+
+	fmt.Printf("%s is a valid Astarte Interface\n", interfacePath)
 
 	return nil
 }
