@@ -69,6 +69,16 @@ var (
 		Version:  "v1alpha2",
 		Resource: "astartes",
 	}
+	astarteV1Alpha3 = schema.GroupVersionResource{
+		Group:    "api.astarte-platform.org",
+		Version:  "v1alpha3",
+		Resource: "astartes",
+	}
+	astarteV2Alpha1 = schema.GroupVersionResource{
+		Group:    "api.astarte-platform.org",
+		Version:  "v2alpha1",
+		Resource: "astartes",
+	}
 	aviV1Alpha1 = schema.GroupVersionResource{
 		Group:    "api.astarte-platform.org",
 		Version:  "v1alpha1",
@@ -79,9 +89,11 @@ var (
 		Version:  "v1alpha1",
 		Resource: "astartedefaultingresses",
 	}
-	astarteOperatorVersions = map[string]schema.GroupVersionResource{
+	astarteCRVersions = map[string]schema.GroupVersionResource{
 		"v1alpha1": astarteV1Alpha1,
 		"v1alpha2": astarteV1Alpha2,
+		"v1alpha3": astarteV1Alpha3,
+		"v2alpha1": astarteV2Alpha1,
 	}
 
 	astarteResourceClients map[string]dynamic.NamespaceableResourceInterface = make(map[string]dynamic.NamespaceableResourceInterface)
@@ -134,7 +146,7 @@ func clusterPersistentPreRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for k, v := range astarteOperatorVersions {
+	for k, v := range astarteCRVersions {
 		astarteResourceClients[k] = kubernetesDynamicClient.Resource(v)
 	}
 
