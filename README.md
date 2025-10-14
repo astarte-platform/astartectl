@@ -72,7 +72,7 @@ Generally speaking, one of those could be written like
 ```
 or, for aggregated interfaces, like a json object:
 ```
- astartectl appengine devices publish-datastream 2TBn-jNESuuHamE2Zo1anA com.my.interface.aggregated /my/path  '{"path1": "value2","path2":"value2"}'
+ astartectl appengine devices publish-datastream 2TBn-jNESuuHamE2Zo1anA com.my.interface.aggregated /my/path  '{"path1":"value1","path2":"value2"}'
 ```
 
 Please note, "value" is whatever your raw value is, no encapsulation whatsoever is required by astarte or astartectl (but you can provide your own, if you need it). 
