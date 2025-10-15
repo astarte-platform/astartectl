@@ -15,7 +15,7 @@ jobs:
     name: Build and Test
     strategy:
       matrix:
-        go: [1.19.x, 1.20.x]
+        go: [1.21.x, 1.22.x]
         os: [ubuntu-22.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -40,10 +40,9 @@ jobs:
     - name: Test
       run: go test -v -race ./...
 
-    # Load artifacts obtained with the most recent version of Go
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.go == '1.20.x'
+      if: matrix.go == '1.22.x'
       with:
         path: astartectl*
         name: astartectl-snapshot-${{ matrix.os }}

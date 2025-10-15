@@ -386,20 +386,7 @@ func realmsCreateF(command *cobra.Command, args []string) error {
 		fmt.Printf("Context %s created successfully\n", contextName)
 
 		// Now set the current context to the new one
-		baseConfig, err := config.LoadBaseConfiguration(configDir)
-		if err != nil {
-			// Shoot out a warning, but don't fail
-			baseConfig = config.BaseConfigFile{}
-			fmt.Fprintf(os.Stderr, "warn: Could not load configuration file: %s. Will proceed creating a new one\n", err.Error())
-		}
-
-		baseConfig.CurrentContext = contextName
-		if err := config.SaveBaseConfiguration(configDir, baseConfig); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			fmt.Fprintln(os.Stderr, "warn: Context not switched")
-		} else {
-			fmt.Printf("Context switched to %s\n", contextName)
-		}
+		config.UpdateBaseConfigWithContext(configDir, contextName)
 	}
 
 	return nil

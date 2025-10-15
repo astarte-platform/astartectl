@@ -1,12 +1,12 @@
 module github.com/astarte-platform/astartectl
 
-go 1.20
+go 1.21
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20211005130812-5bb3c17173e5
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
-	github.com/astarte-platform/astarte-go v0.92.1-0.20240405095359-2af3738f0d84
+	github.com/astarte-platform/astarte-go v0.92.2-0.20241112115810-b8a1c0732cf1
 	github.com/go-openapi/strfmt v0.21.1 // indirect
 	github.com/google/go-cmp v0.5.8
 	github.com/google/go-github/v30 v30.1.0

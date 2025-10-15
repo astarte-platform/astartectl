@@ -15,10 +15,9 @@
 package config
 
 import (
+	"gopkg.in/yaml.v2"
 	"os"
 	"path"
-
-	"gopkg.in/yaml.v2"
 )
 
 const baseConfigName = "astartectl"
@@ -58,5 +57,6 @@ func SaveBaseConfiguration(configDir string, configuration BaseConfigFile) error
 	if err != nil {
 		return err
 	}
+
 	return os.WriteFile(path.Join(configDir, baseConfigName+".yaml"), contents, 0644)
 }

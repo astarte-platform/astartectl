@@ -353,7 +353,7 @@ func getInterfaceDefinition(realm, interfaceName string, interfaceMajor int) (in
 }
 
 func installInterface(realm string, iface interfaces.AstarteInterface) error {
-	installInterfaceCall, err := astarteAPIClient.InstallInterface(realm, iface, true)
+	installInterfaceCall, err := astarteAPIClient.InstallInterface(realm, iface, false)
 	if err != nil {
 		return err
 	}
@@ -373,7 +373,7 @@ func installInterface(realm string, iface interfaces.AstarteInterface) error {
 }
 
 func updateInterface(realm string, interfaceName string, interfaceMajor int, newInterface interfaces.AstarteInterface) error {
-	updateInterfaceCall, err := astarteAPIClient.UpdateInterface(realm, interfaceName, interfaceMajor, newInterface, true)
+	updateInterfaceCall, err := astarteAPIClient.UpdateInterface(realm, interfaceName, interfaceMajor, newInterface, false)
 	if err != nil {
 		return err
 	}

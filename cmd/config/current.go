@@ -56,23 +56,13 @@ func init() {
 }
 
 func currentContextF(command *cobra.Command, args []string) error {
-	baseConfig, err := config.LoadBaseConfiguration(config.GetConfigDir())
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
+	baseConfig := config.GetBaseConfig(config.GetConfigDir())
 	fmt.Println(baseConfig.CurrentContext)
 	return nil
 }
 
 func currentClusterF(command *cobra.Command, args []string) error {
-	baseConfig, err := config.LoadBaseConfiguration(config.GetConfigDir())
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
+	baseConfig := config.GetBaseConfig(config.GetConfigDir())
 	currentContext, err := config.LoadContextConfiguration(config.GetConfigDir(), baseConfig.CurrentContext)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -94,16 +84,6 @@ func setCurrentContextF(command *cobra.Command, args []string) error {
 }
 
 func updateCurrentContext(newCurrentContext string) error {
-	configDir := config.GetConfigDir()
-	baseConfig, err := config.LoadBaseConfiguration(configDir)
-	if err != nil {
-		return err
-	}
-	if _, err := config.LoadContextConfiguration(configDir, newCurrentContext); err != nil {
-		return err
-	}
-
-	baseConfig.CurrentContext = newCurrentContext
-
-	return config.SaveBaseConfiguration(configDir, baseConfig)
+	config.UpdateBaseConfigWithContext(config.GetConfigDir(), newCurrentContext)
+	return nil
 }
