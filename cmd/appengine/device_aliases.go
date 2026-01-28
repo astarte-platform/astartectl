@@ -92,8 +92,12 @@ func aliasesListF(command *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 	aliases, _ := deviceAliasesRes.Parse()
+	aliasesMap, _ := aliases.(map[string]string)
 
-	fmt.Printf("%v\n", aliases)
+	for k, v := range aliasesMap {
+		fmt.Printf("%v: %v\n", k, v)
+	}
+
 	return nil
 }
 
