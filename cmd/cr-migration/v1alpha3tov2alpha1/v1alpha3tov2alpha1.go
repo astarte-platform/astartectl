@@ -1058,22 +1058,16 @@ func V1alpha3toV2alpha1(oldCr *unstructured.Unstructured) (*unstructured.Unstruc
 		return nil, fmt.Errorf("error setting metadata.name in new CR: %v", err)
 	}
 
-	// Copy namespace only if found, else set it to "default"
+	// Copy namespace only if found
 	namespace, found, err := unstructured.NestedString(oldCr.Object, "metadata", "namespace")
 	if err != nil {
 		return nil, fmt.Errorf("error: input CR metadata.namespace. Cannot convert to v2alpha1")
 	}
 
-	if unstructured.SetNestedField(newCr.Object, "default", "metadata", "namespace") != nil {
-		return nil, fmt.Errorf("error setting default metadata.namespace in new CR: %v", err)
-	}
-
 	if found {
-		err = unstructured.SetNestedField(newCr.Object, namespace, "metadata", "namespace")
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("error setting metadata.namespace in new CR: %v", err)
+		if err := unstructured.SetNestedField(newCr.Object, namespace, "metadata", "namespace"); err != nil {
+			return nil, fmt.Errorf("error setting metadata.namespace in new CR: %v", err)
+		}
 	}
 
 	// Assign converted spec to newCr
