@@ -108,12 +108,18 @@ func init() {
 	MigrateApiCmd.PersistentFlags().Bool("backup-original-cr", true, "If true, backs up the original CR before migration.")
 	MigrateApiCmd.PersistentFlags().String("convert-from-file", "", "If set, reads the Astarte CR from the given file instead of connecting to the cluster.")
 	MigrateApiCmd.PersistentFlags().String("namespace", "default", "The namespace in which to look for Astarte instances.")
+	MigrateApiCmd.PersistentFlags().Bool("non-interactive", false, "Skip interactive prompts and use placeholder/default values for missing fields.")
 }
 
 // migrateApi handles the conversion of all Astarte CR in the cluster (in a namespace) from one API version to another.
 func migrateToV2Alpha1(command *cobra.Command, args []string) error {
 	sourceVer := astarteV1Alpha3
 	destVer := astarteV2Alpha1
+
+	nonInteractive, err := command.Flags().GetBool("non-interactive")
+	if err != nil {
+		return err
+	}
 
 	// Get path p to file from flags
 	p, err := command.Flags().GetString("convert-from-file")
@@ -138,7 +144,7 @@ func migrateToV2Alpha1(command *cobra.Command, args []string) error {
 		dsu := &unstructured.Unstructured{Object: ds}
 
 		// Convert the CR
-		converted, err := v1alpha3tov2alpha1.V1alpha3toV2alpha1(dsu)
+		converted, err := v1alpha3tov2alpha1.V1alpha3toV2alpha1(dsu, nonInteractive)
 		if err != nil {
 			return fmt.Errorf("failed to convert Astarte CR (%s): %w", dsu.GetName(), err)
 		}
@@ -191,13 +197,17 @@ func migrateToV2Alpha1(command *cobra.Command, args []string) error {
 
 	// Warn the user of what is about to happen
 	fmt.Printf("You are about to convert all Astarte instances in the namespace %s from %s to %s.\n", astarteNamespace, sourceVer.Version, destVer.Version)
-	proceed, err := utils.AskForConfirmation("Are you sure?")
-	if err != nil {
-		return err
-	}
-	if !proceed {
-		fmt.Println("Ok, nothing left to do here.")
-		return nil
+	if nonInteractive {
+		fmt.Println("Non-interactive mode enabled. Proceeding without confirmation.")
+	} else {
+		proceed, err := utils.AskForConfirmation("Are you sure?")
+		if err != nil {
+			return err
+		}
+		if !proceed {
+			fmt.Println("Ok, nothing left to do here.")
+			return nil
+		}
 	}
 
 	if !backupOriginalCR {
@@ -222,7 +232,7 @@ func migrateToV2Alpha1(command *cobra.Command, args []string) error {
 		}
 
 		// Convert the CR
-		converted, err := v1alpha3tov2alpha1.V1alpha3toV2alpha1(&astarteObj)
+		converted, err := v1alpha3tov2alpha1.V1alpha3toV2alpha1(&astarteObj, nonInteractive)
 		if err != nil {
 			return fmt.Errorf("failed to convert Astarte CR (%s): %w", astarteObj.GetName(), err)
 		}

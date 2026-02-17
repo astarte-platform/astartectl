@@ -8,6 +8,20 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+const (
+	defaultRabbitmqConnectionSecretName        = "astarte-cloudamqp-connection"
+	defaultRabbitmqConnectionSecretUsernameKey = "username"
+	defaultRabbitmqConnectionSecretPasswordKey = "password"
+	defaultRabbitmqConnectionHost              = "rabbitmqconnectionhost.example.com"
+	defaultRabbitmqConnectionPort              = int64(5672)
+
+	defaultCassandraConnectionSecretName        = "astarte-scyllacloud-connection"
+	defaultCassandraConnectionSecretUsernameKey = "username"
+	defaultCassandraConnectionSecretPasswordKey = "password"
+	defaultCassandraConnectionHost              = "cassandraconnectionhost.example.com"
+	defaultCassandraConnectionPort              = int64(9042)
+)
+
 // convertCassandraConnectionSpec converts the spec.cassandra.connection section from v1alpha3 to v2alpha1
 func convertCassandraConnectionSpec(oldSpec *unstructured.Unstructured) (newConnection *unstructured.Unstructured) {
 	newConnection = &unstructured.Unstructured{Object: map[string]interface{}{}}
@@ -54,7 +68,7 @@ func convertCassandraConnectionSpec(oldSpec *unstructured.Unstructured) (newConn
 }
 
 // convertCassandraSpec converts the spec.cassandra section from v1alpha3 to v2alpha1
-func convertCassandraSpec(oldSpec *unstructured.Unstructured) (newCassandra *unstructured.Unstructured) {
+func convertCassandraSpec(oldSpec *unstructured.Unstructured, nonInteractive bool) (newCassandra *unstructured.Unstructured) {
 	newCassandra = &unstructured.Unstructured{Object: map[string]interface{}{}}
 
 	oldCassandra, found, err := unstructured.NestedFieldNoCopy(oldSpec.Object, "spec", "cassandra")
@@ -85,32 +99,80 @@ func convertCassandraSpec(oldSpec *unstructured.Unstructured) (newCassandra *uns
 		cassandraConnectionSecretName := ""
 		cassandraConnectionSecretUsernameKey := ""
 		cassandraConnectionSecretPasswordKey := ""
+		cassandraNodeHost := ""
+		cassandraNodePort := int64(0)
 
-		// Since the deploy was ture, we ask user for pointers to the new connection
-		fmt.Print("new cassandra.connection.credentialsSecret.name: ")
-		_, err = fmt.Scanln(&cassandraConnectionSecretName)
-		if err != nil {
-			slog.Error("error reading cassandra connection credentialsSecret name from input", "err", err)
+		if nonInteractive {
+			cassandraConnectionSecretName = defaultCassandraConnectionSecretName
+			cassandraConnectionSecretUsernameKey = defaultCassandraConnectionSecretUsernameKey
+			cassandraConnectionSecretPasswordKey = defaultCassandraConnectionSecretPasswordKey
+			cassandraNodeHost = defaultCassandraConnectionHost
+			cassandraNodePort = defaultCassandraConnectionPort
+			slog.Warn("Non-interactive mode: cassandra.connection fields set to default values. You MUST update them before applying the CR.",
+				"name", cassandraConnectionSecretName,
+				"usernameKey", cassandraConnectionSecretUsernameKey,
+				"passwordKey", cassandraConnectionSecretPasswordKey,
+				"nodeHost", cassandraNodeHost,
+				"nodePort", cassandraNodePort,
+			)
+		} else {
+			// Since the deploy was true, we ask user for pointers to the new connection
+			fmt.Print("new cassandra.connection.credentialsSecret.name: ")
+			_, err = fmt.Scanln(&cassandraConnectionSecretName)
+			if err != nil {
+				slog.Error("error reading cassandra connection credentialsSecret name from input", "err", err)
+			}
+
+			fmt.Print("new cassandra.connection.credentialsSecret.usernameKey: ")
+			_, err = fmt.Scanln(&cassandraConnectionSecretUsernameKey)
+			if err != nil {
+				slog.Error("error reading cassandra connection credentialsSecret usernameKey from input", "err", err)
+			}
+
+			fmt.Print("new cassandra.connection.credentialsSecret.passwordKey: ")
+			_, err = fmt.Scanln(&cassandraConnectionSecretPasswordKey)
+			if err != nil {
+				slog.Error("error reading cassandra connection credentialsSecret passwordKey from input", "err", err)
+			}
+
+			fmt.Print("new cassandra.connection.nodes[0].host: ")
+			_, err = fmt.Scanln(&cassandraNodeHost)
+			if err != nil {
+				slog.Error("error reading cassandra connection node host from input", "err", err)
+			}
+
+			fmt.Print("new cassandra.connection.nodes[0].port: ")
+			_, err = fmt.Scanln(&cassandraNodePort)
+			if err != nil {
+				slog.Error("error reading cassandra connection node port from input", "err", err)
+			}
 		}
 
-		fmt.Print("new cassandra.connection.credentialsSecret.usernameKey: ")
-		_, err = fmt.Scanln(&cassandraConnectionSecretUsernameKey)
-		if err != nil {
-			slog.Error("error reading cassandra connection credentialsSecret usernameKey from input", "err", err)
+		slog.Info("Cassandra connection set to",
+			"name", cassandraConnectionSecretName,
+			"usernameKey", cassandraConnectionSecretUsernameKey,
+			"passwordKey", cassandraConnectionSecretPasswordKey,
+			"nodeHost", cassandraNodeHost,
+			"nodePort", cassandraNodePort,
+		)
+
+		// Build the connection object with credentialsSecret and nodes
+		connectionObj := map[string]interface{}{
+			"credentialsSecret": map[string]interface{}{
+				"name":        cassandraConnectionSecretName,
+				"usernameKey": cassandraConnectionSecretUsernameKey,
+				"passwordKey": cassandraConnectionSecretPasswordKey,
+			},
+			"nodes": []interface{}{
+				map[string]interface{}{
+					"host": cassandraNodeHost,
+					"port": cassandraNodePort,
+				},
+			},
 		}
 
-		fmt.Print("new cassandra.connection.credentialsSecret.passwordKey: ")
-		_, err = fmt.Scanln(&cassandraConnectionSecretPasswordKey)
-		if err != nil {
-			slog.Error("error reading cassandra connection credentialsSecret passwordKey from input", "err", err)
-		}
-
-		slog.Info("Cassandra connection credentialsSecret set to", "name", cassandraConnectionSecretName, "usernameKey", cassandraConnectionSecretUsernameKey, "passwordKey", cassandraConnectionSecretPasswordKey)
-		// Set the values in the new cassandra connection
-		newCassandra.Object["credentialsSecret"] = map[string]interface{}{
-			"name":        cassandraConnectionSecretName,
-			"usernameKey": cassandraConnectionSecretUsernameKey,
-			"passwordKey": cassandraConnectionSecretPasswordKey,
+		if err := unstructured.SetNestedField(newCassandra.Object, connectionObj, "connection"); err != nil {
+			slog.Error("error setting cassandra connection spec", "err", err)
 		}
 
 		return newCassandra
@@ -128,7 +190,7 @@ func convertCassandraSpec(oldSpec *unstructured.Unstructured) (newCassandra *uns
 	return newCassandra
 }
 
-func convertRabbitMQConnectionSpec(oldSpec *unstructured.Unstructured) (newConnection *unstructured.Unstructured) {
+func convertRabbitMQConnectionSpec(oldSpec *unstructured.Unstructured, nonInteractive bool) (newConnection *unstructured.Unstructured) {
 	slog.Info("Converting RabbitMQ connection spec")
 	newConnection = &unstructured.Unstructured{Object: map[string]interface{}{}}
 	oldConnection, found, err := unstructured.NestedFieldNoCopy(oldSpec.Object, "spec", "rabbitmq", "connection")
@@ -164,11 +226,16 @@ func convertRabbitMQConnectionSpec(oldSpec *unstructured.Unstructured) (newConne
 
 	// Ask for port if not set
 	if port, found, _ := unstructured.NestedInt64(newConnection.Object, "port"); !found || port == 0 {
-		slog.Warn("rabbitmq.connection.port not set, please provide it:")
-		_, err = fmt.Scanln(&port)
+		if nonInteractive {
+			port = defaultRabbitmqConnectionPort
+			slog.Warn("Non-interactive mode: rabbitmq.connection.port not set, using default value. Ensure this is correct.", "port", port)
+		} else {
+			slog.Warn("rabbitmq.connection.port not set, please provide it:")
+			_, err = fmt.Scanln(&port)
 
-		if err != nil {
-			slog.Error("error reading rabbitmq connection port from input", "err", err)
+			if err != nil {
+				slog.Error("error reading rabbitmq connection port from input", "err", err)
+			}
 		}
 
 		newConnection.Object["port"] = int64(port)
@@ -177,11 +244,16 @@ func convertRabbitMQConnectionSpec(oldSpec *unstructured.Unstructured) (newConne
 
 	// Ask for host if not set
 	if host, found, _ := unstructured.NestedString(newConnection.Object, "host"); !found || host == "" {
-		slog.Warn("rabbitmq.connection.host not set, please provide it:")
-		_, err := fmt.Scanln(&host)
+		if nonInteractive {
+			host = defaultRabbitmqConnectionHost
+			slog.Warn("Non-interactive mode: rabbitmq.connection.host not set, using default value. You MUST update it before applying the CR.", "host", host)
+		} else {
+			slog.Warn("rabbitmq.connection.host not set, please provide it:")
+			_, err := fmt.Scanln(&host)
 
-		if err != nil {
-			slog.Error("error reading rabbitmq connection host from input", "err", err)
+			if err != nil {
+				slog.Error("error reading rabbitmq connection host from input", "err", err)
+			}
 		}
 
 		newConnection.Object["host"] = host
@@ -193,7 +265,7 @@ func convertRabbitMQConnectionSpec(oldSpec *unstructured.Unstructured) (newConne
 }
 
 // convertRabbitMQSpec converts the spec.rabbitmq section from v1alpha3 to v2alpha1
-func convertRabbitMQSpec(oldSpec *unstructured.Unstructured) (newRabbitMQ *unstructured.Unstructured) {
+func convertRabbitMQSpec(oldSpec *unstructured.Unstructured, nonInteractive bool) (newRabbitMQ *unstructured.Unstructured) {
 	slog.Info("Converting RabbitMQ spec")
 	newRabbitMQ = &unstructured.Unstructured{Object: map[string]interface{}{}}
 
@@ -230,23 +302,34 @@ func convertRabbitMQSpec(oldSpec *unstructured.Unstructured) (newRabbitMQ *unstr
 		rabbitmqConnectionSecretUsernameKey := ""
 		rabbitmqConnectionSecretPasswordKey := ""
 
-		// Since the deploy was ture, we ask user for pointers to the new connection
-		fmt.Print("new rabbitmq.connection.credentialsSecret.name: ")
-		_, err := fmt.Scanln(&rabbitmqConnectionSecretName)
-		if err != nil {
-			slog.Error("error reading rabbitmq connection credentialsSecret name from input", "err", err)
-		}
+		if nonInteractive {
+			rabbitmqConnectionSecretName = defaultRabbitmqConnectionSecretName
+			rabbitmqConnectionSecretUsernameKey = defaultRabbitmqConnectionSecretUsernameKey
+			rabbitmqConnectionSecretPasswordKey = defaultRabbitmqConnectionSecretPasswordKey
+			slog.Warn("Non-interactive mode: rabbitmq.connection.credentialsSecret fields set to default values. You MUST update them before applying the CR.",
+				"name", rabbitmqConnectionSecretName,
+				"usernameKey", rabbitmqConnectionSecretUsernameKey,
+				"passwordKey", rabbitmqConnectionSecretPasswordKey,
+			)
+		} else {
+			// Since the deploy was true, we ask user for pointers to the new connection
+			fmt.Print("new rabbitmq.connection.credentialsSecret.name: ")
+			_, err := fmt.Scanln(&rabbitmqConnectionSecretName)
+			if err != nil {
+				slog.Error("error reading rabbitmq connection credentialsSecret name from input", "err", err)
+			}
 
-		fmt.Print("new rabbitmq.connection.credentialsSecret.usernameKey: ")
-		_, err = fmt.Scanln(&rabbitmqConnectionSecretUsernameKey)
-		if err != nil {
-			slog.Error("error reading rabbitmq connection credentialsSecret usernameKey from input", "err", err)
-		}
+			fmt.Print("new rabbitmq.connection.credentialsSecret.usernameKey: ")
+			_, err = fmt.Scanln(&rabbitmqConnectionSecretUsernameKey)
+			if err != nil {
+				slog.Error("error reading rabbitmq connection credentialsSecret usernameKey from input", "err", err)
+			}
 
-		fmt.Print("new rabbitmq.connection.credentialsSecret.passwordKey: ")
-		_, err = fmt.Scanln(&rabbitmqConnectionSecretPasswordKey)
-		if err != nil {
-			slog.Error("error reading rabbitmq connection credentialsSecret passwordKey from input", "err", err)
+			fmt.Print("new rabbitmq.connection.credentialsSecret.passwordKey: ")
+			_, err = fmt.Scanln(&rabbitmqConnectionSecretPasswordKey)
+			if err != nil {
+				slog.Error("error reading rabbitmq connection credentialsSecret passwordKey from input", "err", err)
+			}
 		}
 
 		slog.Info("RabbitMQ connection credentialsSecret set to", "name", rabbitmqConnectionSecretName, "usernameKey", rabbitmqConnectionSecretUsernameKey, "passwordKey", rabbitmqConnectionSecretPasswordKey)
@@ -263,7 +346,7 @@ func convertRabbitMQSpec(oldSpec *unstructured.Unstructured) (newRabbitMQ *unstr
 	}
 
 	// spec.rabbitmq.connection conversion
-	if conn := convertRabbitMQConnectionSpec(oldSpec); conn != nil && len(conn.Object) > 0 {
+	if conn := convertRabbitMQConnectionSpec(oldSpec, nonInteractive); conn != nil && len(conn.Object) > 0 {
 		if unstructured.SetNestedField(newRabbitMQ.Object, conn.Object, "connection") != nil {
 			slog.Error("error setting rabbitmq connection spec", "err", err)
 		}
@@ -952,7 +1035,7 @@ func convertTriggerEngineSpec(oldSpec *unstructured.Unstructured) (newTriggerEng
 }
 
 // convertSpec converts the spec section from v1alpha3 to v2alpha1
-func convertSpec(oldSpec *unstructured.Unstructured) (newSpec *unstructured.Unstructured) {
+func convertSpec(oldSpec *unstructured.Unstructured, nonInteractive bool) (newSpec *unstructured.Unstructured) {
 
 	// Initialize the destination Unstructured with a non-nil Object map
 	newSpec = &unstructured.Unstructured{Object: map[string]interface{}{}}
@@ -978,14 +1061,14 @@ func convertSpec(oldSpec *unstructured.Unstructured) (newSpec *unstructured.Unst
 	}
 
 	// Cassandra: spec.cassandra conversion
-	if cass := convertCassandraSpec(oldSpec); cass != nil && len(cass.Object) > 0 {
+	if cass := convertCassandraSpec(oldSpec, nonInteractive); cass != nil && len(cass.Object) > 0 {
 		if unstructured.SetNestedField(newSpec.Object, cass.Object, "cassandra") != nil {
 			slog.Error("error setting cassandra spec")
 		}
 	}
 
 	// RabbitMQ: spec.rabbitmq conversion
-	if rmq := convertRabbitMQSpec(oldSpec); rmq != nil && len(rmq.Object) > 0 {
+	if rmq := convertRabbitMQSpec(oldSpec, nonInteractive); rmq != nil && len(rmq.Object) > 0 {
 		if unstructured.SetNestedField(newSpec.Object, rmq.Object, "rabbitmq") != nil {
 			slog.Error("error setting rabbitmq spec")
 		}
@@ -1015,8 +1098,10 @@ func convertSpec(oldSpec *unstructured.Unstructured) (newSpec *unstructured.Unst
 	return newSpec
 }
 
-// v1alpha3toV2alpha1 converts a v1alpha3 Astarte CR to a v2alpha1 CR
-func V1alpha3toV2alpha1(oldCr *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+// V1alpha3toV2alpha1 converts a v1alpha3 Astarte CR to a v2alpha1 CR.
+// When nonInteractive is true, missing connection details are filled with placeholder values
+// instead of prompting the user.
+func V1alpha3toV2alpha1(oldCr *unstructured.Unstructured, nonInteractive bool) (*unstructured.Unstructured, error) {
 
 	// Disclamer: this code is very verbose and not very elegant, i know. The goal here
 	// is to have a very explicit and clear procedural approach to the conversion, so that
@@ -1071,7 +1156,7 @@ func V1alpha3toV2alpha1(oldCr *unstructured.Unstructured) (*unstructured.Unstruc
 	}
 
 	// Assign converted spec to newCr
-	convertedSpec := convertSpec(oldCr)
+	convertedSpec := convertSpec(oldCr, nonInteractive)
 	if convertedSpec != nil {
 		// Set the underlying map (convertedSpec.Object) as the spec
 		if err = unstructured.SetNestedField(newCr.Object, convertedSpec.Object, "spec"); err != nil {
