@@ -14,6 +14,7 @@ const (
 	defaultRabbitmqConnectionSecretPasswordKey = "password"
 	defaultRabbitmqConnectionHost              = "rabbitmqconnectionhost.example.com"
 	defaultRabbitmqConnectionPort              = int64(5672)
+	defaultRabbitmqManagementPort              = int64(80)
 
 	defaultCassandraConnectionSecretName        = "astarte-scyllacloud-connection"
 	defaultCassandraConnectionSecretUsernameKey = "username"
@@ -84,11 +85,22 @@ func convertCassandraSpec(oldSpec *unstructured.Unstructured, nonInteractive boo
 
 	slog.Info("The following fields are no longer supported and will be ignored if present in the source CR: cassandra.deploy, cassandra.replicas, cassandra.image, cassandra.version, cassandra.storage, cassandra.maxHeapSize, cassandra.heapNewSize, cassandra.resources.")
 
+	defaultAstarteSystemKeyspace := map[string]interface{}{
+		"replicationFactor":   int64(1),
+		"replicationStrategy": "SimpleStrategy",
+	}
+
 	// spec.astarteSystemKeyspace is now spec.cassandra.astarteSystemKeyspace
 	// Build the inner cassandra object content directly (do not nest a top-level "cassandra" key here)
 	err = migrationutils.CopyIfExists(oldSpec, newCassandra, []string{"spec", "astarteSystemKeyspace"}, []string{"astarteSystemKeyspace"})
 	if err != nil {
 		slog.Error("error copying astarteSystemKeyspace", "err", err)
+	}
+
+	// Set replication
+	slog.Info("The cassandra replication strategy for the astarte system keyspace is now set to a default value during migration. If you had a custom replication strategy defined in spec.astarteSystemKeyspace, it has been copied over to spec.cassandra.astarteSystemKeyspace. Please review this section to ensure it is correct for your deployment, especially if you were using a NetworkTopologyStrategy with multiple datacenters.")
+	if err := unstructured.SetNestedField(newCassandra.Object, defaultAstarteSystemKeyspace, "astarteSystemKeyspace"); err != nil {
+		slog.Error("error setting cassandra defaultAstarteSystemKeyspace spec", "err", err)
 	}
 
 	// If spec.cassandra.deploy is true, ask the user for cassandra.connection.credentialsSecret details
@@ -190,7 +202,7 @@ func convertCassandraSpec(oldSpec *unstructured.Unstructured, nonInteractive boo
 	return newCassandra
 }
 
-func convertRabbitMQConnectionSpec(oldSpec *unstructured.Unstructured, nonInteractive bool) (newConnection *unstructured.Unstructured) {
+func convertRabbitMQConnectionSpec(oldSpec *unstructured.Unstructured, nonInteractive bool) (newConnection *unstructured.Unstructured, newManagementConnection *unstructured.Unstructured) {
 	slog.Info("Converting RabbitMQ connection spec")
 	newConnection = &unstructured.Unstructured{Object: map[string]interface{}{}}
 	oldConnection, found, err := unstructured.NestedFieldNoCopy(oldSpec.Object, "spec", "rabbitmq", "connection")
@@ -260,8 +272,69 @@ func convertRabbitMQConnectionSpec(oldSpec *unstructured.Unstructured, nonIntera
 		slog.Info(fmt.Sprintf("rabbitmq.connection.host set to %s", host))
 	}
 
+	// Handle managementConnection
+	newManagementConnection = &unstructured.Unstructured{Object: map[string]interface{}{}}
+	if nonInteractive {
+		// Copy host from connection
+		if host, found, _ := unstructured.NestedString(newConnection.Object, "host"); found {
+			newManagementConnection.Object["host"] = host
+		} else {
+			newManagementConnection.Object["host"] = defaultRabbitmqConnectionHost
+		}
+		// Set port to 80
+		newManagementConnection.Object["port"] = defaultRabbitmqManagementPort
+		// Copy credentialsSecret from connection
+		if cred, found, _ := unstructured.NestedFieldNoCopy(newConnection.Object, "credentialsSecret"); found {
+			newManagementConnection.Object["credentialsSecret"] = cred
+		}
+	} else {
+		// Interactive, prompt for management connection
+		var host string
+		fmt.Print("new rabbitmq.managementConnection.host: ")
+		_, err = fmt.Scanln(&host)
+		if err != nil {
+			slog.Error("error reading rabbitmq management connection host from input", "err", err)
+		} else {
+			newManagementConnection.Object["host"] = host
+		}
+
+		var port int64
+		fmt.Print("new rabbitmq.managementConnection.port: ")
+		_, err = fmt.Scanln(&port)
+		if err != nil {
+			slog.Error("error reading rabbitmq management connection port from input", "err", err)
+		} else {
+			newManagementConnection.Object["port"] = port
+		}
+
+		var name, usernameKey, passwordKey string
+		fmt.Print("new rabbitmq.managementConnection.credentialsSecret.name: ")
+		_, err = fmt.Scanln(&name)
+		if err != nil {
+			slog.Error("error reading rabbitmq management connection credentialsSecret name from input", "err", err)
+		}
+
+		fmt.Print("new rabbitmq.managementConnection.credentialsSecret.usernameKey: ")
+		_, err = fmt.Scanln(&usernameKey)
+		if err != nil {
+			slog.Error("error reading rabbitmq management connection credentialsSecret usernameKey from input", "err", err)
+		}
+
+		fmt.Print("new rabbitmq.managementConnection.credentialsSecret.passwordKey: ")
+		_, err = fmt.Scanln(&passwordKey)
+		if err != nil {
+			slog.Error("error reading rabbitmq management connection credentialsSecret passwordKey from input", "err", err)
+		}
+
+		newManagementConnection.Object["credentialsSecret"] = map[string]interface{}{
+			"name":        name,
+			"usernameKey": usernameKey,
+			"passwordKey": passwordKey,
+		}
+	}
+
 	slog.Info("RabbitMQ connection spec conversion completed")
-	return newConnection
+	return newConnection, newManagementConnection
 }
 
 // convertRabbitMQSpec converts the spec.rabbitmq section from v1alpha3 to v2alpha1
@@ -346,9 +419,15 @@ func convertRabbitMQSpec(oldSpec *unstructured.Unstructured, nonInteractive bool
 	}
 
 	// spec.rabbitmq.connection conversion
-	if conn := convertRabbitMQConnectionSpec(oldSpec, nonInteractive); conn != nil && len(conn.Object) > 0 {
+	conn, mgmtConn := convertRabbitMQConnectionSpec(oldSpec, nonInteractive)
+	if conn != nil && len(conn.Object) > 0 {
 		if unstructured.SetNestedField(newRabbitMQ.Object, conn.Object, "connection") != nil {
 			slog.Error("error setting rabbitmq connection spec", "err", err)
+		}
+	}
+	if mgmtConn != nil && len(mgmtConn.Object) > 0 {
+		if unstructured.SetNestedField(newRabbitMQ.Object, mgmtConn.Object, "managementConnection") != nil {
+			slog.Error("error setting rabbitmq management connection spec", "err", err)
 		}
 	}
 
