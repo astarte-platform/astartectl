@@ -8,7 +8,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/astarte-platform/astarte-go v0.92.2-0.20241112115810-b8a1c0732cf1
 	github.com/go-openapi/strfmt v0.21.1 // indirect
-	github.com/google/go-cmp v0.5.8
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/go-github/v30 v30.1.0
 	github.com/google/uuid v1.4.0
 	github.com/jedib0t/go-pretty v4.3.0+incompatible

@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `astartectl cluster instances migrate api v2alpha1`: command to automate
   Astarte CRs conversion from v1alpha3 to v2alpha1
 
+### Removed
+- BREAKING: Remove deprecated command `cluster instances migrate replace-voyager` previously used
+  to migrate from AVI (Voyager Ingress) to ADI.
+- BREAKING: Remove deprecated command `cluster instances migrate storage-version` previously used 
+  to set new storage version for Astarte / AVI CRs (used for Astarte Operator v22.11 migration).
+
 ## [24.5.3] - 2026-01-28
 ### Changed
 - `appengine device attributes list`: display attributes in a human-friendly
