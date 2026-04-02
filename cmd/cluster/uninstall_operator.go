@@ -30,8 +30,7 @@ $ helm uninstall astarte-operator
 
 The above command will not remove Astarte CRDs, if you want to remove them (keeping in mind that removing them is DANGEROUS and can lead to data loss in your cluster) you can do so with these commands:
 
-$ kubectl delete crd astartes.api.astarte-platform.org
-$ kubectl delete crd astartevoyageringresses.api.astarte-platform.org`
+$ kubectl delete crd astartes.api.astarte-platform.org`
 
 var uninstallCmd = &cobra.Command{
 	Use:   "uninstall-operator",

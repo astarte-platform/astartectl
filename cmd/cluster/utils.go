@@ -16,7 +16,6 @@ package cluster
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -37,7 +36,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/yaml"
 )
 
 func init() {
@@ -182,10 +180,6 @@ func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, str
 	}
 
 	return operatorStatus, deploymentManager, deploymentProfile
-}
-
-func isUnstableVersion(version string) bool {
-	return strings.HasSuffix(version, "-snapshot") || version == "snapshot"
 }
 
 func getProfile(command *cobra.Command, astarteVersion *semver.Version, burst bool) (string, deployment.AstarteClusterProfile, error) {
@@ -360,43 +354,4 @@ func setInMapRecursively(aMap map[string]interface{}, tokens []string, customFie
 		}
 	}
 	return aMap
-}
-
-func unstructuredToJSON(in *unstructured.Unstructured) ([]byte, error) {
-	out, err := json.Marshal(in.Object)
-	if err != nil {
-		return []byte{}, err
-	}
-	return out, nil
-}
-
-func unstructuredToYAML(in *unstructured.Unstructured) ([]byte, error) {
-	j, err := unstructuredToJSON(in)
-	if err != nil {
-		return []byte{}, err
-	}
-	out, err := yaml.JSONToYAML(j)
-	if err != nil {
-		return []byte{}, err
-	}
-	return out, nil
-}
-
-func dumpResourceToYAMLFile(in *unstructured.Unstructured, filepath string) error {
-	f, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	y, err := unstructuredToYAML(in)
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile(filepath, []byte(y), 0644); err != nil {
-		return err
-	}
-
-	return nil
 }
