@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   to migrate from AVI (Voyager Ingress) to ADI.
 - BREAKING: Remove deprecated command `cluster instances migrate storage-version` previously used 
   to set new storage version for Astarte / AVI CRs (used for Astarte Operator v22.11 migration).
+- BREAKING: Remove deprecated operator management commands `astartectl cluster *-operator`
 
 ## [24.5.3] - 2026-01-28
 ### Changed
