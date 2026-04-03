@@ -157,7 +157,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 		// Metatype
 		if t == "all-realm-apis" {
 			if len(args) != 1 {
-				return errors.New("When specifying all-realm-apis, no other types can be specified")
+				return errors.New("when specifying all-realm-apis, no other types can be specified")
 			}
 
 			// Add all types
@@ -174,12 +174,12 @@ func genJwtF(command *cobra.Command, args []string) error {
 
 		astarteService, err := astarteservices.FromString(t)
 		if err != nil {
-			return fmt.Errorf("Invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
+			return fmt.Errorf("invalid type. Valid types are: %s", strings.Join(jwtTypes, ", "))
 		}
 
 		if astarteService == astarteservices.Housekeeping {
 			if len(args) != 1 {
-				return errors.New("Conflicting API types specified. Specify only API sets which require the same key type for signing")
+				return errors.New("conflicting API types specified. Specify only API sets which require the same key type for signing")
 			}
 			shouldUseHousekeepingKey = true
 		}
@@ -206,7 +206,7 @@ func genJwtF(command *cobra.Command, args []string) error {
 			tokens := strings.SplitN(claim, ":", 2)
 			astarteService, err := astarteservices.FromString(tokens[0])
 			if err != nil {
-				return fmt.Errorf("Invalid type specified in claim. Valid types are: %s", strings.Join(jwtTypes, ", "))
+				return fmt.Errorf("invalid type specified in claim. Valid types are: %s", strings.Join(jwtTypes, ", "))
 			}
 			servicesAndClaims[astarteService] = append(servicesAndClaims[astarteService], tokens[1])
 		} else {

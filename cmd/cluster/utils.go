@@ -31,7 +31,6 @@ import (
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 )
@@ -86,7 +85,7 @@ func getHousekeepingKey(name, namespace string, checkFirst bool) ([]byte, error)
 	}
 
 	secret, err := kubernetesClient.CoreV1().Secrets(namespace).Get(
-		context.TODO(), fmt.Sprintf("%s-housekeeping-private-key", name), v1.GetOptions{})
+		context.TODO(), fmt.Sprintf("%s-housekeeping-private-key", name), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +119,7 @@ func getLastReleaseForAstarteRepo(repo string) (string, error) {
 	collection := semver.Collection{}
 
 	for _, tag := range tags {
-		ver, err := semver.NewVersion(strings.Replace(tag.GetName(), "v", "", -1))
+		ver, err := semver.NewVersion(strings.ReplaceAll(tag.GetName(), "v", ""))
 		if err != nil {
 			continue
 		}
@@ -151,13 +150,13 @@ func getClusterAllocatableResources() (int, int64, int64, error) {
 	for _, node := range list.Items {
 		nodeAllocatableCPU := node.Status.Allocatable.Cpu().ScaledValue(resource.Milli)
 		if nodeAllocatableCPU <= 0 {
-			return 0, 0, 0, fmt.Errorf("Could not retrieve allocatable CPU for node %s", node.GetName())
+			return 0, 0, 0, fmt.Errorf("could not retrieve allocatable CPU for node %s", node.GetName())
 		}
 		allocatableCPU += nodeAllocatableCPU
 		// Get Int64 directly, as the value is always returned in bytes.
 		nodeAllocatableMemory, ok := node.Status.Allocatable.Memory().AsInt64()
 		if !ok {
-			return 0, 0, 0, fmt.Errorf("Could not retrieve allocatable Memory for node %s", node.GetName())
+			return 0, 0, 0, fmt.Errorf("could not retrieve allocatable Memory for node %s", node.GetName())
 		}
 		allocatableMemory += nodeAllocatableMemory
 	}
@@ -166,9 +165,9 @@ func getClusterAllocatableResources() (int, int64, int64, error) {
 }
 
 func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, string, string) {
-	var operatorStatus string = "Initializing"
-	var deploymentManager string = ""
-	var deploymentProfile string = ""
+	var operatorStatus = "Initializing"
+	var deploymentManager = ""
+	var deploymentProfile = ""
 	if status, ok := res.Object["status"]; ok {
 		statusMap := status.(map[string]interface{})
 		if oldOperatorStatus, ok := statusMap["conditions"]; ok {

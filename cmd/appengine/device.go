@@ -427,7 +427,7 @@ func buildDeviceFilters(rawDeviceFilters []string) (map[DeviceFilterType]interfa
 	for _, filter := range rawDeviceFilters {
 		s := strings.Split(filter, "=")
 		if len(s) != 2 {
-			return emptyMap, errors.New("Invalid filter format")
+			return emptyMap, errors.New("invalid filter format")
 		}
 
 		filterType := DeviceFilterType(s[0])
@@ -446,7 +446,7 @@ func buildDeviceFilters(rawDeviceFilters []string) (map[DeviceFilterType]interfa
 			}
 
 			if t.After(time.Now()) {
-				return emptyMap, errors.New("Timestamp for active-since must be in the past")
+				return emptyMap, errors.New("timestamp for active-since must be in the past")
 			}
 
 			ret[filterType] = t
@@ -596,14 +596,14 @@ func devicesDataSnapshotF(command *cobra.Command, args []string) error {
 	}
 
 	if skipRealmManagementChecks && snapshotInterface == "" {
-		return fmt.Errorf("When not using Realm Management checks, an interface should always be specified")
+		return fmt.Errorf("when not using Realm Management checks, an interface should always be specified")
 	}
 	interfaceTypeString, err := command.Flags().GetString("interface-type")
 	if err != nil {
 		return err
 	}
 	if skipRealmManagementChecks && interfaceTypeString == "" {
-		return fmt.Errorf("When not using Realm Management checks, --interface-type should always be specified")
+		return fmt.Errorf("when not using Realm Management checks, --interface-type should always be specified")
 	}
 
 	outputType, err := command.Flags().GetString("output")
@@ -1111,7 +1111,7 @@ func devicesSendDataF(command *cobra.Command, args []string) error {
 	}
 
 	if skipRealmManagementChecks && interfaceTypeString == "" {
-		return fmt.Errorf("When not using Realm Management checks, --interface-type should always be specified")
+		return fmt.Errorf("when not using Realm Management checks, --interface-type should always be specified")
 	}
 
 	iface, err := getProtoInterface(deviceID, deviceIdentifierType, interfaceName, interfaceTypeString, skipRealmManagementChecks)
@@ -1158,11 +1158,11 @@ func devicesPublishDataStreamF(command *cobra.Command, args []string) error {
 
 	// exclusion of property set/unset
 	if skipRealmManagementChecks && interfaceTypeString == "properties" {
-		return fmt.Errorf("Invalid command, use set-property or unset-property")
+		return fmt.Errorf("invalid command, use set-property or unset-property")
 	}
 
 	if skipRealmManagementChecks && interfaceTypeString == "" {
-		return fmt.Errorf("When not using Realm Management checks, --interface-type should always be specified")
+		return fmt.Errorf("when not using Realm Management checks, --interface-type should always be specified")
 	}
 
 	iface, err := getProtoInterface(deviceID, deviceIdentifierType, interfaceName, interfaceTypeString, skipRealmManagementChecks)
@@ -1179,7 +1179,7 @@ func devicesPublishDataStreamF(command *cobra.Command, args []string) error {
 
 	// exclusion of property set/unset
 	if iface.Type == interfaces.PropertiesType {
-		return fmt.Errorf("Invalid command, use set-property or unset-property")
+		return fmt.Errorf("invalid command, use set-property or unset-property")
 	}
 
 	// Time to understand the payload type
@@ -1192,7 +1192,7 @@ func devicesPublishDataStreamF(command *cobra.Command, args []string) error {
 		case "aggregate-datastream", "aggregate-parametric-datastream":
 			// In this case, it's ok not to pass anything as the type
 		default:
-			return fmt.Errorf("When not using Realm Management checks with interfaces with individual aggregation, --payload-type should always be specified")
+			return fmt.Errorf("when not using Realm Management checks with interfaces with individual aggregation, --payload-type should always be specified")
 		}
 	}
 
@@ -1361,7 +1361,7 @@ func devicesSetPropertyF(command *cobra.Command, args []string) error {
 
 	// exclusion of datastream
 	if iface.Type != interfaces.PropertiesType {
-		return fmt.Errorf("Invalid command, use publish-datastream")
+		return fmt.Errorf("invalid command, use publish-datastream")
 	}
 
 	if !skipRealmManagementChecks {
@@ -1413,7 +1413,7 @@ func devicesSetPropertyF(command *cobra.Command, args []string) error {
 			sendDataCall, err = astarteAPIClient.SetProperty(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath, parsedPayloadData)
 		}
 	} else {
-		err = fmt.Errorf("The provided interface type is not 'properties'. If you want to send data to a 'datastream' interface, please use publish-datastream.")
+		err = fmt.Errorf("the provided interface type is not 'properties'. If you want to send data to a 'datastream' interface, please use publish-datastream")
 	}
 
 	if err != nil {
@@ -1462,7 +1462,7 @@ func devicesUnSetPropertyF(command *cobra.Command, args []string) error {
 	}
 
 	if iface.Type != interfaces.PropertiesType {
-		return fmt.Errorf("Invalid command, use publish-datastream")
+		return fmt.Errorf("invalid command, use publish-datastream")
 	}
 
 	if !skipRealmManagementChecks {
@@ -1476,7 +1476,7 @@ func devicesUnSetPropertyF(command *cobra.Command, args []string) error {
 	if iface.Type == interfaces.PropertiesType {
 		sendDataCall, err = astarteAPIClient.UnsetProperty(realm, deviceID, deviceIdentifierType, interfaceName, interfacePath)
 	} else {
-		err = fmt.Errorf("The provided interface type is not 'properties'. If you want to send data to a 'datastream' interface, please use publish-datastream.")
+		err = fmt.Errorf("the provided interface type is not 'properties'. If you want to send data to a 'datastream' interface, please use publish-datastream")
 	}
 
 	if err != nil {

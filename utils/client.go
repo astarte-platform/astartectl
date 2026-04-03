@@ -81,7 +81,7 @@ func setupAuth(keyVariable, keyFileVariable string) ([]client.Option, error) {
 	privateKey := viper.GetString(keyVariable)
 	explicitToken := viper.GetString("token")
 	if privateKey == "" && privateKeyFile == "" && explicitToken == "" {
-		return nil, fmt.Errorf("%s or token is required", strings.Replace(keyFileVariable, ".", "-", -1))
+		return nil, fmt.Errorf("%s or token is required", strings.ReplaceAll(keyFileVariable, ".", "-"))
 	}
 	if explicitToken == "" {
 		// 1 minute TTL is more than enough for our purposes
@@ -117,7 +117,7 @@ func setupURLs(individualURLVariables map[astarteservices.AstarteService]string)
 	} else if astarteURL != "" {
 		ret = append(ret, client.WithBaseURL(astarteURL))
 	} else {
-		return nil, errors.New("Either astarte-url or an individual API URL have to be specified")
+		return nil, errors.New("either astarte-url or an individual API URL have to be specified")
 	}
 	return ret, nil
 }

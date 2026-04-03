@@ -24,9 +24,10 @@ func AskForConfirmation(s string) (bool, error) {
 
 		response = strings.ToLower(strings.TrimSpace(response))
 
-		if response == "y" || response == "yes" {
+		switch response {
+		case "y", "yes":
 			return true, nil
-		} else if response == "n" || response == "no" {
+		case "n", "no":
 			return false, nil
 		}
 	}
@@ -42,7 +43,7 @@ func PromptChoice(question string, defaultValue string, allowEmpty, nonInteracti
 		case allowEmpty:
 			return "", nil
 		default:
-			return "", fmt.Errorf("%s\nRequested non-interactive command, but a necessary parameter was not provided.", question)
+			return "", fmt.Errorf("%s\nRequested non-interactive command, but a necessary parameter was not provided", question)
 		}
 	}
 

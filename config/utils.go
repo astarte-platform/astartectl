@@ -59,7 +59,7 @@ func ConfigureViper(contextOverride string) error {
 	}
 
 	if currentContext == "" {
-		return errors.New("No current context defined")
+		return errors.New("no current context defined")
 	}
 
 	// Load the current context
@@ -76,7 +76,7 @@ func ConfigureViper(contextOverride string) error {
 	// Now, get the corresponding cluster
 	cluster := viper.Get("cluster").(string)
 	if cluster == "" {
-		return errors.New("No cluster defined in context - something is wrong")
+		return errors.New("no cluster defined in context - something is wrong")
 	}
 
 	// Load the corresponding cluster

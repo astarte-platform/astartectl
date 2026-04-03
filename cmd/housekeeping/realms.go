@@ -423,7 +423,7 @@ func getPublicKeyPEMBytesFromPrivateKey(key interface{}) ([]byte, error) {
 		pkixBytes, err = x509.MarshalPKIXPublicKey(k.Public())
 
 	default:
-		return nil, errors.New("Unsupported private key type")
+		return nil, errors.New("unsupported private key type")
 	}
 
 	if err != nil {
@@ -461,5 +461,5 @@ func getClusterNameFromURLs() (string, error) {
 		return "", err
 	}
 	// Skip context creation
-	return "", errors.New("Not found")
+	return "", errors.New("not found")
 }

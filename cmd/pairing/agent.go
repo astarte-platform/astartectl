@@ -69,7 +69,7 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 	// TODO: add support for initial_introspection
 	deviceID := args[0]
 	if !deviceid.IsValid(deviceID) {
-		return errors.New("Invalid device id")
+		return errors.New("invalid device id")
 	}
 
 	registerDeviceCall, err := astarteAPIClient.RegisterDevice(realm, deviceID)
@@ -112,7 +112,7 @@ func agentRegisterF(command *cobra.Command, args []string) error {
 func agentUnregisterF(command *cobra.Command, args []string) error {
 	deviceID := args[0]
 	if !deviceid.IsValid(deviceID) {
-		return errors.New("Invalid device id")
+		return errors.New("invalid device id")
 	}
 
 	nonInteractive, err := command.Flags().GetBool("non-interactive")
