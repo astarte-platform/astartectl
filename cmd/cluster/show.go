@@ -62,7 +62,7 @@ func clusterShowF(command *cobra.Command, args []string) error {
 
 	astartes, err := listAstartes("")
 	if err != nil || len(astartes) == 0 {
-		fmt.Println("No Managed Astarte installations found. Maybe you want to deploy one with astartectl cluster instance deploy?")
+		fmt.Println("No Managed Astarte installations found.")
 		return nil
 	}
 

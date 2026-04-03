@@ -23,9 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.cloudfoundry.org/bytefmt"
 	"github.com/Masterminds/semver/v3"
-	"github.com/astarte-platform/astartectl/cmd/cluster/deployment"
 	"github.com/astarte-platform/astartectl/utils"
 	"github.com/google/go-github/v30/github"
 	"github.com/spf13/cobra"
@@ -100,10 +98,16 @@ func getAstarteOperator(operatorName, operatorNamespace string) (*appsv1.Deploym
 	return kubernetesClient.AppsV1().Deployments(operatorNamespace).Get(context.TODO(), operatorName, metav1.GetOptions{})
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getLastAstarteRelease() (string, error) {
 	return getLastReleaseForAstarteRepo("astarte")
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getLastReleaseForAstarteRepo(repo string) (string, error) {
 	ctx := context.Background()
 	client := github.NewClient(nil)
@@ -132,6 +136,9 @@ func getLastReleaseForAstarteRepo(repo string) (string, error) {
 	return collection[len(collection)-1].Original(), nil
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getClusterAllocatableResources() (int, int64, int64, error) {
 	// List Nodes
 	list, err := kubernetesClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -182,39 +189,9 @@ func getManagedAstarteResourceStatus(res unstructured.Unstructured) (string, str
 	return operatorStatus, deploymentManager, deploymentProfile
 }
 
-func getProfile(command *cobra.Command, astarteVersion *semver.Version, burst bool) (string, deployment.AstarteClusterProfile, error) {
-	nodes, allocatableCPU, allocatableMemory, err := getClusterAllocatableResources()
-	if err != nil {
-		return "", deployment.AstarteClusterProfile{}, err
-	}
-
-	fmt.Printf("Cluster has %v nodes\n", nodes)
-	fmt.Printf("Allocatable CPU is %vm\n", allocatableCPU)
-	fmt.Printf("Allocatable Memory is %v\n", bytefmt.ByteSize(uint64(allocatableMemory)))
-	fmt.Println()
-
-	clusterRequirements := deployment.AstarteProfileRequirements{
-		CPUAllocation:    allocatableCPU,
-		MemoryAllocation: allocatableMemory,
-		MinNodes:         nodes,
-		MaxNodes:         nodes,
-	}
-	availableProfiles := deployment.GetProfilesForVersionAndRequirements(astarteVersion, clusterRequirements)
-
-	if len(availableProfiles) == 0 {
-		return "", deployment.AstarteClusterProfile{}, fmt.Errorf("Unfortunately, your cluster allocatable resources do not allow for an Astarte instance to be deployed")
-	}
-
-	// Invariant: since burst requirements are a strict subset of basic requirements,
-	// if a cluster allows for a basic profile, it also allows for a burst one.
-	if burst {
-		return "burst", availableProfiles["burst"], nil
-	}
-
-	// basic type profiles are the default
-	return "basic", availableProfiles["basic"], nil
-}
-
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getValueFromSpec(spec map[string]interface{}, field string) interface{} {
 	fieldTokens := strings.Split(field, ".")
 	aMap := spec
@@ -235,6 +212,9 @@ func getValueFromSpec(spec map[string]interface{}, field string) interface{} {
 	return nil
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getStringFromSpecOrFlag(spec map[string]interface{}, field string, command *cobra.Command, flagName string) string {
 	ret := getValueFromSpec(spec, field)
 	if ret != nil {
@@ -256,6 +236,9 @@ func getStringFromSpecOrFlag(spec map[string]interface{}, field string, command 
 	return fl
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getFromSpecOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, question string, defaultValue string, allowEmpty bool) string {
 	ret := getValueFromSpec(spec, field)
 	if ret != nil {
@@ -265,6 +248,9 @@ func getFromSpecOrPromptOrDie(spec map[string]interface{}, field string, command
 	return getFromPromptOrDie(command, question, defaultValue, allowEmpty)
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getIntFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, flagName string, question string, defaultValue int, allowEmpty bool) int {
 	ret := getValueFromSpec(spec, field)
 	if ret != nil {
@@ -274,6 +260,9 @@ func getIntFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field string
 	return getIntFlagFromPromptOrDie(command, flagName, question, defaultValue, allowEmpty)
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getIntFlagFromPromptOrDie(command *cobra.Command, flagName string, question string, defaultValue int, allowEmpty bool) int {
 	var ret int
 	flag := command.Flags().Lookup(flagName)
@@ -299,6 +288,9 @@ func getIntFlagFromPromptOrDie(command *cobra.Command, flagName string, question
 	return ret
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getStringFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field string, command *cobra.Command, flagName string, question string, defaultValue string, allowEmpty bool) string {
 	ret := getValueFromSpec(spec, field)
 	if ret != nil {
@@ -308,6 +300,9 @@ func getStringFromSpecOrFlagOrPromptOrDie(spec map[string]interface{}, field str
 	return getStringFlagFromPromptOrDie(command, flagName, question, defaultValue, allowEmpty)
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getStringFlagFromPromptOrDie(command *cobra.Command, flagName string, question string, defaultValue string, allowEmpty bool) string {
 	ret := ""
 	flag := command.Flags().Lookup(flagName)
@@ -325,6 +320,9 @@ func getStringFlagFromPromptOrDie(command *cobra.Command, flagName string, quest
 	return ret
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func getFromPromptOrDie(command *cobra.Command, question string, defaultValue string, allowEmpty bool) string {
 	y, err := command.Flags().GetBool("non-interactive")
 	if err != nil {
@@ -340,6 +338,9 @@ func getFromPromptOrDie(command *cobra.Command, question string, defaultValue st
 	return ret
 }
 
+// TODO: delete this if not used anywhere else, as it was only used for the old operator management commands, which are now removed.
+//
+//nolint:unused
 func setInMapRecursively(aMap map[string]interface{}, tokens []string, customFieldValue interface{}) map[string]interface{} {
 	if len(tokens) == 1 {
 		aMap[tokens[0]] = customFieldValue
