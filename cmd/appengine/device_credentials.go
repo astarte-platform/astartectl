@@ -68,7 +68,7 @@ func devicesCredentialsInhibitF(command *cobra.Command, args []string) error {
 	inhibitString := args[1]
 	inhibit, err := strconv.ParseBool(inhibitString)
 	if err != nil {
-		return errors.New("The second argument should be one of: [true false]")
+		return errors.New("the second argument should be one of: [true false]")
 	}
 
 	inhibitDeviceReq, err := astarteAPIClient.SetDeviceInhibited(realm, deviceID, deviceIdentifierType, inhibit)

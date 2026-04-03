@@ -293,11 +293,11 @@ func getDeviceIDfromArgs(cmd *cobra.Command, args []string) (string, error) {
 func getDeviceIDfromAlias(alias string) (string, error) {
 	getDeviceIDCall, err := astarteAPIClient.GetDeviceIDFromAlias(realm, alias)
 	if err != nil {
-		return "", fmt.Errorf("Could not resolve the alias %s to an Astarte Device ID, error %w", alias, err)
+		return "", fmt.Errorf("could not resolve the alias %s to an Astarte Device ID, error %w", alias, err)
 	}
 	getDeviceIDRes, err := getDeviceIDCall.Run(astarteAPIClient)
 	if err != nil {
-		return "", fmt.Errorf("Could not resolve the alias %s to an Astarte Device ID, error %w", alias, err)
+		return "", fmt.Errorf("could not resolve the alias %s to an Astarte Device ID, error %w", alias, err)
 	}
 	rawDeviceID, _ := getDeviceIDRes.Parse()
 	deviceID, _ := rawDeviceID.(string)

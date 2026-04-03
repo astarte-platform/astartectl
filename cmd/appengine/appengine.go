@@ -60,7 +60,7 @@ func appEnginePersistentPreRunE(cmd *cobra.Command, args []string) error {
 	realmManagementURLOverride := viper.GetString("individual-urls.realm-management")
 	// Handle a special failure case, if realm-management is provided but appengine isn't
 	if appEngineURLOverride == "" && realmManagementURLOverride != "" {
-		return errors.New("Either astarte-url or appengine-url have to be specified")
+		return errors.New("either astarte-url or appengine-url have to be specified")
 	}
 
 	individualURLVariables := map[astarteservices.AstarteService]string{
@@ -93,7 +93,7 @@ func deviceIdentifierTypeFromFlags(deviceIdentifier string, forceDeviceIdentifie
 		return client.AutodiscoverDeviceIdentifier, nil
 	case "device-id":
 		if !deviceid.IsValid(deviceIdentifier) {
-			return 0, fmt.Errorf("Required to evaluate the Device Identifier as an Astarte Device ID, but %v isn't a valid one", deviceIdentifier)
+			return 0, fmt.Errorf("required to evaluate the Device Identifier as an Astarte Device ID, but %v isn't a valid one", deviceIdentifier)
 		}
 		return client.AstarteDeviceID, nil
 	case "alias":

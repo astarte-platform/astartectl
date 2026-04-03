@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- Bump Go version to 1.25
+  
 ### Added
 - `astartectl cluster instances migrate api v2alpha1`: command to automate
   Astarte CRs conversion from v1alpha3 to v2alpha1
