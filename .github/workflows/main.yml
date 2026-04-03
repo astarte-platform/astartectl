@@ -15,14 +15,14 @@ jobs:
     name: Build and Test
     strategy:
       matrix:
-        go: [1.21.x, 1.22.x]
-        os: [ubuntu-22.04, macos-latest, windows-latest]
+        go: [1.25.x, 1.26.x]
+        os: [ubuntu-24.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
 
     - name: Set up Go ${{ matrix.go }}
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
       id: go
@@ -42,7 +42,7 @@ jobs:
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.go == '1.22.x'
+      if: matrix.go == '1.25.x'
       with:
         path: astartectl*
         name: astartectl-snapshot-${{ matrix.os }}

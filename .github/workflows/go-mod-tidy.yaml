@@ -19,12 +19,12 @@ on:
 
 jobs:
   go-mod-tidy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-go@v4
+    - uses: actions/checkout@v5
+    - uses: actions/setup-go@v6
       with:
-        go-version: v1.21.x
+        go-version: v1.25.x
     - name: go-mod-tidy
       run: |
         go mod tidy
